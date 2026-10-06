@@ -128,6 +128,7 @@ export class Player extends Entity {
     this.attackEndsAt = now + A.attackDuration;
     this.attackContacts.clear();
     this.view.playSwing();
+    this.world.sound('swing');
     const p = this.attackPoint;
     this.world.effects.burst(p.x, p.y, Math.atan2(this.facing.y, this.facing.x), PARTICLES.swing);
     return true;
@@ -173,6 +174,7 @@ export class Player extends Entity {
     this.dashReadyAt = now + D.dashCooldown;
     this.body.vel.x = d.x * D.dashSpeed;
     this.body.vel.y = d.y * D.dashSpeed;
+    this.world.sound('dash');
     return true;
   }
 
@@ -185,6 +187,7 @@ export class Player extends Entity {
     this.parrySucceeded = false;
     this.parriedThisWindow.clear();
     this.view.playParry();
+    this.world.sound('parryStart');
     this.parryOverlapping(); // attacks already inside the window count immediately
     return true;
   }
@@ -219,6 +222,7 @@ export class Player extends Entity {
       this.view.hideParry();
       this.world.camera.shake(P.shakeDuration, P.shakeStrength, P.shakeFrequency);
       this.view.playParryConnect(contact);
+      this.world.sound('parry');
       this.world.events.parried.emit();
     }
     return true;
@@ -242,12 +246,14 @@ export class Player extends Entity {
     if (dx * dx + dy * dy < 0.0001) { dx = b.x - hitPoint.x; dy = b.y - hitPoint.y; }
     if (dx * dx + dy * dy < 0.0001) { dx = 1; dy = 0; }
     this.lastHitAt = this.now;
+    this.world.sound('hurt');
     this.world.effects.burst(b.x, b.y, Math.atan2(dy, dx), PARTICLES.playerHit);
     const hf = PLAYER.hitFeedback;
     this.world.camera.shake(hf.shakeDuration, hf.shakeStrength, hf.shakeFrequency);
   }
 
   die() {
+    this.world.sound('death');
     this.world.session.bankCoins();
     this.destroy();
     this.world.gameOver();

@@ -33,6 +33,7 @@ export class RiftAspect extends Aspect {
     this.contacts.clear();
     this.closeAnim.stop();
     this.openAnim.play();
+    this.world.sound('rift');
     this.afterPhysics(); // enemies already inside are hit immediately
   }
 

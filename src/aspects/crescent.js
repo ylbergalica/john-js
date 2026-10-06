@@ -26,6 +26,7 @@ export class CrescentAspect extends Aspect {
     dir = norm(dir);
     const damage = this.data.damage * this.world.adrenaline.damageMultiplier;
     const o = this.data.spawnForwardOffset;
+    this.world.sound('crescent');
     this.world.add(new CrescentSlash(this.world, this.data, origin.x + dir.x * o, origin.y + dir.y * o, dir, damage));
     this.readyAt = this.now + Math.max(0, this.data.cooldown);
   }

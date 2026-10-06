@@ -83,14 +83,17 @@ class Ability {
 
   notifyAttackStarted() { this.enemy.ai.onAbilityAttackStarted(this); }
 
+  sound(name) { this.world.sound(name, this.enemy.body.pos, { pitch: this.enemy.type.sfxPitch }); }
+
   dispose() { this.hitbox?.destroy(); }
 }
 
 // Melee abilities with a telegraphed hitbox (Dash, Punch, Ground Pound, Slam).
 class HitboxAbility extends Ability {
-  constructor(enemy, data, shape, colorKey, { stopsOnStart = true, parryKnockback = 5 } = {}) {
+  constructor(enemy, data, shape, colorKey, { stopsOnStart = true, parryKnockback = 5, strikeSound } = {}) {
     super(enemy, data);
     this.hitbox = new EnemyHitbox(enemy, this, shape, colorKey);
+    this.strikeSound = strikeSound;
     this.stopsOnStart = stopsOnStart;
     this.parryKnockback = parryKnockback;
   }
@@ -98,6 +101,7 @@ class HitboxAbility extends Ability {
   execute() {
     this.enemy.isActing = true;
     if (this.stopsOnStart) this.enemy.body.stop();
+    this.sound('windup');
     this.setPhase('windup', this.data.windUpTime);
   }
 
@@ -107,6 +111,7 @@ class HitboxAbility extends Ability {
       case 'windup':
         this.notifyAttackStarted();
         this.strike();
+        this.sound(this.strikeSound);
         this.hitbox.setActive(true);
         this.setPhase('active', this.data.duration);
         break;
@@ -144,7 +149,7 @@ class HitboxAbility extends Ability {
 
 class DashAbility extends HitboxAbility {
   constructor(enemy, data) {
-    super(enemy, data, { type: 'circle', r: data.hitboxRadius }, 'dash', { parryKnockback: data.dashForce * 0.3 });
+    super(enemy, data, { type: 'circle', r: data.hitboxRadius }, 'dash', { parryKnockback: data.dashForce * 0.3, strikeSound: 'enemyDash' });
   }
   strike() {
     const d = this.dirToPlayer();
@@ -155,7 +160,7 @@ class DashAbility extends HitboxAbility {
 class PunchAbility extends HitboxAbility {
   constructor(enemy, data) {
     const h = data.hitboxSize / 2;
-    super(enemy, data, { type: 'box', forward: data.forwardOffset, hw: h, hh: h }, 'punch');
+    super(enemy, data, { type: 'box', forward: data.forwardOffset, hw: h, hh: h }, 'punch', { strikeSound: 'punch' });
   }
   strike() {
     const d = this.dirToPlayer();
@@ -164,13 +169,13 @@ class PunchAbility extends HitboxAbility {
 }
 
 class GroundPoundAbility extends HitboxAbility {
-  constructor(enemy, data) { super(enemy, data, { type: 'circle', r: data.radius }, 'groundPound'); }
+  constructor(enemy, data) { super(enemy, data, { type: 'circle', r: data.radius }, 'groundPound', { strikeSound: 'slam' }); }
 }
 
 class SlamAbility extends HitboxAbility {
   constructor(enemy, data) {
     const s = data.sizeScale, half = (data.range / 2) * s;
-    super(enemy, data, { type: 'box', forward: half, hw: half, hh: (data.slamWidth / 2) * s }, 'slam', { stopsOnStart: false });
+    super(enemy, data, { type: 'box', forward: half, hw: half, hh: (data.slamWidth / 2) * s }, 'slam', { stopsOnStart: false, strikeSound: 'slam' });
   }
 }
 
@@ -178,6 +183,7 @@ class ThrowAbility extends Ability {
   execute() {
     this.enemy.isActing = true;
     this.enemy.body.stop();
+    this.sound('windup');
     this.setPhase('windup', this.data.windUpTime);
   }
 
@@ -192,6 +198,7 @@ class ThrowAbility extends Ability {
             dir, speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
             size: d.projectileSize, color: d.projectileColor,
           }));
+          this.sound('throw');
         }
         this.setPhase('recovery', d.recoveryTime);
         break;

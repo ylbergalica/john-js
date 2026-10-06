@@ -197,7 +197,7 @@ export const ENEMY_TYPES = {
   goblin: {
     maxHealth: 5, damage: 1, radius: 0.5 * 0.9, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84, sfxPitch: 1.2,
     visual: { kind: 'sprite', outline: 'goblin_idle', void: 'goblin_idle_void', size: 1.5 * 0.9, sparkleCount: 20 },
     ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
       attacks: [{ ability: 'GoblinThrow', weight: 1 }] },
@@ -205,7 +205,7 @@ export const ENEMY_TYPES = {
   striker: {
     maxHealth: 7, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b, sfxPitch: 1,
     visual: { kind: 'sprite', outline: 'striker_idle', void: 'striker_idle_void', size: 1.5, sparkleCount: 22 },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
       attacks: [{ ability: 'StrikerDash', weight: 1 }] },
@@ -213,7 +213,7 @@ export const ENEMY_TYPES = {
   warden: {
     maxHealth: 100, damage: 10, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff, sfxPitch: 0.55,
     navFootprint: 3, // tiles; the Warden needs 3-wide passages
     visual: { kind: 'hexagon', width: 2, height: 0.890625 * 2, color: 0xffffff },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 4, attackEngageRange: 3.5, moveSpeed: 1, orbitSpeed: 1, repositionSpeed: 1,
@@ -227,6 +227,10 @@ export const ENEMY_TYPES = {
 };
 
 export const ENEMY_COMBAT = { maxActiveAttackers: 3 };
+
+// Positional sounds: full volume within `fullVolumeRange` units of the camera, silent past
+// `silentRange`; panned by horizontal offset, reaching `maxPan` at the screen edge.
+export const AUDIO = { fullVolumeRange: 8, silentRange: 24, maxPan: 0.6 };
 
 export const VOID_SPARKLES = {
   sizeRange: { x: 0.025, y: 0.08 },

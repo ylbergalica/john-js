@@ -6,7 +6,8 @@ import { randInt, pickWeighted } from '../engine/math.js';
 import { Camera } from '../render/camera.js';
 import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
-import { BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME } from '../data/config.js';
+import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME } from '../data/config.js';
+import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
@@ -93,6 +94,7 @@ export class World {
     }
     this.cores = { required: chasers, collected: 0 };
     this.floorStartedAt = this.time;
+    sfx.play('floor');
   }
 
   clearFloor() {
@@ -140,6 +142,18 @@ export class World {
     return true;
   }
   releaseAttackSlot() { this.activeAttackers = Math.max(0, this.activeAttackers - 1); }
+
+  // Plays a sound at a world position, panned and faded by its offset from the camera.
+  // Without a position it plays centred (sounds that happen to the player).
+  sound(name, pos = null, opts = {}) {
+    if (!pos) { sfx.play(name, opts); return; }
+    const cam = this.camera;
+    const dx = pos.x - cam.x, dy = pos.y - cam.y;
+    const fade = 1 - (Math.hypot(dx, dy) - AUDIO.fullVolumeRange) / (AUDIO.silentRange - AUDIO.fullVolumeRange);
+    const halfWidth = cam.viewW / cam.ppu / 2;
+    const pan = Math.max(-1, Math.min(1, dx / halfWidth)) * AUDIO.maxPan;
+    sfx.play(name, { ...opts, pan, volume: (opts.volume ?? 1) * Math.min(1, fade) });
+  }
 
   // ── loop ─────────────────────────────────────────────────────────
   step(dt) {

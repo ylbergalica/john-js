@@ -92,6 +92,7 @@ export class Enemy extends Entity {
     const x = b.pos.x + dir.x * off, y = b.pos.y + dir.y * off, angle = Math.atan2(dir.y, dir.x);
     this.world.effects.burst(x, y, angle, PARTICLES.enemyHit);
     this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitTinted, color: this.type.hitColor });
+    this.world.sound('hit', b.pos, { pitch: this.type.sfxPitch });
   }
 
   applyKnockback(force, source = null) {
@@ -115,6 +116,7 @@ export class Enemy extends Entity {
   die() {
     const { world, body, type } = this;
     this.ai.onDeath();
+    world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
     world.session.addCoins(GAME.coinsPerKill);
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
     for (let i = 0; i < drops; i++) {

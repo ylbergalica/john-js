@@ -46,7 +46,11 @@ export class Projectile extends Entity {
 
   afterPhysics() {
     const b = this.body;
-    if (this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) { this.destroy(); return; }
+    if (this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) {
+      this.world.sound('fizzle', b.pos);
+      this.destroy();
+      return;
+    }
     const p = this.world.livePlayer;
     if (!p || !this.overlapsCircle(p.body.pos.x, p.body.pos.y, p.body.radius)) return;
     if (p.tryParryIncoming(this) || this.dead) return;

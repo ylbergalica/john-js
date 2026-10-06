@@ -4,6 +4,7 @@ import { h } from './dom.js';
 import { TIERS, HUD, MAX_EQUIPPED_ASPECTS, ASPECTS } from '../data/config.js';
 import { iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
+import { sfx } from '../audio/sfx.js';
 
 const tierOf = (a) => TIERS.find((t) => t.tier === a.tier);
 
@@ -60,7 +61,7 @@ export class MenuScene {
     const devHint = import.meta.env.DEV ? '\nDev: K kill · H heal · L adrenaline · C core · N next floor · R refresh aspects' : '';
     this.el = h('div', {},
       main, this.coins,
-      h('div', { class: 'hint', text: `WASD move · Mouse aim · LMB attack · RMB parry · Shift dash · X Exalted · 1/2/3 aspects · Esc pause${devHint}` }),
+      h('div', { class: 'hint', text: `WASD move · Mouse aim · LMB attack · RMB parry · Shift dash · X Exalted · 1/2/3 aspects · Esc pause · M mute${devHint}` }),
       this.aspectsPanel, this.shopPanel, this.revealPanel, this.tooltip,
     );
     root.append(this.el);
@@ -78,7 +79,7 @@ export class MenuScene {
 
   buyTierBox(tier) {
     const res = profile.buyTierBox(tier);
-    if (!res.ok) { this.setStatus(res.reason); this.refresh(); return; }
+    if (!res.ok) { sfx.play('deny'); this.setStatus(res.reason); this.refresh(); return; }
     this.closeShop();
     this.refresh();
     this.openReveal(res.aspect);
@@ -156,6 +157,7 @@ export class MenuScene {
     this.revealQuote.textContent = a.quote ? `"${a.quote}"` : '';
     this.revealDesc.textContent = a.description;
     this.revealPanel.classList.remove('hidden');
+    sfx.play('unlock');
     this.revealListeners = new AbortController();
     const opts = { signal: this.revealListeners.signal };
     window.addEventListener('keydown', () => this.closeReveal(), opts);

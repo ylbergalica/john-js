@@ -19,6 +19,7 @@ export class PredatorAspect extends Aspect {
     if (this.world.physics.circleHitsWall(dest.x, dest.y, player.body.radius * 0.95)) return;
     player.body.teleport(dest.x, dest.y);
     player.body.stop();
+    this.world.sound('blink', null, { pitch: 1.4, volume: 0.6 });
   }
 
   // Closest point on the enemy the player is aiming at best (aim weighted over distance).

@@ -23,6 +23,7 @@ export class FlashAspect extends Aspect {
     const dest = this.resolver.findNearest(from, { x: from.x + off.x, y: from.y + off.y }, this.data.maxBlinkDistance);
     if (!dest) return false;
     body.teleport(dest.x, dest.y);
+    this.world.sound('blink');
     this.remaining = this.data.baseCooldown;
     return true;
   }

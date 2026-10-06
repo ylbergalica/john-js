@@ -20,6 +20,7 @@ npm run build    # static site in dist/
 | Activate Exalted (full adrenaline) | X |
 | Aspect slots | 1 / 2 / 3 |
 | Pause | Esc (also pauses when the window loses focus) |
+| Mute sound | M |
 
 Dev builds only (`npm run dev`): K kill · H heal · L max adrenaline · C add core · N next floor · R refresh aspect cooldowns, plus console helpers `john.addCoins(10000)`, `john.resetSave()`, `john.start('run' | 'playground')` and `john.advance(seconds)`.
 
@@ -38,6 +39,7 @@ src/
   level/             generator, difficulty curve, shared flow-field navigation, teleport search
   render/            procedural sprite art + textures, camera, level view (wall shader),
                      effects, star fields
+  audio/             synthesized sound effects (Web Audio)
   meta/              save (localStorage) and profile (coins, unlocks, loadout)
   ui/                HUD, main menu, DOM helpers
 ```
@@ -51,3 +53,5 @@ src/
 The save lives in `localStorage` (`john.save`: `totalCoins`, `unlockedAspectIds`, `equippedAspectIds`); aspect ids are save keys.
 
 There are no image files: every sprite, animation frame and aspect icon is drawn with Canvas 2D at startup in `src/render/sprites.js` (crisp shapes over soft glows, deep-space fills, four-point star glints) and uploaded as mipmapped textures. Frame animations are generated at 48 fps.
+
+There are no audio files either: every sound effect in `src/audio/sfx.js` is a short recipe of oscillators and filtered noise synthesized with Web Audio when it plays. `World.sound(name, pos)` pans and fades sounds by their offset from the camera; the mute toggle (M) is stored in `localStorage` as `john.muted`.

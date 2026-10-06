@@ -4,6 +4,7 @@ import { FIXED_DT, MAX_STEPS_PER_FRAME } from '../data/config.js';
 import { World } from './world.js';
 import { RunSession } from './session.js';
 import { Hud } from '../ui/hud.js';
+import { sfx } from '../audio/sfx.js';
 
 export class GameScene {
   constructor({ app, input, uiRoot, mode, onExit }) {
@@ -62,6 +63,7 @@ export class GameScene {
     this.paused = true;
     this.input.reset();
     this.hud.setPaused(true);
+    sfx.play('pause');
   }
 
   resume() {

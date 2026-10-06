@@ -65,7 +65,12 @@ export class AdrenalineOrb extends MagnetPickup {
     sprite.tint = c.color;
     super(world, x, y, c, sprite);
   }
-  collect() { this.world.adrenaline.add(PICKUPS.adrenalineOrb.adrenalineValue); }
+  // The blip rises in pitch as the meter fills.
+  collect() {
+    const a = this.world.adrenaline;
+    a.add(PICKUPS.adrenalineOrb.adrenalineValue);
+    if (!a.isExalted) this.world.sound('orb', null, { pitch: 1 + a.current / a.max });
+  }
 }
 
 export class ChaserCore extends MagnetPickup {
@@ -75,7 +80,10 @@ export class ChaserCore extends MagnetPickup {
     sprite.width = c.width; sprite.height = c.height;
     super(world, x, y, c, sprite);
   }
-  collect() { this.world.cores.collected++; }
+  collect() {
+    this.world.cores.collected++;
+    this.world.sound(this.world.hasRequiredCores ? 'exitOpen' : 'core');
+  }
 }
 
 // Advances to the next floor while the player stands on it with every core collected.

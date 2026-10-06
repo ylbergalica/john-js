@@ -8,6 +8,7 @@ import { RunMode } from './game/session.js';
 import { MenuScene } from './ui/menu.js';
 import { profile } from './meta/profile.js';
 import { h } from './ui/dom.js';
+import { sfx } from './audio/sfx.js';
 import './style.css';
 
 const MAX_FRAME_TIME = 0.1; // clamp long stalls (tab switches, debugger) to one hitch
@@ -25,6 +26,19 @@ document.getElementById('game').append(app.canvas);
 const uiRoot = document.getElementById('ui');
 uiRoot.append(h('div', { class: 'vignette' }));
 const input = new Input(app.canvas);
+
+// Audio can only start inside a user gesture. M toggles mute anywhere.
+window.addEventListener('pointerdown', sfx.unlock);
+window.addEventListener('keydown', (e) => {
+  sfx.unlock();
+  if (e.code === 'KeyM' && !e.repeat) sfx.toggleMute();
+});
+// Every menu button ticks on hover and clicks when pressed.
+uiRoot.addEventListener('pointerover', (e) => {
+  const b = e.target.closest('button:not(:disabled)');
+  if (b && !b.contains(e.relatedTarget)) sfx.play('hover');
+});
+uiRoot.addEventListener('click', (e) => { if (e.target.closest('button:not(:disabled)')) sfx.play('click'); });
 await loadAssets();
 
 let scene = null;

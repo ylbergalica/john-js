@@ -47,6 +47,7 @@ export class AnchorAspect extends Aspect {
     this.anchor.setActive(true);
     this.state = 'flying';
     this.settleTimer = 0;
+    this.world.sound('anchorThrow');
     return true;
   }
 
@@ -62,17 +63,21 @@ export class AnchorAspect extends Aspect {
       const p = this.resolver.findNearestUnlimited(b.pos);
       if (p) b.teleport(p.x, p.y);
     }
+    this.world.sound('anchorLand', b.pos);
   }
 
   tryPickUp() {
     const pp = this.player.body.pos, ap = this.anchor.body.pos;
     const r = this.data.retrievalRadius + this.data.anchorRadius;
-    if ((pp.x - ap.x) ** 2 + (pp.y - ap.y) ** 2 <= r * r) this.stow();
+    if ((pp.x - ap.x) ** 2 + (pp.y - ap.y) ** 2 > r * r) return;
+    this.stow();
+    this.world.sound('anchorPickup');
   }
 
   beginTeleport() {
     this.player.teleporting = true;
     this.player.body.stop();
+    this.world.sound('warp');
     this.teleport = { phase: 'shrink', elapsed: 0, from: 1, to: this.data.teleportDotScale, duration: this.data.teleportWindUpTime };
   }
 
@@ -91,6 +96,7 @@ export class AnchorAspect extends Aspect {
         this.player.body.stop();
       }
       this.world.add(new WindPulse(this.world, target, this.data));
+      this.world.sound('shockwave');
       this.stow();
       this.teleport = { phase: 'grow', elapsed: 0, from: this.player.sizeScale, to: 1, duration: this.data.teleportRecoverTime };
     } else {

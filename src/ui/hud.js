@@ -19,14 +19,14 @@ export class Hud {
     this.health = h('div', { class: 'bar' }, this.healthFill);
     this.adrenalineFill = h('div', { class: 'fill adrenaline' });
     this.adrenaline = h('div', { class: 'bar' }, this.adrenalineFill);
-    this.exalted = h('div', { class: 'exalted hidden' });
+    this.exaltedGlow = h('div', { class: 'exalted-glow' }); // dark-red screen edges while Exalted
     this.pausePanel = h('div', { class: 'pause hidden interactive' },
       h('button', { text: 'Resume', onclick: () => scene.resume() }),
       h('button', { text: 'Main Menu', onclick: () => scene.quitToMenu() }),
     );
     this.el = h('div', { class: 'hud' },
-      this.cores, this.floorIntro,
-      h('div', { class: 'hud-cluster' }, this.icons, this.health, this.adrenaline, this.exalted),
+      this.exaltedGlow, this.cores, this.floorIntro,
+      h('div', { class: 'hud-cluster' }, this.icons, this.health, this.adrenaline),
       this.pausePanel,
     );
     root.append(this.el);
@@ -61,8 +61,8 @@ export class Hud {
     const a = world.adrenaline, apx = HUD.pixelsPerAdrenalinePoint;
     d.set(this.adrenaline, 'width', `${a.max * apx}px`);
     d.set(this.adrenalineFill, 'width', `${(a.current * apx).toFixed(1)}px`);
-    d.set(this.exalted, 'hidden', !a.isExalted);
-    if (a.isExalted) d.set(this.exalted, 'text', `EXALTED: ${a.exaltedRemaining.toFixed(1)}s`);
+    d.set(this.exaltedGlow, 'opacity', a.isExalted ? '1' : '0');
+    d.set(this.exaltedGlow, 'animation-play-state', a.isExalted ? 'running' : 'paused');
 
     this.updateAspectIcons(p);
   }

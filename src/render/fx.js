@@ -1,7 +1,8 @@
 // Cosmetic effects: pooled cone bursts of glowing sparks in one ParticleContainer, one-shot
-// sprite animations, and the frame-animation helper used by sprites elsewhere.
+// sprite animations, the frame-animation helper used by sprites elsewhere, and Plume, a
+// pool of soft drifting particles for smoke and fire.
 import { Particle, ParticleContainer, Sprite } from 'pixi.js';
-import { randRange } from '../engine/math.js';
+import { randRange, lerpColor } from '../engine/math.js';
 import { FX } from '../data/config.js';
 import { tex } from './assets.js';
 
@@ -78,8 +79,9 @@ export class Effects {
   }
 
   // Plays `frames` once on a new sprite, then removes it.
-  playOnce(frames, x, y, rotation, size) {
+  playOnce(frames, x, y, rotation, size, tint = 0xffffff) {
     const sprite = new Sprite(frames[0]);
+    sprite.tint = tint;
     sprite.anchor.set(0.5);
     sprite.width = sprite.height = size;
     sprite.position.set(x, y);
@@ -132,4 +134,89 @@ export class Effects {
     for (const a of this.anims) a.sprite.destroy();
     this.anims.length = 0;
   }
+}
+
+// Soft drifting particles with their own texture: mist, flame tongues, embers. Each one
+// slows with drag, rises with `lift`, sways, grows by `grow` over its life, shifts from
+// `color` to `fade`, and fades in quickly then out. Positions are in the parent's space.
+// spawn opts: { x, y, vx, vy, size, life, color, fade = color, grow = 1, alpha = 1, sway = 0, orient = false }
+export class Plume {
+  constructor(parent, texture, { blendMode = 'add', drag = 2, lift = 0, zIndex = 0 } = {}) {
+    this.container = new ParticleContainer({
+      texture,
+      dynamicProperties: { position: true, vertex: true, color: true, rotation: true, uvs: false },
+    });
+    this.container.blendMode = blendMode;
+    this.container.zIndex = zIndex;
+    parent.addChild(this.container);
+    this.texture = texture;
+    this.unit = 1 / texture.width; // scale for a particle one world unit across
+    this.drag = drag;
+    this.lift = lift;
+    this.live = [];
+    this.pool = [];
+  }
+
+  get count() { return this.live.length; }
+
+  spawn(o) {
+    const p = this.pool.pop() ?? new Particle({ texture: this.texture, anchorX: 0.5, anchorY: 0.5 });
+    p.x = o.x; p.y = o.y;
+    p.vx = o.vx ?? 0; p.vy = o.vy ?? 0;
+    p.size = o.size * this.unit;
+    p.grow = o.grow ?? 1;
+    p.color0 = o.color;
+    p.color1 = o.fade ?? o.color;
+    p.peak = o.alpha ?? 1;
+    p.sway = o.sway ?? 0;
+    p.seed = Math.random() * 100;
+    p.orient = o.orient ?? false;
+    p.rotation = p.orient ? Math.atan2(p.vy, p.vx) : Math.random() * Math.PI * 2;
+    p.age = 0;
+    p.life = o.life;
+    p.alpha = 0;
+    p.scaleX = p.scaleY = p.size;
+    p.tint = p.color0;
+    this.live.push(p);
+    this.container.particleChildren.push(p);
+  }
+
+  update(dt) {
+    if (this.live.length === 0) return;
+    const drag = Math.exp(-this.drag * dt);
+    let removed = false;
+    for (let i = this.live.length - 1; i >= 0; i--) {
+      const p = this.live[i];
+      p.age += dt;
+      if (p.age >= p.life) {
+        this.live[i] = this.live[this.live.length - 1];
+        this.live.pop();
+        this.pool.push(p);
+        removed = true;
+        continue;
+      }
+      const t = p.age / p.life;
+      p.vx = p.vx * drag + Math.sin(p.seed + p.age * 7) * p.sway * dt;
+      p.vy = p.vy * drag - this.lift * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.orient) p.rotation = Math.atan2(p.vy, p.vx);
+      p.scaleX = p.scaleY = p.size * (1 + (p.grow - 1) * t);
+      p.alpha = p.peak * Math.min(1, t * 6) * (1 - t);
+      p.tint = lerpColor(p.color0, p.color1, t);
+    }
+    if (removed) {
+      this.container.particleChildren.length = 0;
+      this.container.particleChildren.push(...this.live);
+    }
+    this.container.update();
+  }
+
+  clear() {
+    this.pool.push(...this.live);
+    this.live.length = 0;
+    this.container.particleChildren.length = 0;
+    this.container.update();
+  }
+
+  destroy() { this.container.destroy(); }
 }

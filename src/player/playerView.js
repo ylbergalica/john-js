@@ -1,10 +1,12 @@
 // Player visuals: the wobbling blob body, trailing tail followers, swing and parry
-// sprites, and the hurt flash/blink (derived from the time of the last hit).
+// sprites, the hurt flash/blink (derived from the time of the last hit), and the Exalted
+// state's fire and wings (ExaltedView).
 import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
-import { FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
+import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, lerpColor, smoothDamp, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { FrameAnim } from '../render/fx.js';
+import { ExaltedView } from './exaltedView.js';
 
 const B = PLAYER.blob, T = PLAYER.tail, A = PLAYER.attack, P = PLAYER.parry, HF = PLAYER.hitFeedback;
 const SWINGS = ['first_swing', 'second_swing', 'third_swing', 'fourth_swing'];
@@ -60,6 +62,9 @@ export class PlayerView {
     parry.visible = false;
     this.attackPoint.addChild(parry);
     this.parryAnim = new FrameAnim(parry, anims.parry);
+
+    this.exalted = new ExaltedView(player);
+    this.tint = 0xffffff; // white, warming to EXALTED_FX.tint while Exalted
   }
 
   playSwing() {
@@ -95,11 +100,11 @@ export class PlayerView {
       ...o, count: Math.round(o.count * g), speed: o.speed * g, size: o.size * g,
       color: lerpColor(o.color, FX.parryComboColor, warmth),
     });
-    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize * g);
+    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize * g, this.tint);
     fx.burst(pos.x, pos.y, angle, grow(PARTICLES.parryConnect));
     fx.burst(pos.x, pos.y, angle, grow(PARTICLES.parryConnectRing));
     if (level < P.comboMax - 1) return;
-    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle + Math.PI, FX.parryConnectSize * g * 0.6);
+    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle + Math.PI, FX.parryConnectSize * g * 0.6, this.tint);
     fx.burst(pos.x, pos.y, angle, PARTICLES.parryComboNova);
   }
 
@@ -126,6 +131,11 @@ export class PlayerView {
     const p = player.body.lerpPos(alpha);
     this.body.position.set(p.x, p.y);
     this.body.scale.set(PLAYER.scale * player.sizeScale);
+    this.exalted.render(p, dt);
+    this.tint = lerpColor(0xffffff, EXALTED_FX.tint, this.exalted.glow);
+    this.blob.outline.tint = lerpColor(B.outlineColor, EXALTED_FX.tint, this.exalted.glow);
+    for (const a of this.swings) a.sprite.tint = this.tint;
+    this.parryAnim.sprite.tint = this.tint;
 
     const f = isZero(player.facing) ? { x: 1, y: 0 } : player.facing;
     this.attackPoint.position.set(p.x + f.x * A.attackRange, p.y + f.y * A.attackRange);
@@ -147,7 +157,10 @@ export class PlayerView {
     const visible = !blinking || Math.floor((since - HF.flashDuration) / Math.max(0.01, HF.blinkInterval)) % 2 === 1;
     this.setFlash(flashing);
     this.body.visible = visible;
-    for (const fl of this.followers) fl.sprite.visible = visible;
+    // The tail's ring warms with the outline, but the hurt flash stays white.
+    const tailTint = this.flashing ? 0xffffff : this.tint;
+    this.tailSource.tint = tailTint;
+    for (const fl of this.followers) { fl.sprite.visible = visible; fl.sprite.tint = tailTint; }
   }
 
   setFlash(on) {
@@ -162,6 +175,7 @@ export class PlayerView {
   destroy() {
     this.body.destroy({ children: true });
     this.attackPoint.destroy({ children: true });
+    this.exalted.destroy();
     for (const fl of this.followers) fl.sprite.destroy();
   }
 }

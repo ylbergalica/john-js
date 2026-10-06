@@ -132,7 +132,7 @@ export class Player extends Entity {
     this.view.playSwing();
     this.world.sound('swing');
     const p = this.attackPoint;
-    this.world.effects.burst(p.x, p.y, Math.atan2(this.facing.y, this.facing.x), PARTICLES.swing);
+    this.world.effects.burst(p.x, p.y, Math.atan2(this.facing.y, this.facing.x), { ...PARTICLES.swing, color: this.view.tint });
     return true;
   }
 

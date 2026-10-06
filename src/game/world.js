@@ -6,6 +6,7 @@ import { randInt, pickWeighted } from '../engine/math.js';
 import { Camera } from '../render/camera.js';
 import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
+import { ScreenRipple } from '../render/screenRipple.js';
 import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
@@ -39,6 +40,7 @@ export class World {
     this.root.addChild(...Object.values(this.layers));
     this.effects = new Effects(this.layers.fx);
     this.camera = new Camera();
+    this.ripple = new ScreenRipple(); // full-screen shockwave on entering Exalted
 
     this.entities = [];
     this.enemies = [];
@@ -183,6 +185,7 @@ export class World {
     for (const e of this.entities) if (!e.dead) e.render(alpha, dt, view);
     this.effects.update(dt);
     cam.apply(this.root);
+    this.ripple.update(dt, cam, this.root);
     this.levelView.update(dt, view);
   }
 

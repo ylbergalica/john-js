@@ -1,7 +1,7 @@
 // Procedural sound effects. Like the sprites, nothing is loaded from files: each sound
 // is a short recipe of oscillators and filtered noise, synthesized with Web Audio when
 // played. Browsers start audio suspended, so the context is created/resumed on the
-// first key or mouse press (`sfx.unlock`).
+// first key or mouse press (`sfx.unlock`). Looping beds (`sfx.loop`) run until stopped.
 
 const MUTE_KEY = 'john.muted';
 const MASTER_VOLUME = 0.5;
@@ -10,7 +10,7 @@ const MIN_REPEAT = 0.03; // seconds; the same sound retriggering faster than thi
 const PITCH_JITTER = 0.04; // random ± pitch so repeats don't sound stamped
 const SILENT = 0.0001; // exponential ramps can't reach 0
 
-let ctx = null, master = null, noiseBuffer = null;
+let ctx = null, master = null, noiseBuffer = null, crackleBuffer = null, driveCurve = null;
 let voices = 0;
 let muted = readMuted();
 const lastPlayed = new Map();
@@ -41,12 +41,14 @@ function ensureContext() {
 // A voice `v` is { t: start time, out: its output node, pitch }; every node a recipe
 // creates feeds v.out, and the last one to stop releases the voice.
 
-function envelope(v, t, dur, vol, attack) {
+// Rises over `attack`, holds until `hold`, then decays to silence at `dur`.
+function envelope(v, t, dur, vol, attack, hold = 0, out = v.out) {
   const g = ctx.createGain();
   g.gain.setValueAtTime(SILENT, t);
   g.gain.linearRampToValueAtTime(vol, t + attack);
+  if (hold > attack) g.gain.setValueAtTime(vol, t + hold);
   g.gain.exponentialRampToValueAtTime(SILENT, t + dur);
-  g.connect(v.out);
+  g.connect(out);
   return g;
 }
 
@@ -55,20 +57,22 @@ function schedule(v, node, t, dur) {
   if (t + dur >= v.end) { v.end = t + dur; v.last = node; }
 }
 
-// Oscillator gliding exponentially from `freq` to `to` over `dur`.
-function tone(v, { type = 'sine', freq, to = freq, at = 0, dur, vol = 0.2, attack = 0.004 }) {
+// Oscillator gliding exponentially from `freq` to `to` over `dur`. `out` routes it through
+// a recipe's own node chain instead of straight to the voice.
+function tone(v, { type = 'sine', freq, to = freq, at = 0, dur, vol = 0.2, attack = 0.004, hold = 0, out }) {
   const t = v.t + at;
   const osc = ctx.createOscillator();
   osc.type = type;
   osc.frequency.setValueAtTime(freq * v.pitch, t);
   if (to !== freq) osc.frequency.exponentialRampToValueAtTime(to * v.pitch, t + dur);
-  osc.connect(envelope(v, t, dur, vol, attack));
+  osc.connect(envelope(v, t, dur, vol, attack, hold, out));
   osc.start(t);
   schedule(v, osc, t, dur);
+  return osc;
 }
 
 // White noise through a filter whose cutoff sweeps from `freq` to `to`.
-function noise(v, { filter = 'bandpass', freq = 1000, to = freq, q = 1, at = 0, dur, vol = 0.2, attack = 0.004 }) {
+function noise(v, { filter = 'bandpass', freq = 1000, to = freq, q = 1, at = 0, dur, vol = 0.2, attack = 0.004, hold = 0, out }) {
   const t = v.t + at;
   const src = ctx.createBufferSource();
   src.buffer = noiseBuffer;
@@ -77,9 +81,30 @@ function noise(v, { filter = 'bandpass', freq = 1000, to = freq, q = 1, at = 0, 
   f.Q.value = q;
   f.frequency.setValueAtTime(freq * v.pitch, t);
   if (to !== freq) f.frequency.exponentialRampToValueAtTime(to * v.pitch, t + dur);
-  src.connect(f).connect(envelope(v, t, dur, vol, attack));
+  src.connect(f).connect(envelope(v, t, dur, vol, attack, hold, out));
   src.start(t, Math.random() * Math.max(0, noiseBuffer.duration - dur - 0.05));
   schedule(v, src, t, dur);
+}
+
+// LFO wobbling `param` by ±`depth` at `rate` Hz for the voice's first `dur` seconds.
+function lfo(v, param, { rate, depth, dur, type = 'sine' }) {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.value = rate;
+  const g = ctx.createGain();
+  g.gain.value = depth;
+  osc.connect(g).connect(param);
+  osc.start(v.t);
+  schedule(v, osc, v.t, dur);
+}
+
+// Soft-clipping curve: adds grit without harsh distortion.
+function drive() {
+  if (!driveCurve) {
+    driveCurve = new Float32Array(1024);
+    for (let i = 0; i < driveCurve.length; i++) driveCurve[i] = Math.tanh(3 * ((i / (driveCurve.length - 1)) * 2 - 1));
+  }
+  return driveCurve;
 }
 
 // Notes one after another, `step` seconds apart.
@@ -183,15 +208,38 @@ const SOUNDS = {
     tone(v, { freq: 130, to: 260, dur: 0.7, vol: 0.18, attack: 0.2 });
     arp(v, [392, 523, 784], 0.08, { type: 'triangle', at: 0.45, dur: 0.6, vol: 0.1 });
   },
+  // A muffled demonic roar: low detuned saws a fifth apart and a breathy throat, rasped by a
+  // fast tremolo, driven for grit and smothered by a lowpass that opens then closes, over the
+  // whoomp of the fire catching and a sub hit.
   exalted(v) {
-    tone(v, { type: 'sawtooth', freq: 110, to: 440, dur: 0.7, vol: 0.12, attack: 0.05 });
-    tone(v, { type: 'sawtooth', freq: 111.5, to: 446, dur: 0.7, vol: 0.12, attack: 0.05 });
-    noise(v, { freq: 200, to: 4000, q: 1, dur: 0.6, vol: 0.25, attack: 0.1 });
-    tone(v, { freq: 55, to: 110, dur: 0.9, vol: 0.35 });
+    const dur = 1.7;
+    const throat = ctx.createGain();
+    throat.gain.value = 0.55;
+    lfo(v, throat.gain, { rate: 31, depth: 0.45, dur, type: 'triangle' });
+    const grit = ctx.createWaveShaper();
+    grit.curve = drive();
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.Q.value = 3;
+    muffle.frequency.setValueAtTime(260, v.t);
+    muffle.frequency.exponentialRampToValueAtTime(950, v.t + 0.3);
+    muffle.frequency.exponentialRampToValueAtTime(200, v.t + dur);
+    const trim = ctx.createGain();
+    trim.gain.value = 0.6;
+    throat.connect(grit).connect(muffle).connect(trim).connect(v.out);
+    for (const [freq, to] of [[96, 62], [97.4, 63], [64, 41]]) {
+      const osc = tone(v, { type: 'sawtooth', freq, to, dur, vol: 0.22, attack: 0.14, hold: 0.75, out: throat });
+      lfo(v, osc.frequency, { rate: 5.5, depth: freq * 0.03, dur });
+    }
+    noise(v, { freq: 420, to: 180, q: 0.9, dur: dur - 0.2, vol: 0.6, attack: 0.1, hold: 0.6, out: throat });
+    noise(v, { filter: 'lowpass', freq: 120, to: 900, dur: 0.5, vol: 0.4, attack: 0.16 });
+    tone(v, { freq: 62, to: 26, dur: 1, vol: 0.5, attack: 0.02 });
   },
+  // The fire gutters out: a falling exhale and a low sigh.
   exaltedEnd(v) {
-    tone(v, { type: 'triangle', freq: 660, to: 200, dur: 0.5, vol: 0.14 });
-    noise(v, { freq: 3000, to: 300, dur: 0.45, vol: 0.12 });
+    noise(v, { filter: 'lowpass', freq: 1600, to: 160, dur: 0.75, vol: 0.32, attack: 0.04 });
+    tone(v, { freq: 120, to: 50, dur: 0.6, vol: 0.18, attack: 0.03 });
+    noise(v, { filter: 'highpass', freq: 3500, to: 2000, dur: 0.35, vol: 0.05 });
   },
 
   // aspects
@@ -247,6 +295,73 @@ const SOUNDS = {
   },
 };
 
+// ── loops ──────────────────────────────────────────────────────────
+// Beds that play until stopped (`sfx.loop`). A recipe wires its sources into `out` and
+// returns every source it started, so they can be stopped together.
+
+// A looping buffer through a filter and a gain; the gain and cutoff params are returned for LFOs.
+function bed(buffer, out, { filter, freq, q = 0.7, vol }) {
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.loop = true;
+  const f = ctx.createBiquadFilter();
+  f.type = filter;
+  f.frequency.value = freq;
+  f.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.value = vol;
+  src.connect(f).connect(g).connect(out);
+  src.start(ctx.currentTime, Math.random() * buffer.duration);
+  return { src, gain: g.gain, freq: f.frequency };
+}
+
+function wobble(param, rate, depth) {
+  const osc = ctx.createOscillator();
+  osc.frequency.value = rate;
+  const g = ctx.createGain();
+  g.gain.value = depth;
+  osc.connect(g).connect(param);
+  osc.start();
+  return osc;
+}
+
+// A few seconds of sparse crackle: short decaying noise ticks, mostly faint with the odd
+// louder pop, sometimes in quick clusters.
+function crackles() {
+  if (crackleBuffer) return crackleBuffer;
+  const sr = ctx.sampleRate, len = Math.floor(sr * 4.3);
+  crackleBuffer = ctx.createBuffer(1, len, sr);
+  const d = crackleBuffer.getChannelData(0);
+  for (let i = Math.floor(sr * 0.05); i < len;) {
+    const cluster = Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1;
+    for (let c = 0; c < cluster && i < len; c++) {
+      const amp = 0.15 + 0.85 * Math.random() ** 3, n = Math.floor(sr * (0.001 + Math.random() * 0.004));
+      for (let k = 0; k < n && i + k < len; k++) d[i + k] += (Math.random() * 2 - 1) * amp * Math.exp((-6 * k) / n);
+      i += Math.floor(sr * (0.005 + Math.random() * 0.012));
+    }
+    i += Math.floor(sr * (0.03 + Math.random() * 0.17));
+  }
+  return crackleBuffer;
+}
+
+const LOOPS = {
+  // Exalted: a low, slowly breathing rumble of fire with soft crackles, kept dark and quiet
+  // so it sits under everything else.
+  burning(out) {
+    const rumble = bed(noiseBuffer, out, { filter: 'lowpass', freq: 380, vol: 0.2 });
+    const flame = bed(noiseBuffer, out, { filter: 'bandpass', freq: 750, q: 0.8, vol: 0.045 });
+    const crackle = bed(crackles(), out, { filter: 'highpass', freq: 1200, vol: 0.1 });
+    return [
+      rumble.src, flame.src, crackle.src,
+      wobble(rumble.gain, 0.21, 0.07),
+      wobble(flame.freq, 0.33, 250),
+      wobble(flame.gain, 0.47, 0.02),
+    ];
+  },
+};
+
+const NO_LOOP = { setLevel() {}, stop() {} };
+
 // ── public API ─────────────────────────────────────────────────────
 export const sfx = {
   get muted() { return muted; },
@@ -278,6 +393,37 @@ export const sfx = {
     recipe(v);
     voices++;
     v.last.onended = () => { voices--; out.disconnect(); };
+  },
+
+  // Starts a looping bed and returns { setLevel(0…1), stop(fade seconds) }. Loops sit
+  // outside the voice cap and keep running silently while muted.
+  loop(name, { volume = 1, fadeIn = 0.6 } = {}) {
+    const recipe = LOOPS[name];
+    if (!ctx || !recipe) return NO_LOOP;
+    const out = ctx.createGain();
+    out.gain.value = 0;
+    out.connect(master);
+    const sources = recipe(out);
+    let level = 0, stopped = false;
+    const handle = {
+      setLevel(x, time = 0.12) {
+        if (stopped || x === level) return;
+        level = x;
+        out.gain.setTargetAtTime(x * volume, ctx.currentTime, time);
+      },
+      stop(fade = 0.5) {
+        if (stopped) return;
+        stopped = true;
+        const t = ctx.currentTime;
+        out.gain.cancelScheduledValues(t);
+        out.gain.setValueAtTime(out.gain.value, t);
+        out.gain.linearRampToValueAtTime(0, t + fade);
+        for (const src of sources) src.stop(t + fade + 0.05);
+        sources[0].onended = () => out.disconnect();
+      },
+    };
+    handle.setLevel(1, fadeIn / 3);
+    return handle;
   },
 
   toggleMute() {

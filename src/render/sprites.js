@@ -36,6 +36,9 @@ export function sprites() {
     core: core(),
     hexFlat: hexFlat(),
     hexPointed: hexPointed(),
+    mist: mist(),
+    flame: flame(),
+    ribbon: ribbon(),
   };
 }
 
@@ -449,6 +452,54 @@ function spark(S = 64) {
   ctx.fillRect(0, 0, 1, 1);
   ctx.restore();
   glow(ctx, rgba('#ffffff', 0.9), px * 0.08, () => streak(ctx, 0.5, 0.5, 0.36, 0.11, 0, '#ffffff'));
+  return c;
+}
+
+// ---------------------------------------------------------------- exalted fire
+// White so the Exalted effects can tint them.
+
+// Soft cloud puff: a round haze with a few lumpy lobes, fading to nothing at the edge.
+function mist(S = 128) {
+  const { c, ctx } = surface(S);
+  const rand = seededRandom(7);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.5, [rgba('#ffffff', 0.45), rgba('#ffffff', 0.16), rgba('#ffffff', 0)]);
+  ctx.fillRect(0, 0, 1, 1);
+  for (let i = 0; i < 7; i++) {
+    const a = rand() * TAU, d = lerp(0.05, 0.18, rand()), r = lerp(0.12, 0.22, rand());
+    ctx.fillStyle = radial(ctx, 0.5 + Math.cos(a) * d, 0.5 + Math.sin(a) * d, r, [rgba('#ffffff', 0.2), rgba('#ffffff', 0)]);
+    ctx.fillRect(0, 0, 1, 1);
+  }
+  return c;
+}
+
+// Wispy flame tongue 1 texture-width long, pointing along +x: a soft base thinning into a
+// long faint tip, blurred so overlapping tongues merge.
+function flame(W = 128, H = 64) {
+  const { c, ctx, px } = surface(W, H, W);
+  const y = H / W / 2, r = 0.1;
+  ctx.fillStyle = radial(ctx, 0.3, y, 0.26, [rgba('#ffffff', 0.25), rgba('#ffffff', 0)]);
+  ctx.fillRect(0, 0, 1, 2 * y);
+  ctx.beginPath();
+  ctx.moveTo(0.96, y);
+  ctx.quadraticCurveTo(0.5, y - r * 1.1, 0.28, y - r);
+  ctx.arc(0.28, y, r, -Math.PI / 2, Math.PI / 2, true);
+  ctx.quadraticCurveTo(0.5, y + r * 1.1, 0.96, y);
+  ctx.fillStyle = linear(ctx, 0.18, 0, 0.96, 0, [rgba('#ffffff', 0.7), rgba('#ffffff', 0.3), rgba('#ffffff', 0)]);
+  ctx.filter = `blur(${px * 0.025}px)`;
+  glow(ctx, rgba('#ffffff', 0.5), px * 0.08, () => ctx.fill());
+  return c;
+}
+
+// Ribbon strip mapped along a mesh: u runs tail (transparent) → head (solid), v across a
+// soft bright core.
+function ribbon(W = 128, H = 16) {
+  const { c, ctx } = surface(W, H, W);
+  const h = H / W;
+  ctx.fillStyle = linear(ctx, 0, 0, 1, 0, [rgba('#ffffff', 0), rgba('#ffffff', 0.25), rgba('#ffffff', 1)]);
+  ctx.fillRect(0, 0, 1, h);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.fillStyle = linear(ctx, 0, 0, 0, h, [rgba('#ffffff', 0), rgba('#ffffff', 0.45), rgba('#ffffff', 1), rgba('#ffffff', 0.45), rgba('#ffffff', 0)]);
+  ctx.fillRect(0, 0, 1, h);
   return c;
 }
 

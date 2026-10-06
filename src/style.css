@@ -1,0 +1,95 @@
+:root {
+  --bg: #000;
+  --fg: #fff;
+  --muted: #9a9a9a;
+  --panel: rgba(18, 18, 18, 0.94);
+  --line: rgba(255, 255, 255, 0.85);
+  --gift: #5999ff;
+  --prestige: #9459f2;
+  --mythic: #ffd140;
+  --adrenaline: #ca0000;
+  --font: 'Liberation Sans', Arial, Helvetica, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; font-family: var(--font); user-select: none; }
+#game { position: fixed; inset: 0; }
+#game canvas { display: block; cursor: crosshair; }
+#ui { position: fixed; inset: 0; pointer-events: none; }
+#ui .interactive, #ui button { pointer-events: auto; }
+.hidden { display: none !important; }
+
+/* Subtle vignette (the Unity URP volume adds one) */
+.vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%); }
+
+button {
+  font-family: var(--font);
+  font-size: 18px;
+  color: var(--fg);
+  background: transparent;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.08s, color 0.08s;
+}
+button:hover:not(:disabled) { background: var(--fg); color: #000; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+/* ── HUD ── */
+.hud { position: fixed; inset: 0; }
+.hud-cores { position: absolute; top: 18px; left: 22px; font-size: 22px; }
+.floor-intro { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); font-size: 50px; letter-spacing: 1px; white-space: nowrap; }
+.hud-cluster { position: absolute; left: 32px; bottom: 32px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.aspect-icons { display: flex; gap: 6px; min-height: 36px; }
+.aspect-icon { position: relative; width: 36px; height: 36px; background: rgba(0,0,0,0.45); }
+.aspect-icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.aspect-icon .cd { position: absolute; inset: 0; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+.aspect-icon .key { position: absolute; right: -2px; bottom: -14px; font-size: 11px; color: var(--muted); }
+.bar { position: relative; height: 16px; background: rgba(56, 56, 56, 0.66); }
+.bar .fill { position: absolute; left: 0; top: 0; bottom: 0; }
+.bar .fill.adrenaline { background: var(--adrenaline); }
+.exalted { font-size: 22px; color: var(--adrenaline); font-weight: bold; }
+
+.pause { position: fixed; inset: 0; background: rgba(0,0,0,0.39); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+.pause button { width: 160px; font-size: 16px; padding: 4px 0; }
+
+/* ── Menu ── */
+.menu { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.menu h1 { font-size: 72px; font-weight: normal; letter-spacing: 18px; margin: 0 0 30px; padding-left: 18px; }
+.menu .main-buttons { display: flex; flex-direction: column; gap: 14px; width: 240px; }
+.menu .main-buttons button { font-size: 24px; }
+.coins { position: fixed; top: 20px; right: 28px; font-size: 24px; z-index: 5; }
+.status { min-height: 24px; color: #ff8a8a; font-size: 18px; }
+.hint { position: fixed; bottom: 16px; left: 0; right: 0; text-align: center; color: #555; font-size: 13px; line-height: 1.6; white-space: pre-line; padding: 0 16px; }
+
+.panel { position: fixed; inset: 0; background: rgba(0,0,0,0.97); display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 18px; overflow: auto; }
+.panel h2 { font-size: 36px; font-weight: normal; margin: 0; }
+.slots { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.slot { width: 200px; height: 64px; display: flex; align-items: center; gap: 10px; font-size: 16px; padding: 6px 10px; text-align: left; }
+.slot img { width: 44px; height: 44px; object-fit: contain; }
+.aspect-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; width: min(820px, 100%); }
+.aspect-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: #1b1b1b; border: 1px solid #333; border-left: 4px solid var(--gift); }
+.aspect-item.equipped { background: #3a3a3a; }
+.aspect-item.unavailable { opacity: 0.8; }
+.aspect-item img { width: 52px; height: 52px; object-fit: contain; }
+.aspect-item .meta { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.aspect-item .name { font-size: 18px; }
+.aspect-item .tier, .aspect-item .state { font-size: 12px; color: var(--muted); }
+.aspect-item button { font-size: 14px; padding: 4px 10px; }
+.empty-list { color: var(--muted); grid-column: 1 / -1; text-align: center; padding: 20px; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.shop .boxes { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.shop .boxes button { width: 180px; height: 90px; white-space: pre-line; font-size: 18px; }
+
+.reveal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 20px; }
+.reveal img { width: 180px; height: 180px; object-fit: contain; }
+.reveal .name { font-size: 40px; }
+.reveal .quote { font-size: 20px; font-style: italic; color: #ccc; max-width: 560px; }
+.reveal .desc { font-size: 18px; max-width: 560px; }
+.reveal .continue { font-size: 14px; color: var(--muted); margin-top: 24px; }
+
+.tooltip { position: fixed; z-index: 10; width: 280px; background: rgba(10,10,10,0.96); border: 1px solid #666; padding: 12px; pointer-events: none; }
+.tooltip .t-name { font-size: 18px; margin-bottom: 6px; }
+.tooltip .t-quote { font-style: italic; color: #bbb; font-size: 14px; margin-bottom: 6px; }
+.tooltip .t-desc { font-size: 14px; }

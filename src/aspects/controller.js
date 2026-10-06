@@ -1,0 +1,42 @@
+// Builds the equipped aspects for a player, routes slot keys 1–3 (buffered) and
+// forwards combat events to them.
+import { PLAYER } from '../data/config.js';
+import { InputBuffer } from '../player/inputBuffer.js';
+import { profile } from '../meta/profile.js';
+import { createAspect } from './index.js';
+
+export class AspectController {
+  constructor(player) {
+    this.player = player;
+    this.aspects = profile.equippedAspects().map((data) => createAspect(player, data));
+    this.buffers = this.aspects.map(() => new InputBuffer(PLAYER.inputBufferTime));
+    const events = player.world.events;
+    this.unsubscribe = [
+      events.enemyKilled.on(() => this.aspects.forEach((a) => a.onEnemyKilled())),
+      events.parried.on(() => this.aspects.forEach((a) => a.onParry())),
+    ];
+  }
+
+  step(dt) {
+    const { input, time } = this.player.world;
+    this.aspects.forEach((aspect, i) => {
+      if (!aspect.data.activatable) return;
+      if (input.wasPressed(`slot${i + 1}`)) this.buffers[i].press(time);
+      if (!this.player.teleporting) this.buffers[i].consume(time, () => aspect.tryActivate());
+    });
+    for (const a of this.aspects) a.step(dt);
+  }
+
+  afterPhysics() { for (const a of this.aspects) a.afterPhysics(); }
+  render(alpha, dt) { for (const a of this.aspects) a.render(alpha, dt); }
+
+  beforeAttack() { for (const a of this.aspects) a.beforeAttack(); }
+  onHitEnemy(enemy, hitPoint) { for (const a of this.aspects) a.onHitEnemy(enemy, hitPoint); }
+  refreshCooldowns() { for (const a of this.aspects) a.refreshCooldown(); }
+
+  dispose() {
+    for (const off of this.unsubscribe) off();
+    for (const a of this.aspects) a.dispose();
+    this.aspects = [];
+  }
+}

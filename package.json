@@ -1,0 +1,20 @@
+{
+  "name": "john-js",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "John - top-down 2D roguelite, JavaScript port of the Unity project.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "assets": "node scripts/import-assets.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "^8.6.6"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5",
+    "vite": "^6.0.7"
+  }
+}

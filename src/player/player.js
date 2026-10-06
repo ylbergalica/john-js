@@ -144,6 +144,7 @@ export class Player extends Entity {
     const src = this.attackPoint;
     const hitPoint = enemy.closestPoint(src);
     enemy.takeDamage(A.attackDamage * this.world.adrenaline.damageMultiplier, hitPoint, src);
+    this.view.playHitImpact(hitPoint);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit);
     if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src);
     this.applyRecoil(A.playerKnockbackForce);

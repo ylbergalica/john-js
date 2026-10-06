@@ -55,7 +55,7 @@ export class PlayerView {
     const parry = new Sprite(anims.parry[0]);
     parry.anchor.set(0.5);
     parry.position.set(-0.35 * PLAYER.scale, 0);
-    parry.width = 2 * 1.2 * PLAYER.scale;
+    parry.width = 2 * 1.4 * PLAYER.scale;
     parry.height = 2 * 0.9 * PLAYER.scale;
     parry.visible = false;
     this.attackPoint.addChild(parry);
@@ -91,6 +91,12 @@ export class PlayerView {
     world.effects.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize);
     world.effects.burst(pos.x, pos.y, angle, PARTICLES.parryConnect);
     world.effects.burst(pos.x, pos.y, angle, PARTICLES.parryConnectRing);
+  }
+
+  playHitImpact(pos) {
+    const f = this.player.facing;
+    const angle = Math.atan2(f.y, f.x) + (Math.random() * 2 - 1) * FX.hitImpactJitter;
+    this.player.world.effects.playOnce(anims.hit_impact, pos.x, pos.y, angle, FX.hitImpactSize);
   }
 
   // Called every simulation step with the post-physics position.

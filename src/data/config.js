@@ -82,7 +82,7 @@ export const PLAYER = {
     parryDuration: 0.17,
     parryCooldown: 1,
     hitboxForward: 0.7 - 0.4 * 0.8,
-    hitboxDepth: 0.5 * 1.6 * 0.8,
+    hitboxDepth: 0.5 * 1.85 * 0.8,
     hitboxWidth: 1 * 0.8,
     shakeDuration: 0.08,
     shakeStrength: 0.08,
@@ -118,6 +118,8 @@ export const FX = {
   animFps: 48, // frame animations are generated at twice the original art's 24 fps
   swingAnimSpeed: 1.5, // the swing clip plays faster than the rest so it lands within attackDuration
   parryConnectSize: 3.6,
+  hitImpactSize: 1.5,
+  hitImpactJitter: 0.35, // radians of random twist on the hit streak so repeat hits don't look stamped
 };
 
 export const ADRENALINE = {

@@ -16,6 +16,7 @@ export function animations() {
     fourth_swing: swingFrames(SWINGS.fourth),
     parry: parryFrames(),
     parry_connect: parryConnectFrames(),
+    hit_impact: hitImpactFrames(),
     rift_open: riftFrames('open'),
     rift_close: riftFrames('close'),
   };
@@ -368,6 +369,53 @@ function parryConnectFrames(S = 384, count = 12) {
       const ox = 0.5, oy = 0.5 + s.pole * ry * 0.9;
       const fade = 1 - u / s.life;
       sparkle(ctx, ox + Math.cos(s.a) * d, oy + Math.sin(s.a) * d, s.r * (1 - u * 0.4), '#ffe7a8', fade, s.rot + u * 2.5);
+    }
+    frames.push(c);
+  }
+  return frames;
+}
+
+// Attack hit: a quick white pop with a thin cut streak across the strike, a ring
+// pushing outward and a few motes thrown forward. Points along +x (the strike
+// direction) and is kept small and brief so it sits under the spark burst.
+function hitImpactFrames(S = 256, count = 9) {
+  const rand = seededRandom(5150);
+  const motes = Array.from({ length: 4 }, () => ({
+    a: lerp(-50, 50, rand()) * DEG, speed: lerp(0.16, 0.3, rand()), r: lerp(0.02, 0.035, rand()), rot: rand() * TAU,
+  }));
+  const frames = [];
+  for (let i = 0; i < count; i++) {
+    const u = i / (count - 1);
+    const { c, ctx, px } = surface(S);
+
+    // Core pop.
+    if (u < 0.45) {
+      const f = 1 - u / 0.45;
+      ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.2 * (0.8 + 0.4 * u), [rgba('#ffffff', 0.9 * f), rgba('#b4c2ff', 0.35 * f), rgba('#8a9cff', 0)]);
+      ctx.fillRect(0, 0, 1, 1);
+    }
+    // Cut streak across the strike, snapping out then thinning away.
+    if (u < 0.7) {
+      const f = 1 - u / 0.7;
+      glow(ctx, SLASH.glow, px * 0.03, () => {
+        streak(ctx, 0.5, 0.5, 0.36 * (0.55 + 0.45 * easeOut(Math.min(1, u * 3))), 0.03 * f + 0.004, Math.PI / 2 + 0.35, '#ffffff', f);
+      });
+    }
+    // Ring.
+    ctx.save();
+    ctx.globalAlpha = 0.7 * (1 - u) ** 1.5;
+    glow(ctx, SLASH.glow, px * 0.02, () => {
+      ctx.lineWidth = lerp(0.02, 0.004, u);
+      ctx.strokeStyle = '#dfe5ff';
+      ctx.beginPath();
+      ctx.arc(0.5, 0.5, lerp(0.07, 0.3, easeOut(u)), 0, TAU);
+      ctx.stroke();
+    });
+    ctx.restore();
+    // Motes thrown forward.
+    for (const m of motes) {
+      const d = 0.04 + m.speed * easeOut(u);
+      sparkle(ctx, 0.5 + Math.cos(m.a) * d, 0.5 + Math.sin(m.a) * d, m.r * (1 - u * 0.5), '#ffffff', 1 - u, m.rot + u * 2);
     }
     frames.push(c);
   }

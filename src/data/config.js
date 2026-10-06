@@ -88,6 +88,14 @@ export const PLAYER = {
     shakeStrength: 0.08,
     shakeFrequency: 45,
     clipLength: 0.125, // the parry animation is stretched to the parry window
+    // Successful parries within comboWindow seconds of each other build a streak (capped
+    // at comboMax); each level adds bonus damage and grows the shake, sound and sparks.
+    comboWindow: 3,
+    comboMax: 5,
+    comboDamageStep: 1,
+    comboShakeStep: 0.45, // extra shake strength per level, as a fraction of the base
+    comboPitchStep: 2 ** (1 / 12), // one semitone higher per level
+    comboVolumeStep: 0.08,
   },
   dash: { dashSpeed: 20, dashDuration: 0.15, dashCooldown: 1 },
   health: { maxHealth: 10, invincibilityDuration: 1 },
@@ -111,6 +119,7 @@ export const PARTICLES = {
   playerHit: { count: 16, speed: 9, lifetime: 0.38, size: 0.32, coneDeg: 30, color: 0xffffff },
   parryConnect: { count: 24, speed: 12, lifetime: 0.4, size: 0.34, coneDeg: 40, color: 0xffe2a0 },
   parryConnectRing: { count: 16, speed: 5, lifetime: 0.35, size: 0.2, coneDeg: 180, color: 0xffffff },
+  parryComboNova: { count: 40, speed: 16, lifetime: 0.55, size: 0.5, coneDeg: 180, color: 0xffb347 }, // max-streak parry only
   swing: { count: 8, speed: 5, lifetime: 0.2, size: 0.14, coneDeg: 50, color: 0xffffff },
 };
 
@@ -118,6 +127,8 @@ export const FX = {
   animFps: 48, // frame animations are generated at twice the original art's 24 fps
   swingAnimSpeed: 1.5, // the swing clip plays faster than the rest so it lands within attackDuration
   parryConnectSize: 3.6,
+  parryComboGrowth: 0.2, // per streak level: parry flash size and spark count/speed/size grow by this fraction
+  parryComboColor: 0xffa030, // the parry sparks warm from parryConnect's colour toward this at max streak
   hitImpactSize: 1.5,
   hitImpactJitter: 0.35, // radians of random twist on the hit streak so repeat hits don't look stamped
 };

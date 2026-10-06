@@ -35,6 +35,8 @@ export class Player extends Entity {
     this.parryReadyAt = 0;
     this.parrySucceeded = false;
     this.parriedThisWindow = new Set();
+    this.parryStreak = 0; // consecutive successful parries, see PLAYER.parry.comboWindow
+    this.lastParryAt = -Infinity;
     this.parryBuffer = new InputBuffer(PLAYER.inputBufferTime);
 
     this.maxHealth = H.maxHealth;
@@ -215,18 +217,27 @@ export class Player extends Entity {
   tryParry(attack) {
     if (this.parriedThisWindow.has(attack)) return true;
     const contact = attack.closestPoint(this.parryCapsule());
-    if (!attack.parry()) return false;
+    // The window's first connect extends the streak before attack.parry() reads the bonus damage.
+    const first = !this.parrySucceeded, prevStreak = this.parryStreak;
+    if (first) this.parryStreak = this.now - this.lastParryAt <= P.comboWindow ? Math.min(prevStreak + 1, P.comboMax) : 1;
+    if (!attack.parry()) { this.parryStreak = prevStreak; return false; }
     this.parriedThisWindow.add(attack);
-    if (!this.parrySucceeded) {
+    if (first) {
       this.parrySucceeded = true;
+      this.lastParryAt = this.now;
+      const level = this.parryStreak - 1, maxed = this.parryStreak === P.comboMax;
       this.view.hideParry();
-      this.world.camera.shake(P.shakeDuration, P.shakeStrength, P.shakeFrequency);
-      this.view.playParryConnect(contact);
-      this.world.sound('parry');
+      this.world.camera.shake(P.shakeDuration * (1 + 0.25 * level), P.shakeStrength * (1 + P.comboShakeStep * level), P.shakeFrequency);
+      this.view.playParryConnect(contact, level);
+      this.world.sound('parry', null, { pitch: P.comboPitchStep ** level, volume: 1 + P.comboVolumeStep * level, jitter: 0.005 });
+      if (maxed) this.world.sound('parryCrown');
       this.world.events.parried.emit();
     }
     return true;
   }
+
+  // Extra damage a parry deals for the current streak (0 on the first parry).
+  get parryBonusDamage() { return Math.max(0, this.parryStreak - 1) * P.comboDamageStep; }
 
   // ── health ───────────────────────────────────────────────────────
   takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {
@@ -246,6 +257,7 @@ export class Player extends Entity {
     if (dx * dx + dy * dy < 0.0001) { dx = b.x - hitPoint.x; dy = b.y - hitPoint.y; }
     if (dx * dx + dy * dy < 0.0001) { dx = 1; dy = 0; }
     this.lastHitAt = this.now;
+    this.parryStreak = 0; // getting hit breaks the parry combo
     this.world.sound('hurt');
     this.world.effects.burst(b.x, b.y, Math.atan2(dy, dx), PARTICLES.playerHit);
     const hf = PLAYER.hitFeedback;

@@ -83,6 +83,9 @@ class Ability {
 
   notifyAttackStarted() { this.enemy.ai.onAbilityAttackStarted(this); }
 
+  // Damage taken when parried, plus the player's parry-streak bonus.
+  parryDamage() { return this.data.damageMultiplier * this.enemy.damage + (this.player?.parryBonusDamage ?? 0); }
+
   sound(name) { this.world.sound(name, this.enemy.body.pos, { pitch: this.enemy.type.sfxPitch }); }
 
   dispose() { this.hitbox?.destroy(); }
@@ -140,7 +143,7 @@ class HitboxAbility extends Ability {
     e.body.stop();
     const k = this.awayFromPlayer();
     e.body.addImpulse(k.x * this.parryKnockback, k.y * this.parryKnockback);
-    e.takeDamage(this.data.damageMultiplier * e.damage);
+    e.takeDamage(this.parryDamage());
     if (e.dead) return;
     e.stunned = true;
     this.setPhase('stunned', this.data.parryStunTime);
@@ -219,7 +222,7 @@ class ThrowAbility extends Ability {
     const e = this.enemy;
     if (this.phase === 'stunned' || e.dead) return;
     e.body.stop();
-    e.takeDamage(e.damage * this.data.damageMultiplier);
+    e.takeDamage(this.parryDamage());
     if (e.dead) return;
     e.stunned = true;
     e.isActing = false;

@@ -107,6 +107,14 @@ const SOUNDS = {
     tone(v, { type: 'triangle', freq: 3136, dur: 0.22, vol: 0.08 });
     tone(v, { type: 'square', freq: 220, to: 110, dur: 0.1, vol: 0.08 });
   },
+  // Layered over `parry` at the top of a parry streak: a heavier body, a ringing fifth and
+  // a tiny trailing chime.
+  parryCrown(v) {
+    tone(v, { freq: 130, to: 55, dur: 0.35, vol: 0.32 });
+    noise(v, { filter: 'lowpass', freq: 2200, to: 300, dur: 0.25, vol: 0.25 });
+    tone(v, { type: 'triangle', freq: 1175, dur: 0.9, vol: 0.07, attack: 0.02 });
+    arp(v, [3136, 4186], 0.07, { type: 'triangle', at: 0.2, dur: 0.25, vol: 0.06 });
+  },
   hurt(v) {
     tone(v, { type: 'sawtooth', freq: 180, to: 55, dur: 0.25, vol: 0.25 });
     noise(v, { filter: 'lowpass', freq: 1400, to: 200, dur: 0.22, vol: 0.5 });
@@ -248,8 +256,8 @@ export const sfx = {
     if (ensureContext()?.state === 'suspended') ctx.resume();
   },
 
-  // opts: { volume = 1, pan = 0 (-1 left … 1 right), pitch = 1 }
-  play(name, { volume = 1, pan = 0, pitch = 1 } = {}) {
+  // opts: { volume = 1, pan = 0 (-1 left … 1 right), pitch = 1, jitter = PITCH_JITTER }
+  play(name, { volume = 1, pan = 0, pitch = 1, jitter = PITCH_JITTER } = {}) {
     if (muted || !ctx || ctx.state !== 'running' || voices >= MAX_VOICES || volume <= 0) return;
     const recipe = SOUNDS[name];
     if (!recipe) return;
@@ -266,7 +274,7 @@ export const sfx = {
     } else {
       out.connect(master);
     }
-    const v = { t: now + 0.005, out, pitch: pitch * (1 + (Math.random() * 2 - 1) * PITCH_JITTER), end: 0, last: null };
+    const v = { t: now + 0.005, out, pitch: pitch * (1 + (Math.random() * 2 - 1) * jitter), end: 0, last: null };
     recipe(v);
     voices++;
     v.last.onended = () => { voices--; out.disconnect(); };

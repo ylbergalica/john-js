@@ -2,7 +2,7 @@
 // sprites, and the hurt flash/blink (derived from the time of the last hit).
 import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
-import { lerp, smoothDamp, isZero, TAU } from '../engine/math.js';
+import { lerp, lerpColor, smoothDamp, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { FrameAnim } from '../render/fx.js';
 
@@ -84,13 +84,23 @@ export class PlayerView {
     this.parryAnim.stop();
   }
 
-  playParryConnect(pos) {
+  // `level` is the parry streak beyond the first (0 … comboMax - 1); each one grows the flash
+  // and sparks and warms their colour, and the top of the streak adds a backward flash and a nova.
+  playParryConnect(pos, level = 0) {
     const f = this.player.facing;
-    const world = this.player.world;
+    const fx = this.player.world.effects;
     const angle = Math.atan2(f.y, f.x);
-    world.effects.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize);
-    world.effects.burst(pos.x, pos.y, angle, PARTICLES.parryConnect);
-    world.effects.burst(pos.x, pos.y, angle, PARTICLES.parryConnectRing);
+    const g = 1 + FX.parryComboGrowth * level, warmth = level / (P.comboMax - 1);
+    const grow = (o) => ({
+      ...o, count: Math.round(o.count * g), speed: o.speed * g, size: o.size * g,
+      color: lerpColor(o.color, FX.parryComboColor, warmth),
+    });
+    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize * g);
+    fx.burst(pos.x, pos.y, angle, grow(PARTICLES.parryConnect));
+    fx.burst(pos.x, pos.y, angle, grow(PARTICLES.parryConnectRing));
+    if (level < P.comboMax - 1) return;
+    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle + Math.PI, FX.parryConnectSize * g * 0.6);
+    fx.burst(pos.x, pos.y, angle, PARTICLES.parryComboNova);
   }
 
   playHitImpact(pos) {

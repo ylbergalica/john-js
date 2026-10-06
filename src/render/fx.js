@@ -1,8 +1,11 @@
-// Cosmetic effects: pooled cone particle bursts in one ParticleContainer, one-shot
+// Cosmetic effects: pooled cone bursts of glowing sparks in one ParticleContainer, one-shot
 // sprite animations, and the frame-animation helper used by sprites elsewhere.
-import { Particle, ParticleContainer, Sprite, Texture } from 'pixi.js';
+import { Particle, ParticleContainer, Sprite } from 'pixi.js';
 import { randRange } from '../engine/math.js';
 import { FX } from '../data/config.js';
+import { tex } from './assets.js';
+
+const SPARK_DRAG = 4; // per second: sparks shoot out and slow down
 
 // Steps a sprite through `frames` at `fps`; loops or holds the last frame.
 export class FrameAnim {
@@ -38,30 +41,33 @@ export class FrameAnim {
 export class Effects {
   constructor(layer) {
     this.layer = layer;
+    this.spark = tex.spark;
+    this.sparkScale = 1 / this.spark.width; // scale for a spark one world unit long
     this.particles = new ParticleContainer({
-      texture: Texture.WHITE,
+      texture: this.spark,
       dynamicProperties: { position: true, vertex: true, color: true, rotation: false, uvs: false },
     });
+    this.particles.blendMode = 'add';
     layer.addChild(this.particles);
     this.live = [];
     this.pool = [];
     this.anims = [];
   }
 
-  // Cone burst of fading squares. opts: { count, speed, lifetime, size, coneDeg, color }
+  // Cone burst of fading sparks, each pointing along its flight. opts: { count, speed, lifetime, size, coneDeg, color }
   burst(x, y, angle, opts) {
     const cone = (opts.coneDeg * Math.PI) / 180;
     for (let i = 0; i < opts.count; i++) {
       const a = angle + randRange(-cone, cone);
       const speed = opts.speed * randRange(0.5, 1);
-      const p = this.pool.pop() ?? new Particle({ texture: Texture.WHITE, anchorX: 0.5, anchorY: 0.5 });
+      const p = this.pool.pop() ?? new Particle({ texture: this.spark, anchorX: 0.5, anchorY: 0.5 });
       p.x = x; p.y = y;
       p.rotation = a;
       p.tint = opts.color;
       p.alpha = 1;
       p.vx = Math.cos(a) * speed;
       p.vy = Math.sin(a) * speed;
-      p.size = opts.size * randRange(0.6, 1);
+      p.size = opts.size * randRange(0.6, 1) * this.sparkScale;
       p.scaleX = p.scaleY = p.size;
       p.age = 0;
       p.life = opts.lifetime * randRange(0.6, 1);
@@ -97,6 +103,8 @@ export class Effects {
         continue;
       }
       const k = 1 - p.age / p.life;
+      const drag = Math.exp(-SPARK_DRAG * dt);
+      p.vx *= drag; p.vy *= drag;
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.scaleX = p.scaleY = p.size * k;
       p.alpha = k;

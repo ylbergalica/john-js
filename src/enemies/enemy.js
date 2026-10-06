@@ -39,7 +39,6 @@ export class Enemy extends Entity {
     this.view = new Container();
     if (v.kind === 'sprite') {
       this.voidSprite = new Sprite(tex[v.void]);
-      this.voidSprite.tint = 0x000000;
       this.outline = new Sprite(tex[v.outline]);
       this.stars = new StarField(v.void, v.size, v.sparkleCount);
       for (const s of [this.voidSprite, this.outline]) {
@@ -90,7 +89,9 @@ export class Enemy extends Entity {
     dir = norm(dir);
     // Particles spray out of the far side of the body.
     const off = b.radius + this.type.particleOffset;
-    this.world.effects.burst(b.pos.x + dir.x * off, b.pos.y + dir.y * off, Math.atan2(dir.y, dir.x), PARTICLES.enemyHit);
+    const x = b.pos.x + dir.x * off, y = b.pos.y + dir.y * off, angle = Math.atan2(dir.y, dir.x);
+    this.world.effects.burst(x, y, angle, PARTICLES.enemyHit);
+    this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitTinted, color: this.type.hitColor });
   }
 
   applyKnockback(force, source = null) {
@@ -144,7 +145,6 @@ export class Enemy extends Entity {
     this.flashing = on;
     const v = this.type.visual;
     this.voidSprite.texture = tex[on ? `${v.void}_white` : v.void];
-    this.voidSprite.tint = on ? 0xffffff : 0x000000;
     this.outline.texture = tex[on ? `${v.outline}_white` : v.outline];
     this.stars.container.visible = !on;
   }

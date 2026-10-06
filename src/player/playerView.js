@@ -3,12 +3,11 @@
 import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, smoothDamp, isZero, TAU } from '../engine/math.js';
-import { tex } from '../render/assets.js';
+import { anims, tex } from '../render/assets.js';
 import { FrameAnim } from '../render/fx.js';
 
 const B = PLAYER.blob, T = PLAYER.tail, A = PLAYER.attack, P = PLAYER.parry, HF = PLAYER.hitFeedback;
 const SWINGS = ['first_swing', 'second_swing', 'third_swing', 'fourth_swing'];
-const frames = (name, n) => Array.from({ length: n }, (_, i) => tex[`${name}${i}`]);
 const TRAIL_STRIDE = Math.max(1, Math.ceil(T.delayPerFollower / FIXED_DT)); // samples between followers
 
 export class PlayerView {
@@ -45,22 +44,22 @@ export class PlayerView {
     this.attackPoint = new Container();
     layers.player.addChild(this.attackPoint);
     this.swings = SWINGS.map((name) => {
-      const sprite = new Sprite(tex[`${name}0`]);
+      const sprite = new Sprite(anims[name][0]);
       sprite.anchor.set(0.5);
       sprite.width = sprite.height = A.visualSize;
       sprite.visible = false;
       this.attackPoint.addChild(sprite);
-      return new FrameAnim(sprite, frames(name, 3), { loop: true });
+      return new FrameAnim(sprite, anims[name]);
     });
     this.swingIndex = 0;
-    const parry = new Sprite(tex.parry0);
+    const parry = new Sprite(anims.parry[0]);
     parry.anchor.set(0.5);
     parry.position.set(-0.35 * PLAYER.scale, 0);
     parry.width = 2 * 1.2 * PLAYER.scale;
     parry.height = 2 * 0.9 * PLAYER.scale;
     parry.visible = false;
     this.attackPoint.addChild(parry);
-    this.parryAnim = new FrameAnim(parry, frames('parry', 3), { loop: true });
+    this.parryAnim = new FrameAnim(parry, anims.parry);
   }
 
   playSwing() {
@@ -68,7 +67,7 @@ export class PlayerView {
     const anim = this.swings[this.swingIndex];
     this.swingIndex = (this.swingIndex + 1) % this.swings.length;
     anim.sprite.visible = true;
-    anim.play();
+    anim.play(FX.swingAnimSpeed);
   }
 
   hideSwing() {
@@ -89,8 +88,9 @@ export class PlayerView {
     const f = this.player.facing;
     const world = this.player.world;
     const angle = Math.atan2(f.y, f.x);
-    world.effects.playOnce(frames('parry_connect', 4), pos.x, pos.y, angle, FX.parryConnectSize);
+    world.effects.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize);
     world.effects.burst(pos.x, pos.y, angle, PARTICLES.parryConnect);
+    world.effects.burst(pos.x, pos.y, angle, PARTICLES.parryConnectRing);
   }
 
   // Called every simulation step with the post-physics position.

@@ -129,7 +129,8 @@ class AnchorObject extends Entity {
     this.body.enabled = false;
     this.sprite = new Sprite(tex.anchor_object);
     this.sprite.anchor.set(0.5);
-    this.sprite.width = this.sprite.height = data.anchorSize;
+    this.size = data.anchorSize;
+    this.sprite.width = this.sprite.height = this.size;
     this.sprite.tint = data.anchorTint;
     this.sprite.visible = false;
     world.layers.pickups.addChild(this.sprite);
@@ -144,6 +145,10 @@ class AnchorObject extends Entity {
     if (!this.sprite.visible) return;
     const p = this.body.lerpPos(alpha);
     this.sprite.position.set(p.x, p.y);
+    // Slow shimmer: the crystal breathes and sways a little.
+    const t = this.world.time;
+    this.sprite.width = this.sprite.height = this.size * (1 + 0.05 * Math.sin(t * 3));
+    this.sprite.rotation = 0.08 * Math.sin(t * 1.3);
   }
 
   dispose() {

@@ -104,16 +104,20 @@ export const PLAYER = {
   },
 };
 
+// Spark bursts; `size` is the spark's length in world units.
 export const PARTICLES = {
-  enemyHit: { count: 10, speed: 8, lifetime: 0.3, size: 0.3, coneDeg: 25, color: 0xffffff },
-  playerHit: { count: 10, speed: 8, lifetime: 0.3, size: 0.2, coneDeg: 25, color: 0xffffff },
-  parryConnect: { count: 8, speed: 8, lifetime: 0.2, size: 0.1, coneDeg: 25, color: 0xffffff },
-  swing: { count: 6, speed: 5, lifetime: 0.18, size: 0.07, coneDeg: 50, color: 0xffffff },
+  enemyHit: { count: 18, speed: 10, lifetime: 0.38, size: 0.42, coneDeg: 28, color: 0xffffff },
+  enemyHitTinted: { count: 12, speed: 6, lifetime: 0.45, size: 0.3, coneDeg: 50 }, // colour: the enemy's hitColor
+  playerHit: { count: 16, speed: 9, lifetime: 0.38, size: 0.32, coneDeg: 30, color: 0xffffff },
+  parryConnect: { count: 24, speed: 12, lifetime: 0.4, size: 0.34, coneDeg: 40, color: 0xffe2a0 },
+  parryConnectRing: { count: 16, speed: 5, lifetime: 0.35, size: 0.2, coneDeg: 180, color: 0xffffff },
+  swing: { count: 8, speed: 5, lifetime: 0.2, size: 0.14, coneDeg: 50, color: 0xffffff },
 };
 
 export const FX = {
-  animFps: 24,
-  parryConnectSize: 3,
+  animFps: 48, // frame animations are generated at twice the original art's 24 fps
+  swingAnimSpeed: 1.5, // the swing clip plays faster than the rest so it lands within attackDuration
+  parryConnectSize: 3.6,
 };
 
 export const ADRENALINE = {
@@ -191,7 +195,7 @@ export const ENEMY_TYPES = {
   goblin: {
     maxHealth: 5, damage: 1, radius: 0.5 * 0.9, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84,
     visual: { kind: 'sprite', outline: 'goblin_idle', void: 'goblin_idle_void', size: 1.5 * 0.9, sparkleCount: 20 },
     ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
       attacks: [{ ability: 'GoblinThrow', weight: 1 }] },
@@ -199,7 +203,7 @@ export const ENEMY_TYPES = {
   striker: {
     maxHealth: 7, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b,
     visual: { kind: 'sprite', outline: 'striker_idle', void: 'striker_idle_void', size: 1.5, sparkleCount: 22 },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
       attacks: [{ ability: 'StrikerDash', weight: 1 }] },
@@ -207,7 +211,7 @@ export const ENEMY_TYPES = {
   warden: {
     maxHealth: 100, damage: 10, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff,
     navFootprint: 3, // tiles; the Warden needs 3-wide passages
     visual: { kind: 'hexagon', width: 2, height: 0.890625 * 2, color: 0xffffff },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 4, attackEngageRange: 3.5, moveSpeed: 1, orbitSpeed: 1, repositionSpeed: 1,

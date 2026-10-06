@@ -4,6 +4,7 @@ import { Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { Body, circleVsCircle, circleVsCapsule } from '../engine/physics.js';
 import { tex } from '../render/assets.js';
+import { ORB_PAD } from '../render/sprites.js';
 
 export class Projectile extends Entity {
   // opts: { dir, speed, lifetime, damage, size, color }
@@ -16,9 +17,9 @@ export class Projectile extends Entity {
     this.expiresAt = world.time + opts.lifetime;
     this.body = world.physics.add(new Body({ x, y, radius: opts.size / 2, solid: false }));
     this.body.rotation = Math.atan2(opts.dir.y, opts.dir.x);
-    this.sprite = new Sprite(tex.circle);
+    this.sprite = new Sprite(tex.orb);
     this.sprite.anchor.set(0.5);
-    this.sprite.width = this.sprite.height = opts.size;
+    this.sprite.width = this.sprite.height = opts.size * ORB_PAD;
     this.sprite.tint = opts.color;
     this.sprite.position.set(x, y);
     world.layers.projectiles.addChild(this.sprite);

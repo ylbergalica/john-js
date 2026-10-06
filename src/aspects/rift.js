@@ -4,10 +4,8 @@ import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { ContactSet, circleVsBox } from '../engine/physics.js';
 import { FX } from '../data/config.js';
-import { tex } from '../render/assets.js';
+import { anims } from '../render/assets.js';
 import { FrameAnim } from '../render/fx.js';
-
-const frames = (name, n) => Array.from({ length: n }, (_, i) => tex[`${name}${i}`]);
 
 export class RiftAspect extends Aspect {
   constructor(player, data) {
@@ -17,14 +15,13 @@ export class RiftAspect extends Aspect {
     this.hiddenAt = Infinity; // when the closing animation finishes
     this.damage = data.damage;
     this.contacts = new ContactSet();
-    this.sprite = new Sprite(tex.rift_open0);
+    this.sprite = new Sprite(anims.rift_open[0]);
     this.sprite.anchor.set(0.5);
     this.sprite.visible = false;
-    player.world.layers.player.addChild(this.sprite);
-    const openFrames = frames('rift_open', 5), closeFrames = frames('rift_close', 4);
-    this.openAnim = new FrameAnim(this.sprite, openFrames);
-    this.closeAnim = new FrameAnim(this.sprite, closeFrames);
-    this.closeDuration = closeFrames.length / FX.animFps;
+    player.world.layers.player.addChildAt(this.sprite, 0); // behind the player's body
+    this.openAnim = new FrameAnim(this.sprite, anims.rift_open);
+    this.closeAnim = new FrameAnim(this.sprite, anims.rift_close);
+    this.closeDuration = anims.rift_close.length / FX.animFps;
   }
 
   onParry() {

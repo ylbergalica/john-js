@@ -44,7 +44,7 @@ class CrescentSlash extends Entity {
     this.body.vel.x = dir.x * data.speed;
     this.body.vel.y = dir.y * data.speed;
     this.expiresAt = world.time + (data.speed > 0.0001 ? Math.max(0, data.travelDistance) / data.speed : 0);
-    this.sprite = new Sprite(tex.parry1);
+    this.sprite = new Sprite(tex.crescent_slash);
     this.sprite.anchor.set(0.5);
     this.sprite.width = this.sprite.height = data.spriteSize;
     this.sprite.alpha = data.alpha;

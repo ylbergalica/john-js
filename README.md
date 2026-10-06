@@ -36,7 +36,8 @@ src/
   enemies/           Enemy, EnemyAI state machine, ability phase machines, hitboxes, projectile
   aspects/           one module per aspect + the controller that routes slots/events
   level/             generator, difficulty curve, shared flow-field navigation, teleport search
-  render/            assets, camera, level view (wall shader), effects, star fields
+  render/            procedural sprite art + textures, camera, level view (wall shader),
+                     effects, star fields
   meta/              save (localStorage) and profile (coins, unlocks, loadout)
   ui/                HUD, main menu, DOM helpers
 ```
@@ -49,4 +50,4 @@ src/
 
 The save lives in `localStorage` (`john.save`: `totalCoins`, `unlockedAspectIds`, `equippedAspectIds`); aspect ids are save keys.
 
-Sprites live in `src/assets/` and are bundled by Vite. `npm run assets` re-imports them from the original Unity project (set `UNITY_PROJECT` if it isn't at `../Unity Projects/John`).
+There are no image files: every sprite, animation frame and aspect icon is drawn with Canvas 2D at startup in `src/render/sprites.js` (crisp shapes over soft glows, deep-space fills, four-point star glints) and uploaded as mipmapped textures. Frame animations are generated at 48 fps.

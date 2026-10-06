@@ -4,6 +4,7 @@ import { Entity } from './entity.js';
 import { Body } from '../engine/physics.js';
 import { PICKUPS } from '../data/config.js';
 import { tex } from '../render/assets.js';
+import { ORB_PAD } from '../render/sprites.js';
 import { rectContainsCircle } from '../render/camera.js';
 
 class MagnetPickup extends Entity {
@@ -59,8 +60,8 @@ class MagnetPickup extends Entity {
 export class AdrenalineOrb extends MagnetPickup {
   constructor(world, x, y) {
     const c = PICKUPS.adrenalineOrb;
-    const sprite = new Sprite(tex.circle);
-    sprite.width = sprite.height = c.size;
+    const sprite = new Sprite(tex.orb);
+    sprite.width = sprite.height = c.size * ORB_PAD;
     sprite.tint = c.color;
     super(world, x, y, c, sprite);
   }

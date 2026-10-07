@@ -1,5 +1,5 @@
 // Turns the procedural art (sprites.js) into Pixi textures: single sprites in `tex`,
-// frame sequences in `anims`, aspect icons in `tex` plus data URLs for the DOM UI,
+// frame sequences in `anims`, aspect and UI icons in `tex` plus data URLs for the DOM UI,
 // enemy portraits for the run summary, and white silhouettes used for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
 import { animations, icons, sprites } from './sprites.js';
@@ -20,6 +20,7 @@ export async function loadAssets() {
     iconUrls[name] = canvas.toDataURL();
   }
 
+  iconUrls.mist = tex.mist.source.resource.toDataURL(); // the HUD's adrenaline mist, same puff as the Exalted haze
   for (const [key, type] of Object.entries(ENEMY_TYPES)) enemyIconUrls[key] = enemyPortrait(type.visual).toDataURL();
 
   // White silhouettes swapped in while something flashes (replaces a per-object filter),

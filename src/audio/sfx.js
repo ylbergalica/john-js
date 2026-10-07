@@ -220,8 +220,20 @@ const SOUNDS = {
   orb(v) {
     tone(v, { freq: 660, to: 990, dur: 0.09, vol: 0.12 });
   },
+  // Exalted is ready: a heartbeat double-thump, then fire catches with a dark whoosh, a
+  // burst of crackles and a low growl swelling under it.
   adrenalineFull(v) {
-    arp(v, [880, 1320, 1760], 0.07, { type: 'triangle', dur: 0.3, vol: 0.12 });
+    for (const [at, vol] of [[0, 0.5], [0.26, 0.4]]) {
+      tone(v, { freq: 78, to: 40, at, dur: 0.24, vol, attack: 0.005 });
+      noise(v, { filter: 'lowpass', freq: 280, to: 90, at, dur: 0.16, vol: vol * 0.6 });
+    }
+    noise(v, { filter: 'lowpass', freq: 180, to: 2400, at: 0.32, dur: 0.95, vol: 0.32, attack: 0.28 });
+    noise(v, { freq: 650, to: 280, q: 0.8, at: 0.4, dur: 1.2, vol: 0.16, attack: 0.3, hold: 0.55 });
+    tone(v, { type: 'sawtooth', freq: 55, to: 48, at: 0.32, dur: 1.3, vol: 0.05, attack: 0.35 });
+    tone(v, { type: 'triangle', freq: 110, to: 98, at: 0.32, dur: 1.3, vol: 0.07, attack: 0.35 });
+    for (let i = 0; i < 9; i++) {
+      noise(v, { filter: 'highpass', freq: 2500 + Math.random() * 2500, at: 0.42 + Math.random() * 0.7, dur: 0.02 + Math.random() * 0.03, vol: 0.06 + Math.random() * 0.1 });
+    }
   },
   core(v) {
     arp(v, [784, 1175, 1568], 0.06, { type: 'triangle', dur: 0.35, vol: 0.15 });
@@ -234,6 +246,13 @@ const SOUNDS = {
     noise(v, { freq: 200, to: 3000, q: 1.5, dur: 0.6, vol: 0.18, attack: 0.3 });
     tone(v, { freq: 130, to: 260, dur: 0.7, vol: 0.18, attack: 0.2 });
     arp(v, [392, 523, 784], 0.08, { type: 'triangle', at: 0.45, dur: 0.6, vol: 0.1 });
+  },
+  guardian(v) { // the camera finds the floor's guardian: a sub hit under a low, uneasy swell
+    tone(v, { freq: 72, to: 36, dur: 1.8, vol: 0.4, attack: 0.01 });
+    noise(v, { filter: 'lowpass', freq: 700, to: 70, dur: 1.4, vol: 0.3 });
+    noise(v, { filter: 'bandpass', freq: 180, to: 420, q: 4, at: 0.2, dur: 2, vol: 0.12, attack: 0.9 });
+    tone(v, { type: 'triangle', freq: 110, to: 104, at: 0.1, dur: 2.2, vol: 0.09, attack: 0.6, hold: 1.2 });
+    tone(v, { type: 'triangle', freq: 156, to: 147, at: 0.1, dur: 2.2, vol: 0.06, attack: 0.6, hold: 1.2 });
   },
   // A muffled demonic roar: low detuned saws a fifth apart and a breathy throat, rasped by a
   // fast tremolo, driven for grit and smothered by a lowpass that opens then closes, over the

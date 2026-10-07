@@ -7,6 +7,7 @@ import { ENEMY_TYPES } from '../data/config.js';
 import { enemyIconUrls, iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
+import { coinIcon, easeOut, formatTime } from './common.js';
 
 const SKIP_GUARD = 0.5; // seconds before input can skip, so a key held while dying doesn't
 const TICK_INTERVAL = 0.05; // fastest a counter ticks, seconds
@@ -14,8 +15,6 @@ const TILE_STAGGER = 0.09; // between tiles popping in; shrinks so a full panel 
 const TILES_MAX = 1.2;
 const COIN_SOURCES = [['enemies', 'Enemies'], ['guardians', 'Guardians'], ['floors', 'Floors'], ['achievements', 'Achievements']];
 
-const easeOut = (p) => 1 - (1 - p) ** 3;
-const formatTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const times = (n) => `×${n}`;
 // Bigger numbers count for longer, within limits.
 const countDuration = (n, max = 1) => Math.min(max, 0.3 + Math.abs(n) * 0.03);
@@ -44,7 +43,7 @@ export class RunSummary {
     this.coinTotal = h('span', { class: 'rs-coin-total', text: '+0' });
     this.coinSources = h('div', { class: 'rs-coin-sources' });
     const coins = h('div', { class: 'rs-coins rs-pending' },
-      h('div', { class: 'rs-label', text: 'Coins earned' }), this.coinTotal, this.coinSources);
+      h('div', { class: 'eyebrow', text: 'Coins earned' }), h('div', { class: 'rs-coin-line' }, coinIcon(), this.coinTotal), this.coinSources);
     this.el = h('div', { class: 'run-summary interactive' },
       h('div', { class: 'rs-card' },
         this.title,

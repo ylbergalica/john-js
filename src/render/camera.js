@@ -11,11 +11,12 @@ export class Camera {
     this.shakeX = 0; this.shakeY = 0;
     this.shakeState = null;
     this.viewW = 1; this.viewH = 1; this.ppu = 1;
+    this.zoom = 1; // >1 shows less of the world; applied on the next resize
   }
 
   resize(w, h) {
     this.viewW = w; this.viewH = h;
-    this.ppu = h / (CAMERA.orthoSize * 2);
+    this.ppu = (h / (CAMERA.orthoSize * 2)) * this.zoom;
   }
 
   snapTo(p) { this.x = p.x; this.y = p.y; }

@@ -2,12 +2,12 @@
 // camera and render layers, and advances everything on the fixed simulation step.
 import { Container } from 'pixi.js';
 import { Physics } from '../engine/physics.js';
-import { randInt, pickWeighted } from '../engine/math.js';
+import { randInt, pickWeighted, clamp, clamp01, lerp, dist } from '../engine/math.js';
 import { Camera } from '../render/camera.js';
 import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
-import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME } from '../data/config.js';
+import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME, GUARDIAN_INTRO as GI } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { scaleConfig } from '../level/difficulty.js';
@@ -15,6 +15,10 @@ import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
 import { Exit } from './pickups.js';
+import { RunMode } from './session.js';
+
+const easeOut = (t) => 1 - (1 - t) ** 3;
+const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 
 export class World {
   constructor({ session, input }) {
@@ -52,6 +56,7 @@ export class World {
     this.cores = { required: 0, collected: 0 };
     this.activeAttackers = 0;
     this.floorStartedAt = 0;
+    this.intro = null; // guardian intro in progress (see GUARDIAN_INTRO); the world is frozen meanwhile
     this.nextFloorRequested = false;
     this.gameOverAt = Infinity;
   }
@@ -95,8 +100,43 @@ export class World {
       chasers++;
     }
     this.cores = { required: chasers, collected: 0 };
-    this.floorStartedAt = this.time;
-    sfx.play('floor');
+    this.floorStartedAt = this.time; // the clock is frozen through the guardian intro, so this still holds after it
+    this.intro = null;
+    const guardian = this.enemies.find((e) => e.type.isChaser);
+    if (guardian && this.session.mode === RunMode.Run && this.session.floor <= GI.floors) this.startIntro(guardian);
+    else sfx.play('floor');
+  }
+
+  // ── guardian intro ───────────────────────────────────────────────
+  // Opens on the floor's guardian, then glides to the player. Runs on render time, so the
+  // camera moves smoothly at any frame rate; pausing (dt = 0) holds it.
+  startIntro(guardian) {
+    const panTime = clamp(dist(guardian.body.pos, this.player.body.pos) * GI.panPerUnit, GI.minPan, GI.maxPan);
+    this.intro = { guardian, t: 0, panTime, focus: 1, fade: 1 }; // focus: vignette strength, fade: black overlay
+    this.camera.snapTo(guardian.body.pos);
+    sfx.play('guardian');
+  }
+
+  updateIntro(dt, alpha) {
+    const it = this.intro, cam = this.camera;
+    it.t += dt;
+    const from = it.guardian.body.lerpPos(alpha), to = this.player.body.lerpPos(alpha);
+    if (it.t < GI.hold) {
+      cam.snapTo(from);
+      cam.zoom = lerp(1, GI.zoom, easeOut(it.t / GI.hold));
+      it.fade = 1 - clamp01(it.t / GI.fadeIn);
+      return;
+    }
+    const p = clamp01((it.t - GI.hold) / it.panTime), e = easeInOut(p);
+    cam.snapTo({ x: lerp(from.x, to.x, e), y: lerp(from.y, to.y, e) });
+    cam.zoom = lerp(GI.zoom, 1, e);
+    it.focus = 1 - e;
+    it.fade = 0;
+    if (p >= 1) {
+      this.intro = null;
+      cam.zoom = 1;
+      sfx.play('floor');
+    }
   }
 
   clearFloor() {
@@ -166,6 +206,7 @@ export class World {
 
   // ── loop ─────────────────────────────────────────────────────────
   step(dt) {
+    if (this.intro) return;
     this.time += dt;
     // Entities spawned during this step start stepping next step.
     const n = this.entities.length;
@@ -187,8 +228,9 @@ export class World {
 
   render(alpha, dt, screenW, screenH) {
     const cam = this.camera;
+    if (this.intro) this.updateIntro(dt, alpha);
     cam.resize(screenW, screenH);
-    cam.update(dt, this.livePlayer?.body.lerpPos(alpha));
+    cam.update(dt, this.intro ? null : this.livePlayer?.body.lerpPos(alpha));
     const view = cam.viewRect(2);
     for (const e of this.entities) if (!e.dead) e.render(alpha, dt, view);
     this.effects.update(dt);

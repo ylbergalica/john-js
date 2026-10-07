@@ -12,7 +12,8 @@ export function h(tag, attrs = {}, ...children) {
 }
 
 // Writes DOM properties only when the value changed, so per-frame UI updates don't
-// trigger style recalculation when nothing moved.
+// trigger style recalculation when nothing moved. Keys: 'text', 'hidden', '.class'
+// (toggled by a boolean), or a style property.
 export class DomWriter {
   constructor() { this.last = new WeakMap(); }
   set(el, key, value) {
@@ -22,6 +23,7 @@ export class DomWriter {
     m.set(key, value);
     if (key === 'text') el.textContent = value;
     else if (key === 'hidden') el.classList.toggle('hidden', value);
+    else if (key[0] === '.') el.classList.toggle(key.slice(1), value);
     else el.style.setProperty(key, value);
   }
 }

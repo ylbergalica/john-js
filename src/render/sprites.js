@@ -28,11 +28,14 @@ export function sprites() {
     goblin_idle_void: voidFill(goblinPath(), VOIDS.goblin),
     striker_idle: strikerOutline(),
     striker_idle_void: voidFill(strikerPath(), VOIDS.striker),
+    seraph_idle: seraphOutline(),
+    seraph_idle_void: voidFill(seraphPath(), VOIDS.seraph),
     tail: tail(),
     spark: spark(),
     anchor_object: anchorObject(),
     crescent_slash: crescentSlash(),
     orb: orb(),
+    comet: comet(),
     core: core(),
     hexFlat: hexFlat(),
     hexPointed: hexPointed(),
@@ -54,6 +57,8 @@ export function icons() {
 
 // Sprites drawn with a halo are this many times their visible body size.
 export const ORB_PAD = 2;
+// The comet's head as a fraction of its length.
+export const COMET_HEAD = 0.9;
 
 // ---------------------------------------------------------------- helpers
 
@@ -580,7 +585,12 @@ const STRIKER = { r: 0.3035, line: 0.057, tip: 0.49 };
 const VOIDS = {
   goblin: { core: '#10302a', edge: '#03070c', clouds: [['#2f9c6c', 0.22], ['#3b55d4', 0.14]], seed: 31 },
   striker: { core: '#33200f', edge: '#06050c', clouds: [['#d07a26', 0.2], ['#7b44d6', 0.14]], seed: 37 },
+  seraph: { core: '#221547', edge: '#06040f', clouds: [['#8a63ff', 0.24], ['#3fa8ff', 0.14]], seed: 41 },
 };
+// The Seraph's hull, nose to the right: [x, y] for the top half, mirrored below.
+// Nose, wingtip, trailing edge, engine nozzle (outer, inner), tail notch.
+const SERAPH_HULL = [[0.9, 0.5], [0.15, 0.18], [0.27, 0.3], [0.17, 0.35], [0.2, 0.43], [0.33, 0.5]];
+const SERAPH_ENGINES = [[0.17, 0.39], [0.17, 0.61]];
 
 function goblinPath() {
   const p = new Path2D();
@@ -601,6 +611,15 @@ function strikerPath() {
   ear(131, 138);
   p.arc(0.5, 0.5, r, 138 * DEG, 222 * DEG);
   ear(229, 254);
+  p.closePath();
+  return p;
+}
+
+// A delta-winged star-fighter with twin engines in a notched tail.
+function seraphPath() {
+  const bottom = SERAPH_HULL.slice(1, -1).reverse().map(([x, y]) => [x, 1 - y]);
+  const p = new Path2D();
+  [...SERAPH_HULL, ...bottom].forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
   p.closePath();
   return p;
 }
@@ -636,6 +655,29 @@ function strikerOutline(S = 256) {
   return outline(S, palette, (ctx) => {
     ctx.lineWidth = STRIKER.line;
     ctx.stroke(strikerPath());
+  });
+}
+
+// Hull outline with faint panel seams, a crystal canopy and star-glint engines.
+function seraphOutline(S = 256) {
+  const palette = { stroke: ['#f4eeff', '#b9a4ff', '#6b58f0'], glow: rgba('#9a84ff', 0.75) };
+  return outline(S, palette, (ctx) => {
+    ctx.lineWidth = 0.04;
+    ctx.stroke(seraphPath());
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 0.018;
+    ctx.beginPath();
+    ctx.moveTo(0.56, 0.5); ctx.lineTo(0.38, 0.5); // spine, behind the canopy
+    for (const [x, y] of SERAPH_ENGINES) { ctx.moveTo(0.66, 0.5); ctx.lineTo(x + 0.08, y); } // seams out to the engines
+    ctx.stroke();
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(0.76, 0.5); ctx.lineTo(0.64, 0.465); ctx.lineTo(0.57, 0.5); ctx.lineTo(0.64, 0.535);
+    ctx.closePath();
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    for (const [x, y] of SERAPH_ENGINES) sparkle(ctx, x, y, 0.06, '#d9ceff', 0.95);
   });
 }
 
@@ -728,6 +770,21 @@ function orb(S = 128) {
   ctx.fillStyle = radial(ctx, 0.5, 0.5, r, ['#ffffff', '#f2f2f2', '#c8c8c8'], 0.44, 0.42);
   ctx.fill();
   sparkle(ctx, 0.45, 0.44, r * 0.6, '#ffffff', 0.9);
+  return c;
+}
+
+// Projectile trail: a soft tapering streak, 1 texture-width long, its head at COMET_HEAD
+// and fading to nothing toward the left.
+function comet(W = 256, H = 64) {
+  const { c, ctx, px } = surface(W, H, W);
+  const mid = H / W / 2, r = mid * 0.8;
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  ctx.quadraticCurveTo(COMET_HEAD * 0.55, mid - r, COMET_HEAD, mid - r);
+  ctx.arc(COMET_HEAD, mid, r, -Math.PI / 2, Math.PI / 2);
+  ctx.quadraticCurveTo(COMET_HEAD * 0.55, mid + r, 0, mid);
+  ctx.fillStyle = linear(ctx, 0, 0, COMET_HEAD + r, 0, [rgba('#ffffff', 0), rgba('#ffffff', 0.35), rgba('#ffffff', 1)]);
+  glow(ctx, rgba('#ffffff', 0.6), px * 0.012, () => ctx.fill());
   return c;
 }
 

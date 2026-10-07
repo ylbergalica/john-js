@@ -180,6 +180,12 @@ export class Physics {
     return this.circleHitsWall(sx + dx * distance, sy + dy * distance, r);
   }
 
+  // Distance from (sx, sy) along unit (dx, dy) to the first wall tile, up to `max`.
+  rayLength(sx, sy, dx, dy, max, step = 0.05) {
+    for (let t = 0; t < max; t += step) if (this.isWall(Math.floor(sx + dx * t), Math.floor(sy + dy * t))) return t;
+    return max;
+  }
+
   // Is a circle at (x, y) free of walls and of solid bodies other than `ignore`?
   isCircleFree(x, y, r, ignore = null) {
     if (this.circleHitsWall(x, y, r)) return false;

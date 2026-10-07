@@ -1,25 +1,28 @@
 // An enemy attack's damage area, attached to the enemy's position and facing.
-// While active it is parryable and hurts the player once per activation.
-import { Graphics } from 'pixi.js';
+// While active it is parryable and hurts the player once per activation, or, if
+// `continuous`, whenever the player touches it (their invincibility spaces the hits).
+// It draws nothing itself; the ability's AttackView shows it.
 import { ContactSet, circleVsBox, circleVsCircle, circleVsCapsule, segmentPointDistSq } from '../engine/physics.js';
-import { HITBOX_COLORS } from '../data/config.js';
+
+// The point on capsule `s`'s spine nearest (px, py).
+function nearestOnSpine(s, px, py) {
+  const abx = s.bx - s.ax, aby = s.by - s.ay, l2 = abx * abx + aby * aby;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((px - s.ax) * abx + (py - s.ay) * aby) / l2)) : 0;
+  return { x: s.ax + abx * t, y: s.ay + aby * t };
+}
 
 export class EnemyHitbox {
-  // shape: { type: 'circle', r } | { type: 'box', forward, hw, hh } (in enemy-local units)
-  constructor(enemy, ability, shape, colorKey) {
+  // shape (in enemy-local units, +x forward):
+  //   { type: 'circle', r } | { type: 'box', forward, hw, hh }
+  //   { type: 'beam', from, length, r }  a capsule from `from` to `from + length` ahead
+  constructor(enemy, ability, shape, { continuous = false } = {}) {
     this.enemy = enemy;
     this.ability = ability;
     this.shape = shape;
+    this.continuous = continuous;
     this.active = false;
     this.parried = false;
     this.contacts = new ContactSet();
-    const c = HITBOX_COLORS[colorKey];
-    this.gfx = new Graphics();
-    if (shape.type === 'circle') this.gfx.circle(0, 0, shape.r);
-    else this.gfx.rect(shape.forward - shape.hw, -shape.hh, shape.hw * 2, shape.hh * 2);
-    this.gfx.fill({ color: c.color, alpha: c.alpha });
-    this.gfx.visible = false;
-    enemy.world.layers.hitboxes.addChild(this.gfx);
   }
 
   get world() { return this.enemy.world; }
@@ -27,7 +30,6 @@ export class EnemyHitbox {
   setActive(on) {
     if (on === this.active) return;
     this.active = on;
-    this.gfx.visible = on;
     if (on) {
       this.parried = false;
       this.world.hostileAttacks.add(this);
@@ -45,29 +47,30 @@ export class EnemyHitbox {
   }
 
   worldShape() {
-    const b = this.enemy.body;
-    if (this.shape.type === 'circle') return { type: 'circle', x: b.pos.x, y: b.pos.y, r: this.shape.r };
-    const a = b.rotation;
-    return {
-      type: 'box',
-      x: b.pos.x + Math.cos(a) * this.shape.forward,
-      y: b.pos.y + Math.sin(a) * this.shape.forward,
-      hw: this.shape.hw, hh: this.shape.hh, angle: a,
-    };
+    const b = this.enemy.body, s = this.shape;
+    if (s.type === 'circle') return { type: 'circle', x: b.pos.x, y: b.pos.y, r: s.r };
+    const c = Math.cos(b.rotation), sn = Math.sin(b.rotation);
+    if (s.type === 'beam') {
+      const to = s.from + s.length;
+      return { type: 'capsule', ax: b.pos.x + c * s.from, ay: b.pos.y + sn * s.from, bx: b.pos.x + c * to, by: b.pos.y + sn * to, r: s.r };
+    }
+    return { type: 'box', x: b.pos.x + c * s.forward, y: b.pos.y + sn * s.forward, hw: s.hw, hh: s.hh, angle: b.rotation };
   }
 
   overlapsCircle(x, y, r) {
     const s = this.worldShape();
+    if (s.type === 'capsule') return circleVsCapsule(x, y, r, s);
     return s.type === 'circle' ? circleVsCircle(x, y, r, s.x, s.y, s.r) : circleVsBox(x, y, r, s);
   }
 
   overlapsCapsule(cap) {
     const s = this.worldShape();
     if (s.type === 'circle') return circleVsCapsule(s.x, s.y, s.r, cap);
-    // Box vs capsule: test circles along the capsule's spine.
+    // Box or beam vs capsule: test circles along the capsule's spine.
+    const hits = s.type === 'capsule' ? (x, y) => circleVsCapsule(x, y, cap.r, s) : (x, y) => circleVsBox(x, y, cap.r, s);
     for (let i = 0; i <= 6; i++) {
       const t = i / 6;
-      if (circleVsBox(cap.ax + (cap.bx - cap.ax) * t, cap.ay + (cap.by - cap.ay) * t, cap.r, s)) return true;
+      if (hits(cap.ax + (cap.bx - cap.ax) * t, cap.ay + (cap.by - cap.ay) * t)) return true;
     }
     return false;
   }
@@ -75,6 +78,7 @@ export class EnemyHitbox {
   // Approximate contact point toward a capsule (for the parry spark).
   closestPoint(cap) {
     const s = this.worldShape();
+    if (s.type === 'capsule') return nearestOnSpine(s, cap.cx, cap.cy);
     const d = Math.sqrt(segmentPointDistSq(cap.ax, cap.ay, cap.bx, cap.by, s.x, s.y));
     const dx = cap.cx - s.x, dy = cap.cy - s.y, l = Math.hypot(dx, dy) || 1;
     const reach = Math.min(s.type === 'circle' ? s.r : Math.max(s.hw, s.hh), d);
@@ -85,25 +89,24 @@ export class EnemyHitbox {
     if (!this.active || this.enemy.dead) return;
     const p = this.world.livePlayer;
     const touching = p && this.overlapsCircle(p.body.pos.x, p.body.pos.y, p.body.radius);
-    this.contacts.update(touching ? [p] : [], (player) => {
-      if (this.parried || player.tryParryIncoming(this) || this.parried) return;
-      const s = this.worldShape();
-      const b = player.body.pos;
-      const dx = s.x - b.x, dy = s.y - b.y, l = Math.hypot(dx, dy) || 1;
-      const hitPoint = { x: b.x + (dx / l) * player.body.radius, y: b.y + (dy / l) * player.body.radius };
-      player.takeDamage(this.enemy.damage * this.ability.data.damageMultiplier, hitPoint, { x: s.x, y: s.y });
-    });
+    if (this.continuous) {
+      if (touching) this.strike(p);
+    } else {
+      this.contacts.update(touching ? [p] : [], (player) => this.strike(player));
+    }
   }
 
-  render(alpha) {
-    if (!this.active) return;
-    const p = this.enemy.body.lerpPos(alpha);
-    this.gfx.position.set(p.x, p.y);
-    this.gfx.rotation = this.enemy.body.lerpRotation(alpha);
+  strike(player) {
+    if (this.parried || player.tryParryIncoming(this) || this.parried) return;
+    const s = this.worldShape();
+    const b = player.body.pos;
+    const src = s.type === 'capsule' ? nearestOnSpine(s, b.x, b.y) : { x: s.x, y: s.y };
+    const dx = src.x - b.x, dy = src.y - b.y, l = Math.hypot(dx, dy) || 1;
+    const hitPoint = { x: b.x + (dx / l) * player.body.radius, y: b.y + (dy / l) * player.body.radius };
+    player.takeDamage(this.enemy.damage * this.ability.data.damageMultiplier, hitPoint, src);
   }
 
   destroy() {
     this.world.hostileAttacks.delete(this);
-    this.gfx.destroy();
   }
 }

@@ -55,7 +55,7 @@ export class EnemyAI {
       case AIState.Chase: this.moveChase(dt); break;
       case AIState.Reposition: this.moveOrbit(dt, this.cfg.repositionSpeed, false); break;
       case AIState.Idle: this.moveOrbit(dt, this.cfg.orbitSpeed, true); break;
-      case AIState.WindUp: this.turnToward(this.dirToPlayer(), dt); break;
+      case AIState.WindUp: if (this.activeAbility?.tracking() ?? true) this.turnToward(this.dirToPlayer(), dt); break;
       // Attack/Recover: no steering; abilities and momentum drive the body.
     }
   }

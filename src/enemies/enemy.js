@@ -4,17 +4,19 @@ import { Container, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { Body } from '../engine/physics.js';
 import { randInt, randInsideUnitCircle, norm, fromAngle } from '../engine/math.js';
-import { ENEMY_TYPES, ABILITIES, PARTICLES, PICKUPS, GAME } from '../data/config.js';
+import { ENEMY_TYPES, ABILITIES, PARTICLES, PICKUPS } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
 import { createAbility } from './abilities.js';
 import { EnemyAI } from './ai.js';
+import { EnemyAttackFx, renderTime } from './attackView.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
     super(world);
+    this.typeKey = typeKey;
     this.type = ENEMY_TYPES[typeKey];
     this.body = world.physics.add(new Body({ x, y, radius: this.type.radius, mass: this.type.mass, damping: this.type.linearDamping }));
     this.health = this.type.maxHealth;
@@ -29,6 +31,7 @@ export class Enemy extends Entity {
       if (!this.abilities.has(ability)) this.abilities.set(ability, createAbility(this, ABILITIES[ability]));
     }
     this.ai = new EnemyAI(this, this.type.ai);
+    this.attackFx = new EnemyAttackFx(this, this.silhouette);
   }
 
   get damage() { return this.type.damage; }
@@ -46,12 +49,14 @@ export class Enemy extends Entity {
         s.width = s.height = v.size;
       }
       this.view.addChild(this.voidSprite, this.stars.container, this.outline);
+      this.silhouette = { texture: tex[`${v.outline}_white`], width: v.size, height: v.size };
     } else {
       const hex = new Sprite(tex.hexFlat);
       hex.anchor.set(0.5);
       hex.width = v.width; hex.height = v.height;
       hex.tint = v.color;
       this.view.addChild(hex);
+      this.silhouette = { texture: tex.hexFlat_white, width: v.width, height: v.height };
     }
     this.world.layers.enemies.addChild(this.view);
   }
@@ -117,7 +122,6 @@ export class Enemy extends Entity {
     const { world, body, type } = this;
     this.ai.onDeath();
     world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
-    world.session.addCoins(GAME.coinsPerKill);
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
     for (let i = 0; i < drops; i++) {
       const o = randInsideUnitCircle();
@@ -129,14 +133,16 @@ export class Enemy extends Entity {
     world.events.enemyKilled.emit(this);
   }
 
-  render(alpha, _dt, view) {
+  render(alpha, dt, view) {
     const p = this.body.lerpPos(alpha);
     const visible = rectContainsCircle(view, p.x, p.y, this.body.radius * 2);
+    const now = renderTime(this.world, alpha), rot = this.body.lerpRotation(alpha);
     this.view.visible = visible;
-    for (const a of this.abilities.values()) a.hitbox?.render(alpha);
-    if (!visible) return;
+    for (const a of this.abilities.values()) a.view?.render(now, alpha, dt);
     this.view.position.set(p.x, p.y);
-    this.view.rotation = this.body.lerpRotation(alpha);
+    this.view.rotation = rot;
+    this.attackFx.render(now, p, rot, visible);
+    if (!visible) return;
     this.setFlash(this.world.time < this.flashUntil);
     if (!this.flashing) this.stars?.update(this.world.time);
   }
@@ -154,6 +160,7 @@ export class Enemy extends Entity {
   dispose() {
     this.ai.releaseSlot();
     for (const a of this.abilities.values()) a.dispose();
+    this.attackFx.destroy();
     this.world.physics.remove(this.body);
     this.view.destroy({ children: true });
   }

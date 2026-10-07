@@ -30,9 +30,9 @@ export class World {
       level: this.levelView.root,
       exit: new Container(),
       pickups: new Container(),
+      telegraphs: new Container(), // enemy attack areas and afterimages, on the floor
       playerBack: new Container({ sortableChildren: true }),
       enemies: new Container(),
-      hitboxes: new Container(),
       projectiles: new Container(),
       player: new Container(),
       fx: new Container(),
@@ -112,7 +112,9 @@ export class World {
   requestNextFloor() { this.nextFloorRequested = true; }
 
   gameOver() {
-    if (!this.isGameOver) this.gameOverAt = this.time + GAME.returnDelay;
+    if (this.isGameOver) return;
+    this.gameOverAt = this.time + GAME.returnDelay;
+    this.session.stats.timeSurvived = this.time;
   }
 
   // ── entities ─────────────────────────────────────────────────────
@@ -149,12 +151,17 @@ export class World {
   // Without a position it plays centred (sounds that happen to the player).
   sound(name, pos = null, opts = {}) {
     if (!pos) { sfx.play(name, opts); return; }
+    const { pan, volume } = this.positional(pos);
+    sfx.play(name, { ...opts, pan, volume: (opts.volume ?? 1) * volume });
+  }
+
+  // How loud (0…1) and how far panned a sound at `pos` is, from its offset to the camera.
+  positional(pos) {
     const cam = this.camera;
     const dx = pos.x - cam.x, dy = pos.y - cam.y;
     const fade = 1 - (Math.hypot(dx, dy) - AUDIO.fullVolumeRange) / (AUDIO.silentRange - AUDIO.fullVolumeRange);
     const halfWidth = cam.viewW / cam.ppu / 2;
-    const pan = Math.max(-1, Math.min(1, dx / halfWidth)) * AUDIO.maxPan;
-    sfx.play(name, { ...opts, pan, volume: (opts.volume ?? 1) * Math.min(1, fade) });
+    return { pan: Math.max(-1, Math.min(1, dx / halfWidth)) * AUDIO.maxPan, volume: Math.max(0, Math.min(1, fade)) };
   }
 
   // ── loop ─────────────────────────────────────────────────────────
@@ -172,6 +179,7 @@ export class World {
 
     if (this.nextFloorRequested) {
       this.nextFloorRequested = false;
+      this.session.floorCleared();
       if (this.session.scalesDifficulty) this.session.floor++;
       this.startFloor();
     }

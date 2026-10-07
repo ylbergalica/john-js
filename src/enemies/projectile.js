@@ -1,35 +1,49 @@
-// Goblin projectile: flies straight, hurts the player on contact, breaks on walls.
-// Parrying it punishes the ability that threw it.
-import { Sprite } from 'pixi.js';
+// Enemy projectile: flies straight (or, given a turnRate, steers toward the player), hurts
+// the player on contact, breaks on walls unless it passesWalls. Parrying it punishes the
+// ability that threw it.
 import { Entity } from '../game/entity.js';
 import { Body, circleVsCircle, circleVsCapsule } from '../engine/physics.js';
-import { tex } from '../render/assets.js';
-import { ORB_PAD } from '../render/sprites.js';
+import { clamp, deltaAngle, fromAngle } from '../engine/math.js';
+import { ATTACK_FX } from '../data/config.js';
+import { ProjectileLook, renderTime } from './attackView.js';
 
 export class Projectile extends Entity {
-  // opts: { dir, speed, lifetime, damage, size, color }
+  // opts: { dir, speed, lifetime, damage, size, passesWalls = false,
+  //         turnRate = 0 (rad/s), homingDelay = 0, homingTime = Infinity (s after launch) }
   constructor(world, sourceAbility, x, y, opts) {
     super(world);
     this.sourceAbility = sourceAbility;
     this.dir = opts.dir;
     this.speed = opts.speed;
     this.damage = opts.damage;
+    this.size = opts.size;
+    this.passesWalls = opts.passesWalls ?? false;
+    this.turnRate = opts.turnRate ?? 0;
+    this.homingFrom = world.time + (opts.homingDelay ?? 0);
+    this.homingUntil = world.time + (opts.homingTime ?? Infinity);
+    this.spawnedAt = world.time;
     this.expiresAt = world.time + opts.lifetime;
     this.body = world.physics.add(new Body({ x, y, radius: opts.size / 2, solid: false }));
     this.body.rotation = Math.atan2(opts.dir.y, opts.dir.x);
-    this.sprite = new Sprite(tex.orb);
-    this.sprite.anchor.set(0.5);
-    this.sprite.width = this.sprite.height = opts.size * ORB_PAD;
-    this.sprite.tint = opts.color;
-    this.sprite.position.set(x, y);
-    world.layers.projectiles.addChild(this.sprite);
+    this.look = new ProjectileLook(world.layers.projectiles);
+    this.look.render(world.time, x, y, this.body.rotation, this.size);
     world.hostileAttacks.add(this);
   }
 
-  step() {
+  step(dt) {
     if (this.world.time >= this.expiresAt) { this.destroy(); return; }
+    if (this.turnRate > 0) this.home(dt);
     this.body.vel.x = this.dir.x * this.speed;
     this.body.vel.y = this.dir.y * this.speed;
+  }
+
+  // Turns toward the player, at most turnRate radians a second.
+  home(dt) {
+    const p = this.world.livePlayer, b = this.body;
+    if (!p || this.world.time < this.homingFrom || this.world.time >= this.homingUntil) return;
+    const want = Math.atan2(p.body.pos.y - b.pos.y, p.body.pos.x - b.pos.x), max = this.turnRate * dt;
+    b.rotation += clamp(deltaAngle(b.rotation, want), -max, max);
+    this.dir = fromAngle(b.rotation);
   }
 
   overlapsCircle(x, y, r) { return circleVsCircle(x, y, r, this.body.pos.x, this.body.pos.y, this.body.radius); }
@@ -46,8 +60,9 @@ export class Projectile extends Entity {
 
   afterPhysics() {
     const b = this.body;
-    if (this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) {
+    if (!this.passesWalls && this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) {
       this.world.sound('fizzle', b.pos);
+      this.world.effects.burst(b.pos.x, b.pos.y, this.body.rotation + Math.PI, { ...ATTACK_FX.projectile.fizzle, color: ATTACK_FX.color });
       this.destroy();
       return;
     }
@@ -61,13 +76,14 @@ export class Projectile extends Entity {
   }
 
   render(alpha) {
-    const p = this.body.lerpPos(alpha);
-    this.sprite.position.set(p.x, p.y);
+    const p = this.body.lerpPos(alpha), now = renderTime(this.world, alpha);
+    const trail = Math.min(ATTACK_FX.projectile.trailLength, Math.max(0, now - this.spawnedAt) * this.speed);
+    this.look.render(now, p.x, p.y, this.body.rotation, this.size, { trailLength: trail });
   }
 
   dispose() {
     this.world.hostileAttacks.delete(this);
     this.world.physics.remove(this.body);
-    this.sprite.destroy();
+    this.look.destroy();
   }
 }

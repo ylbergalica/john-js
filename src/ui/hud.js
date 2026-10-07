@@ -35,6 +35,7 @@ export class Hud {
   }
 
   setPaused(on) { this.pausePanel.classList.toggle('hidden', !on); }
+  setVisible(on) { this.el.classList.toggle('hidden', !on); }
 
   update() {
     const { world, session } = this.scene;

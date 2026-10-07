@@ -188,6 +188,33 @@ const SOUNDS = {
   fizzle(v) {
     noise(v, { filter: 'highpass', freq: 2000, to: 800, dur: 0.1, vol: 0.12 });
   },
+  // the Seraph
+  boost(v) { // a jet lighting up for the ram
+    noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });
+    tone(v, { type: 'sawtooth', freq: 70, to: 140, dur: 0.45, vol: 0.12, attack: 0.03 });
+  },
+  crash(v) {
+    tone(v, { freq: 85, to: 28, dur: 0.5, vol: 0.55 });
+    noise(v, { filter: 'lowpass', freq: 1800, to: 100, dur: 0.45, vol: 0.55 });
+    tone(v, { type: 'square', freq: 300, to: 90, dur: 0.12, vol: 0.12 });
+  },
+  missile(v) {
+    noise(v, { freq: 400, to: 2200, q: 1.2, dur: 0.35, vol: 0.22, attack: 0.02 });
+    tone(v, { type: 'triangle', freq: 300, to: 700, dur: 0.2, vol: 0.06 });
+  },
+  laserCharge(v) { // swells over about as long as the laser's wind-up
+    tone(v, { type: 'sawtooth', freq: 140, to: 880, dur: 1.8, vol: 0.05, attack: 1.4, hold: 1.65 });
+    tone(v, { freq: 420, to: 1760, dur: 1.8, vol: 0.05, attack: 1.5, hold: 1.7 });
+    noise(v, { freq: 600, to: 4000, q: 2, dur: 1.8, vol: 0.06, attack: 1.5, hold: 1.7 });
+  },
+  laserLock(v) { // two quick blips: the aim is fixed
+    arp(v, [1760, 1760], 0.09, { type: 'square', dur: 0.06, vol: 0.06 });
+  },
+  laserFire(v) {
+    tone(v, { type: 'sawtooth', freq: 900, to: 120, dur: 0.35, vol: 0.18 });
+    noise(v, { filter: 'highpass', freq: 1500, to: 600, dur: 0.3, vol: 0.3 });
+    tone(v, { freq: 60, to: 40, dur: 0.4, vol: 0.4 });
+  },
 
   // pickups and progression
   orb(v) {
@@ -293,6 +320,29 @@ const SOUNDS = {
     arp(v, [523, 659, 784, 1047], 0.09, { type: 'triangle', at: 0.3, dur: 0.7, vol: 0.13 });
     tone(v, { freq: 262, at: 0.3, dur: 1.2, vol: 0.12, attack: 0.05 });
   },
+
+  // run summary
+  summary(v) { // the title lands: a sub boom under a dark, slowly falling chord
+    tone(v, { freq: 90, to: 40, dur: 1.6, vol: 0.35, attack: 0.01 });
+    noise(v, { filter: 'lowpass', freq: 900, to: 70, dur: 1.3, vol: 0.35 });
+    tone(v, { type: 'triangle', freq: 220, to: 196, at: 0.05, dur: 2, vol: 0.07, attack: 0.25 });
+    tone(v, { type: 'triangle', freq: 262, to: 233, at: 0.05, dur: 2, vol: 0.05, attack: 0.25 });
+  },
+  reveal(v) {
+    tone(v, { type: 'triangle', freq: 300, to: 190, dur: 0.12, vol: 0.12 });
+    noise(v, { filter: 'lowpass', freq: 1400, to: 250, dur: 0.1, vol: 0.18 });
+  },
+  tally(v) {
+    tone(v, { type: 'square', freq: 1300, dur: 0.025, vol: 0.022 });
+  },
+  coin(v) {
+    arp(v, [1568, 2349], 0.04, { type: 'triangle', dur: 0.14, vol: 0.05 });
+  },
+  bank(v) {
+    arp(v, [784, 988, 1175, 1568, 1976], 0.06, { type: 'triangle', dur: 0.55, vol: 0.11 });
+    tone(v, { freq: 392, at: 0.2, dur: 1, vol: 0.1, attack: 0.03 });
+    noise(v, { filter: 'highpass', freq: 6000, at: 0.2, dur: 0.5, vol: 0.06 });
+  },
 };
 
 // ── loops ──────────────────────────────────────────────────────────
@@ -357,6 +407,21 @@ const LOOPS = {
       wobble(flame.freq, 0.33, 250),
       wobble(flame.gain, 0.47, 0.02),
     ];
+  },
+  // The Seraph's laser: a buzzing low hum under a fizzing sizzle.
+  laser(out) {
+    const hum = ctx.createOscillator();
+    hum.type = 'sawtooth';
+    hum.frequency.value = 92;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 700;
+    const g = ctx.createGain();
+    g.gain.value = 0.12;
+    hum.connect(f).connect(g).connect(out);
+    hum.start();
+    const sizzle = bed(noiseBuffer, out, { filter: 'bandpass', freq: 2600, q: 1.5, vol: 0.06 });
+    return [hum, sizzle.src, wobble(g.gain, 13, 0.04), wobble(sizzle.freq, 7, 600)];
   },
 };
 

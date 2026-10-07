@@ -22,9 +22,15 @@ export class AspectController {
     this.aspects.forEach((aspect, i) => {
       if (!aspect.data.activatable) return;
       if (input.wasPressed(`slot${i + 1}`)) this.buffers[i].press(time);
-      if (!this.player.teleporting) this.buffers[i].consume(time, () => aspect.tryActivate());
+      if (!this.player.teleporting) this.buffers[i].consume(time, () => this.activate(aspect));
     });
     for (const a of this.aspects) a.step(dt);
+  }
+
+  activate(aspect) {
+    const ok = aspect.tryActivate();
+    if (ok) this.player.world.session.aspectUsed(aspect.data.id);
+    return ok;
   }
 
   afterPhysics() { for (const a of this.aspects) a.afterPhysics(); }

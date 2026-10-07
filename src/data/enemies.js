@@ -1,0 +1,63 @@
+// Enemy types: stats, drops, visuals and AI. Chasers are the floor bosses.
+
+const AI_DEFAULTS = {
+  aggroRange: 12, orbitRadius: 4, attackEngageRange: 0,
+  moveSpeed: 3, orbitSpeed: 2, repositionSpeed: 2,
+  movementResponsiveness: 0.35, preservedExternalVelocityLimit: 6,
+  pathRefreshInterval: 0.25, pathGoalSearchRadius: 2, chaserPathGoalSearchRadius: 8,
+  decisionDelayRange: { x: 0.8, y: 1.5 }, recoverDuration: 0.5,
+  orbitPreference: 0.5, repositionDurationRange: { x: 0.5, y: 1.5 },
+  turnSmoothTime: 0.1,
+};
+
+export const ENEMY_TYPES = {
+  goblin: {
+    name: 'Goblin', maxHealth: 5, damage: 1, radius: 0.5 * 0.9, mass: 3, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84, sfxPitch: 1.2,
+    visual: { kind: 'sprite', outline: 'goblin_idle', void: 'goblin_idle_void', size: 1.5 * 0.9, sparkleCount: 20 },
+    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
+      attacks: [{ ability: 'GoblinThrow', weight: 1 }] },
+  },
+  striker: {
+    name: 'Striker', maxHealth: 7, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b, sfxPitch: 1,
+    visual: { kind: 'sprite', outline: 'striker_idle', void: 'striker_idle_void', size: 1.5, sparkleCount: 22 },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
+      attacks: [{ ability: 'StrikerDash', weight: 1 }] },
+  },
+  warden: {
+    name: 'Warden', maxHealth: 500, damage: 5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff, sfxPitch: 0.55,
+    navFootprint: 3, // tiles; the Warden needs 3-wide passages
+    visual: { kind: 'hexagon', width: 2, height: 0.890625 * 2, color: 0xffffff },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 4, attackEngageRange: 3.5, moveSpeed: 2, orbitSpeed: 1, repositionSpeed: 1,
+      attacks: [
+        { ability: 'WardenDash', weight: 0.25 },
+        { ability: 'WardenSlam', weight: 0.2 },
+        { ability: 'WardenPunch', weight: 0.35 },
+        { ability: 'WardenGroundPound', weight: 0.2 },
+      ] },
+  },
+  // An astral star-fighter: a delta wing with twin engines. Keeps its distance and attacks
+  // from range more than the Warden does.
+  seraph: {
+    name: 'Seraph', maxHealth: 450, damage: 7, radius: 0.9, mass: 100, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xb9a4ff, sfxPitch: 0.75,
+    navFootprint: 3,
+    visual: { kind: 'sprite', outline: 'seraph_idle', void: 'seraph_idle_void', size: 2.2, sparkleCount: 30 },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 6, attackEngageRange: 8, moveSpeed: 2.5, orbitSpeed: 1.6, repositionSpeed: 1.6,
+      turnSmoothTime: 0.2,
+      attacks: [
+        { ability: 'SeraphDash', weight: 0.3 },
+        { ability: 'SeraphRam', weight: 0.25 },
+        { ability: 'SeraphMissiles', weight: 0.25 },
+        { ability: 'SeraphLaser', weight: 0.2 },
+      ] },
+  },
+};
+
+export const ENEMY_COMBAT = { maxActiveAttackers: 3 };

@@ -1,15 +1,18 @@
 // Adrenaline meter: filled by orbs, spent all at once to enter the Exalted state.
 // Each use raises the meter's capacity ("tolerance") and the Exalted duration.
+// Landing hits and parries while Exalted refills it (see extend).
 import { ADRENALINE as A } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 
 export class Adrenaline {
-  constructor() {
+  constructor(events) {
+    this.events = events;
     this.current = 0;
     this.uses = 0;
     this.max = A.baseMaxAdrenaline;
     this.exaltedRemaining = 0;
     this.exaltedDuration = 0;
+    events.enemyDamaged.on(() => this.extend(A.extendPerHit));
   }
 
   get isExalted() { return this.exaltedRemaining > 0; }
@@ -20,9 +23,16 @@ export class Adrenaline {
 
   add(amount) {
     if (this.isExalted) return;
-    const wasFull = this.current >= this.max;
-    this.current = Math.min(this.current + amount * A.basePointValue, this.max);
+    const wasFull = this.current >= this.max, before = this.current, offered = amount * A.basePointValue;
+    this.current = Math.min(this.current + offered, this.max);
+    this.events.adrenalineGained.emit(this.current - before, offered);
     if (!wasFull && this.current >= this.max) sfx.play('adrenalineFull');
+  }
+
+  // Buys back Exalted time (and the meter with it), up to the state's full duration.
+  extend(seconds) {
+    if (!this.isExalted) return;
+    this.exaltedRemaining = Math.min(this.exaltedRemaining + seconds, this.exaltedDuration);
   }
 
   activate() {

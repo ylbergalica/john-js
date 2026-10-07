@@ -6,6 +6,7 @@ import { World } from './world.js';
 import { RunSession, RunMode } from './session.js';
 import { Hud } from '../ui/hud.js';
 import { RunSummary } from '../ui/runSummary.js';
+import { DevOverlay } from '../ui/devOverlay.js';
 import { sfx } from '../audio/sfx.js';
 
 export class GameScene {
@@ -22,6 +23,7 @@ export class GameScene {
     this.paused = false;
     this.summary = null;
     this.hud = new Hud(uiRoot, this);
+    this.devOverlay = import.meta.env.DEV ? new DevOverlay(uiRoot, this) : null;
 
     input.reset();
     this.world.startFloor();
@@ -50,7 +52,10 @@ export class GameScene {
       if (world.finished && !this.endRun()) return;
     }
     world.render(this.alpha, this.paused ? 0 : dt, this.app.screen.width, this.app.screen.height);
-    if (!this.summary) this.hud.update();
+    if (!this.summary) {
+      this.hud.update();
+      this.devOverlay?.update(this.paused ? 0 : dt, this.alpha);
+    }
   }
 
   // A run that ends in death opens the summary over the frozen world; the playground
@@ -61,6 +66,8 @@ export class GameScene {
       return false;
     }
     this.hud.setVisible(false);
+    this.devOverlay?.destroy();
+    this.devOverlay = null;
     this.summary = new RunSummary(this.uiRoot, { session: this.session, onMenu: this.onExit });
     return true;
   }
@@ -68,6 +75,7 @@ export class GameScene {
   onKeyDown(e) {
     if (e.repeat || this.summary) return;
     if (e.code === 'Escape') this.togglePause();
+    else if (e.code === 'Backquote' && this.devOverlay) this.devOverlay.toggle();
     else if (import.meta.env.DEV && !this.paused) this.devShortcut(e.code);
   }
 
@@ -121,6 +129,7 @@ export class GameScene {
   destroy() {
     this.listeners.abort();
     this.summary?.destroy();
+    this.devOverlay?.destroy();
     this.hud.destroy();
     this.world.destroy();
   }

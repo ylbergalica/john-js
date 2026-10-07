@@ -59,6 +59,10 @@ export class Camera {
     return { x: (sx - this.viewW / 2) / this.ppu + this.viewX, y: (sy - this.viewH / 2) / this.ppu + this.viewY };
   }
 
+  worldToScreen(wx, wy) {
+    return { x: (wx - this.viewX) * this.ppu + this.viewW / 2, y: (wy - this.viewY) * this.ppu + this.viewH / 2 };
+  }
+
   // Visible world rect, grown by `margin` units.
   viewRect(margin = 0) {
     const hw = this.viewW / 2 / this.ppu + margin, hh = this.viewH / 2 / this.ppu + margin;

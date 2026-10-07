@@ -12,13 +12,16 @@ export class RunSession {
   constructor(mode) {
     this.mode = mode;
     this.floor = 1;
-    this.adrenaline = new Adrenaline();
-    this.pendingCoins = 0;
-    this.ended = false; // set once coins are banked; later kills (e.g. while dying) don't count
     this.events = {
       enemyKilled: new Emitter(),
       parried: new Emitter(),
+      enemyDamaged: new Emitter(), // (enemy, damage)
+      playerDamaged: new Emitter(), // (player, damage after resistance, raw damage)
+      adrenalineGained: new Emitter(), // (points added, points offered)
     };
+    this.adrenaline = new Adrenaline(this.events);
+    this.pendingCoins = 0;
+    this.ended = false; // set once coins are banked; later kills (e.g. while dying) don't count
     this.stats = {
       kills: {}, // by enemy type key
       aspectUses: {}, // by aspect id, activatable aspects only

@@ -3,7 +3,7 @@
 import { Entity } from '../game/entity.js';
 import { Body, ContactSet, circleVsCapsule } from '../engine/physics.js';
 import { norm, isZero } from '../engine/math.js';
-import { PLAYER, PARTICLES } from '../data/config.js';
+import { PLAYER, PARTICLES, ADRENALINE } from '../data/config.js';
 import { InputBuffer } from './inputBuffer.js';
 import { PlayerView } from './playerView.js';
 import { AspectController } from '../aspects/controller.js';
@@ -232,6 +232,7 @@ export class Player extends Entity {
       this.world.sound('parry', null, { pitch: P.comboPitchStep ** level, volume: 1 + P.comboVolumeStep * level, jitter: 0.005 });
       if (maxed) this.world.sound('parryCrown');
       this.world.events.parried.emit();
+      this.world.adrenaline.extend(ADRENALINE.extendPerParry);
     }
     return true;
   }
@@ -244,7 +245,10 @@ export class Player extends Entity {
     if (this.dead || this.now < this.invincibleUntil) return;
     const final = damage * this.world.adrenaline.damageTakenMultiplier;
     this.health -= final;
-    if (final > 0) this.onHurt(hitPoint, source);
+    if (final > 0) {
+      this.onHurt(hitPoint, source);
+      this.world.events.playerDamaged.emit(this, final, damage);
+    }
     if (this.health <= 0) this.die();
     else this.invincibleUntil = this.now + H.invincibilityDuration;
   }

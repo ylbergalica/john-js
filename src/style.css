@@ -55,6 +55,20 @@ button:disabled { opacity: 0.4; cursor: default; }
 .pause { position: fixed; inset: 0; background: rgba(0,0,0,0.39); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
 .pause button { width: 160px; font-size: 16px; padding: 4px 0; }
 
+/* ── Dev overlay (DEV builds, toggled with `) ── */
+.dev-overlay { position: fixed; inset: 0; font-family: Consolas, 'Courier New', monospace; }
+.dev-labels, .dev-floats { position: absolute; inset: 0; overflow: hidden; }
+.dev-hp, .dev-float { position: absolute; left: 0; top: 0; white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 2px #000; will-change: transform; }
+.dev-hp { font-size: 12px; }
+.dev-float { font-size: 16px; font-weight: bold; }
+.dev-float.dealt, .dev-log .dealt { color: #fff3a0; }
+.dev-float.taken, .dev-log .taken { color: #ff5a5a; }
+.dev-float.adrenaline, .dev-log .adrenaline { color: #ff9ad0; }
+.dev-float.spent, .dev-log .spent { color: #c48cff; }
+.dev-panel { position: absolute; top: 12px; right: 12px; width: 360px; padding: 8px 10px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; line-height: 1.35; }
+.dev-stats { white-space: pre; }
+.dev-log { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.15); white-space: pre; overflow: hidden; }
+
 /* ── Menu ── */
 .menu { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
 .menu h1 { font-size: 72px; font-weight: normal; letter-spacing: 18px; margin: 0 0 30px; padding-left: 18px; }

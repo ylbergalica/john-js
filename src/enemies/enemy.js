@@ -82,6 +82,7 @@ export class Enemy extends Entity {
     hitPoint ??= { ...this.body.pos };
     if (damage > 0) this.onHurt(hitPoint, source);
     this.health -= damage;
+    if (damage > 0) this.world.events.enemyDamaged.emit(this, damage);
     if (this.health <= 0) this.die();
   }
 

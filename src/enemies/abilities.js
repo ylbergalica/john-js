@@ -102,8 +102,11 @@ class Ability {
 
   notifyAttackStarted() { this.enemy.ai.onAbilityAttackStarted(this); }
 
-  // Damage taken when parried, plus the player's parry-streak bonus.
-  parryDamage() { return this.data.damageMultiplier * this.enemy.damage + (this.player?.parryBonusDamage ?? 0); }
+  // Damage taken when parried, plus the player's parry-streak bonus, both scaled by Exalted.
+  parryDamage() {
+    const base = this.data.damageMultiplier * this.enemy.damage + (this.player?.parryBonusDamage ?? 0);
+    return base * this.world.adrenaline.damageMultiplier;
+  }
 
   sound(name) { this.world.sound(name, this.enemy.body.pos, { pitch: this.enemy.type.sfxPitch }); }
 

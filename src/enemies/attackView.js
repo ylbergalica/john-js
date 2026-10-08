@@ -17,6 +17,7 @@ import { COMET_HEAD, ORB_PAD } from '../render/sprites.js';
 
 const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone;
 const FADE_IN = 0.1; // seconds for a wind-up's marks to appear
+const DEG = Math.PI / 180;
 
 // The simulation time a frame shows: bodies are interpolated from the previous step.
 export const renderTime = (world, alpha) => world.time - (1 - alpha) * FIXED_DT;
@@ -65,7 +66,7 @@ export class EnemyAttackFx {
       if (a.phase === 'active' && a.kind === 'body') burning = a;
       if (!last || a.strikeAt > last.strikeAt) last = a;
     }
-    let glow = 0, tint = 0, tintColor = X.color, sx = 1, sy = 1;
+    let glow = 0, tint = 0, tintColor = X.color, sx = 1, sy = 1, turn = 0;
     const g = this.tell;
     g.clear();
     g.position.set(p.x, p.y);
@@ -88,6 +89,7 @@ export class EnemyAttackFx {
       const swell = 1 + tell.swell * ease;
       sx = swell * (1 - tell.squash * ease);
       sy = swell * (1 + tell.squash * 0.5 * ease);
+      turn = (tell.twist ?? 0) * DEG * ease;
       this.drawTell(tell, r, elapsed, t, W.alpha * fade * lerp(0.45, 1, t), 0);
     }
 
@@ -99,6 +101,12 @@ export class EnemyAttackFx {
       tint = Math.max(tint, 1 - k);
       tintColor = X.hot;
       glow = Math.max(glow, W.glowAlpha * (1 - k));
+    }
+    // A swing whips through from its twist, past its facing, and settles back.
+    const twist = last ? (tellOf(last).twist ?? 0) * DEG : 0;
+    if (!windup && twist && since >= 0 && since < S.followTime) {
+      const k = since / S.followTime;
+      turn = k < 0.35 ? lerp(twist, -0.4 * twist, easeOut(k / 0.35)) : -0.4 * twist * (1 - smoothStep01((k - 0.35) / 0.65));
     }
     if (!windup && since >= 0 && since < S.releaseTime) {
       const k = since / S.releaseTime;
@@ -122,6 +130,7 @@ export class EnemyAttackFx {
     this.tint.alpha = Math.min(1, tint);
     this.tint.tint = tintColor;
     view.scale.set(sx, sy);
+    view.rotation = rot + turn;
     this.updateAfterimages(now);
   }
 
@@ -212,34 +221,42 @@ export class EnemyAttackFx {
 // ── per ability ────────────────────────────────────────────────────
 // A zone attack's area, shown only once it strikes (the wind-up never gives away where it
 // will land). Shapes are in the enemy's local frame, +x forward:
-//   { type: 'box', near, far, hh }   from `near` to `far` ahead, `hh` to each side
-//   { type: 'circle', r }            all around the enemy
-// The area stays where it was struck.
+//   { type: 'box', near, far, hh }         from `near` to `far` ahead, `hh` to each side
+//   { type: 'circle', r, from, growTime }  all around, spreading from radius `from` to `r`
+//                                          over `growTime` if given
+//   { type: 'sector', r, from, to, revealTime }  a pie slice between angles `from` and `to`,
+//                                          lit edge to edge over `revealTime` (a swing)
+// The area stays where it was struck, or where the ability pins it. It burns from the
+// ability's `zoneAt`.
 export class ZoneView {
   constructor(ability, shape) {
     this.ability = ability;
     this.shape = shape;
+    this.r = shape.r; // a spreading circle's radius as last drawn
+    this.reveal = 1; // how much of a sector is lit, 0 → 1
     this.gfx = new Graphics();
     this.gfx.blendMode = 'add';
     this.gfx.visible = false;
     ability.world.layers.telegraphs.addChild(this.gfx);
   }
 
-  strike() {
+  // `at`: { x, y, rotation } to pin the area there instead of on the enemy.
+  strike(at) {
     const b = this.ability.enemy.body;
-    this.gfx.position.set(b.pos.x, b.pos.y);
-    this.gfx.rotation = b.rotation;
+    this.gfx.position.set(at?.x ?? b.pos.x, at?.y ?? b.pos.y);
+    this.gfx.rotation = at?.rotation ?? b.rotation;
     this.strikeSparks();
   }
 
   strikeSparks() {
     const { x, y } = this.gfx.position, rot = this.gfx.rotation, s = this.shape, fx = this.ability.world.effects;
+    if (s.type === 'sector') return; // the swung weapon leaves its own trail
     if (s.type === 'circle') {
-      const n = Math.max(6, Math.round((TAU * s.r) / (Z.sparkSpacing * 2)));
+      const r = s.from ?? s.r, n = Math.max(6, Math.round((TAU * r) / (Z.sparkSpacing * 2)));
       const opts = { ...Z.sparks, count: Math.ceil(Z.sparks.count / 2), color: X.color };
       for (let i = 0; i < n; i++) {
         const a = (TAU * i) / n;
-        fx.burst(x + Math.cos(a) * s.r, y + Math.sin(a) * s.r, a, opts);
+        fx.burst(x + Math.cos(a) * r, y + Math.sin(a) * r, a, opts);
       }
       return;
     }
@@ -253,29 +270,38 @@ export class ZoneView {
   }
 
   render(now) {
-    const a = this.ability, g = this.gfx;
+    const a = this.ability, g = this.gfx, s = this.shape;
     g.clear();
-    if (a.phase === 'active') this.drawBurn(Math.max(0, now - a.strikeAt), now);
-    else if (a.phase !== 'windup') {
+    g.visible = true;
+    if (a.phase === 'active') {
+      if (now < a.zoneAt) return;
+      const since = now - a.zoneAt;
+      this.reveal = s.revealTime ? easeOut(clamp01(since / s.revealTime)) : 1;
+      if (s.growTime) this.r = lerp(s.from, s.r, easeOut(clamp01(since / s.growTime)));
+      this.drawBurn(since, now);
+    } else if (a.phase !== 'windup') {
       const k = (now - a.activeEndedAt) / Z.fadeTime;
       if (k >= 0 && k < 1) this.fill(Z.burnAlpha * (1 - k), X.color);
     }
-    g.visible = true;
   }
 
-  // A white-hot flash settling into a flickering burn, with a band sweeping across it.
+  // A white-hot flash settling into a flickering burn, with a band sweeping across it (the
+  // lit edge of a sector, the rim of a spreading circle).
   drawBurn(since, now) {
+    const s = this.shape, sweepTime = s.revealTime ?? s.growTime ?? Z.sweepTime;
     const flash = Math.max(0, 1 - since / Z.flashTime);
     const color = lerpColor(X.color, X.hot, flash * 0.75);
     this.fill(Z.burnAlpha + Z.flicker * Math.sin(now * 55) + Z.flashAlpha * flash, color);
     this.outline(color, 0.6 + 0.4 * flash);
-    if (since < Z.sweepTime) this.sweep(easeOut(since / Z.sweepTime), X.hot, 1 - since / Z.sweepTime);
+    if (since < sweepTime) this.sweep(s.revealTime ? this.reveal : easeOut(since / sweepTime), X.hot, 1 - since / sweepTime);
   }
 
   // Shape geometry ------------------------------------------------------
   path() {
     const g = this.gfx, s = this.shape;
-    return s.type === 'circle' ? g.circle(0, 0, s.r) : g.rect(s.near, -s.hh, s.far - s.near, s.hh * 2);
+    if (s.type === 'circle') return g.circle(0, 0, this.r);
+    if (s.type === 'sector') return g.moveTo(0, 0).arc(0, 0, s.r, s.from, lerp(s.from, s.to, this.reveal), s.to < s.from).closePath();
+    return g.rect(s.near, -s.hh, s.far - s.near, s.hh * 2);
   }
 
   outline(color, alpha) { this.path().stroke({ width: Z.outlineWidth, color, alpha }); }
@@ -284,11 +310,18 @@ export class ZoneView {
     if (alpha > 0) this.path().fill({ color, alpha: clamp01(alpha) });
   }
 
-  // A bright band across the area at fraction t of the way out (a ring for circles).
+  // A bright band at fraction t of the way across the area: a ring for circles (at the rim
+  // of a spreading one), a spoke for sectors.
   sweep(t, color, alpha) {
     const g = this.gfx, s = this.shape, width = Z.sweepWidth;
     if (s.type === 'circle') {
-      if (s.r * t > width) g.circle(0, 0, s.r * t).stroke({ width, color, alpha });
+      const r = s.growTime ? this.r : s.r * t;
+      if (r > width) g.circle(0, 0, r).stroke({ width, color, alpha });
+      return;
+    }
+    if (s.type === 'sector') {
+      const a = lerp(s.from, s.to, t);
+      g.moveTo(0, 0).lineTo(Math.cos(a) * s.r, Math.sin(a) * s.r).stroke({ width, color, alpha: clamp01(alpha) });
       return;
     }
     g.rect(lerp(s.near, s.far, t) - width / 2, -s.hh, width, s.hh * 2).fill({ color, alpha: clamp01(alpha) });

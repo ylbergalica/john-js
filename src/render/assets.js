@@ -2,8 +2,8 @@
 // frame sequences in `anims`, aspect and UI icons in `tex` plus data URLs for the DOM UI,
 // enemy portraits for the run summary, and white silhouettes used for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites } from './sprites.js';
-import { ENEMY_TYPES } from '../data/config.js';
+import { animations, icons, sprites, MAUL_ART } from './sprites.js';
+import { ENEMY_TYPES, MAUL } from '../data/config.js';
 
 export const tex = {};
 export const anims = {};
@@ -25,7 +25,7 @@ export async function loadAssets() {
 
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
 }
@@ -58,6 +58,7 @@ function enemyPortrait(visual, S = 128) {
   const c = document.createElement('canvas');
   c.width = c.height = S;
   const ctx = c.getContext('2d');
+  if (visual.rig === 'maul') return maulerPortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -65,6 +66,18 @@ function enemyPortrait(visual, S = 128) {
     const w = src.width * k, h = src.height * k;
     ctx.drawImage(src, (S - w) / 2, (S - h) / 2, w, h);
   }
+  return c;
+}
+
+// The Mauler with its maul at rest, which reaches well past its body: shrunk and shifted
+// back to fit.
+function maulerPortrait(c, ctx, visual, S) {
+  const u = S / 2.5, cx = S / 2 - 0.33 * u, cy = S / 2 - 0.05 * u, half = (visual.size / 2) * u;
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
+  const { phi, r, rot } = MAUL.poses.idle;
+  ctx.translate(cx + Math.cos(phi) * r * u, cy + Math.sin(phi) * r * u);
+  ctx.rotate(rot);
+  ctx.drawImage(tex.star_maul.source.resource, -MAUL_ART.grip * u, (-MAUL_ART.h / 2) * u, MAUL_ART.w * u, MAUL_ART.h * u);
   return c;
 }
 

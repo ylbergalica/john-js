@@ -8,7 +8,7 @@
 //   zone        an area near the enemy is struck (in front of it, all around, or a beam); a
 //               parry only disarms it: it plays out harmlessly while the enemy is stunned
 //   projectile  something is thrown; a parry breaks the projectile
-import { dist, dirTo, fromAngle } from '../engine/math.js';
+import { clamp01, dist, dirTo, fromAngle, lerp } from '../engine/math.js';
 import { ATTACK_FX, FIXED_DT } from '../data/config.js';
 import { EnemyHitbox } from './hitbox.js';
 import { Projectile } from './projectile.js';
@@ -126,13 +126,15 @@ class Ability {
   }
 }
 
-// Melee abilities with a hitbox (Dash, Ram, Laser, Punch, Ground Pound, Slam). Zones pass
+// Melee abilities with a hitbox (Dash, Ram, Laser, Punch, Swing, Smash, Ground Pound, Slam). Zones pass
 // `area`, the shape ZoneView burns (see there): everywhere the hitbox reaches while active.
 // `kind` defaults to 'zone', so a new zone attack is disarmed rather than cut short by a parry.
+// Unless `armOnStrike` is off, the hitbox starts hurting (and the zone shows) on the strike.
 class HitboxAbility extends Ability {
-  constructor(enemy, data, shape, area, { kind = 'zone', stopsOnStart = true, parryKnockback = 5, strikeSound, continuous = false } = {}) {
+  constructor(enemy, data, shape, area, { kind = 'zone', stopsOnStart = true, parryKnockback = 5, strikeSound, continuous = false, armOnStrike = true } = {}) {
     super(enemy, data);
     this.kind = kind;
+    this.armOnStrike = armOnStrike;
     this.hitbox = new EnemyHitbox(enemy, this, shape, { continuous });
     if (area) this.view = new ZoneView(this, area);
     this.strikeSound = strikeSound;
@@ -155,9 +157,8 @@ class HitboxAbility extends Ability {
         this.notifyAttackStarted();
         this.strikeAt = this.world.time;
         this.strike();
-        this.view?.strike();
         this.sound(this.strikeSound);
-        this.hitbox.setActive(true);
+        if (this.armOnStrike) this.arm();
         this.setPhase('active', this.data.duration);
         break;
       case 'active':
@@ -180,6 +181,15 @@ class HitboxAbility extends Ability {
   }
 
   strike() {}
+
+  // The hitbox starts hurting and the zone shows where (pinned at `at` if given).
+  arm(at) {
+    this.view?.strike(at);
+    this.hitbox.setActive(true);
+  }
+
+  // When the zone started burning: the strike, unless it arms later.
+  get zoneAt() { return this.strikeAt; }
 
   endActive() {
     this.hitbox.setActive(false);
@@ -313,6 +323,85 @@ class PunchAbility extends HitboxAbility {
   }
 }
 
+// Zone attacks that lunge: the enemy steps `stepDistance` along its aim over `stepTime` as
+// it strikes, stopping dead if parried.
+class LungeAbility extends HitboxAbility {
+  constructor(enemy, data, shape, area, opts) {
+    super(enemy, data, shape, area, opts);
+    this.dir = { x: 1, y: 0 };
+    this.stepping = false;
+  }
+
+  strike() { this.dir = fromAngle(this.enemy.body.rotation); }
+
+  step() {
+    super.step();
+    const b = this.enemy.body, d = this.data;
+    const stepping = this.phase === 'active' && this.parriedStunEndsAt === null && this.world.time - this.strikeAt < d.stepTime;
+    if (stepping) {
+      const speed = d.stepDistance / d.stepTime;
+      b.vel.x = this.dir.x * speed;
+      b.vel.y = this.dir.y * speed;
+    } else if (this.stepping && !this.enemy.stunned) b.stop();
+    this.stepping = stepping;
+  }
+
+  shake() {
+    const s = this.data.shake, { volume } = this.world.positional(this.enemy.body.pos);
+    if (s && volume > 0) this.world.camera.shake(s.duration, s.strength * volume, s.frequency);
+  }
+}
+
+// Zone: a held weapon swung across the front (the Mauler's maul), hitting where it sweeps:
+// a sector `reach` around the enemy from `arcFromDeg` to `arcToDeg` off its facing, lit up
+// over `swingTime` as the weapon passes.
+class SwingAbility extends LungeAbility {
+  constructor(enemy, data) {
+    const shape = { type: 'sector', r: data.reach, from: data.arcFromDeg * DEG, to: data.arcToDeg * DEG };
+    super(enemy, data, shape, { ...shape, revealTime: data.swingTime }, { strikeSound: data.strikeSound });
+  }
+}
+
+// Zone: a held weapon brought down overhead. It lands `landTime` after the strike (once
+// the lunge is done) `impactAt` ahead, striking a circle there that spreads from
+// `radius[0]` to `radius[1]` over `spreadTime` and stays where it landed.
+class SmashAbility extends LungeAbility {
+  constructor(enemy, data) {
+    const [from, r] = data.radius;
+    super(enemy, data, { type: 'circle', r: from }, { type: 'circle', from, r, growTime: data.spreadTime }, {
+      strikeSound: data.strikeSound, armOnStrike: false,
+    });
+    this.landedAt = -Infinity;
+    this.impact = null; // where it last landed: { x, y, rotation }
+  }
+
+  get landed() { return this.landedAt >= this.strikeAt; }
+  get zoneAt() { return this.landed ? this.landedAt : Infinity; }
+
+  step() {
+    super.step();
+    if (this.phase !== 'active') return;
+    const d = this.data;
+    if (!this.landed) {
+      if (this.world.time - this.strikeAt >= d.landTime && this.parriedStunEndsAt === null) this.land();
+      return;
+    }
+    const [from, r] = d.radius, k = clamp01((this.world.time - this.landedAt) / d.spreadTime);
+    this.hitbox.shape.r = lerp(from, r, 1 - (1 - k) ** 2);
+  }
+
+  land() {
+    const b = this.enemy.body, d = this.data;
+    this.landedAt = this.world.time;
+    this.impact = { x: b.pos.x + this.dir.x * d.impactAt, y: b.pos.y + this.dir.y * d.impactAt, rotation: b.rotation };
+    this.hitbox.anchor = this.impact;
+    this.hitbox.shape.r = d.radius[0];
+    this.arm(this.impact);
+    this.sound(d.landSound);
+    this.shake();
+  }
+}
+
 // Zone: everything around the enemy.
 class GroundPoundAbility extends HitboxAbility {
   constructor(enemy, data) {
@@ -423,7 +512,7 @@ class MissilesAbility extends ThrowAbility {
 }
 
 const TYPES = {
-  dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, groundPound: GroundPoundAbility,
+  dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
   slam: SlamAbility, throw: ThrowAbility, missiles: MissilesAbility,
 };
 

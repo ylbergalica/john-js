@@ -181,6 +181,10 @@ const SOUNDS = {
     tone(v, { freq: 95, to: 32, dur: 0.45, vol: 0.55 });
     noise(v, { filter: 'lowpass', freq: 700, to: 80, dur: 0.4, vol: 0.5 });
   },
+  heave(v) { // a heavy weapon swung through the air
+    noise(v, { freq: 220, to: 900, q: 0.9, dur: 0.26, vol: 0.32, attack: 0.05 });
+    tone(v, { type: 'triangle', freq: 120, to: 60, dur: 0.2, vol: 0.12 });
+  },
   throw(v) {
     tone(v, { type: 'square', freq: 520, to: 1100, dur: 0.08, vol: 0.06 });
     noise(v, { freq: 1200, to: 2400, q: 2, dur: 0.1, vol: 0.12 });

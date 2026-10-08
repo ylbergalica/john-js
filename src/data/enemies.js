@@ -27,6 +27,17 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 5,
       attacks: [{ ability: 'StrikerDash', weight: 1 }] },
   },
+  // A hulking brute hauling a star-maul, a haft topped with a chunk of fallen star. Slow and
+  // heavy, it steps into every blow: a wide swing, or an overhead slam down a long strip.
+  // The maul is its own sprite, swung by the attacks (`rig`, see maulerRig.js).
+  mauler: {
+    name: 'Mauler', maxHealth: 13, damage: 1.5, radius: 0.52, mass: 5, linearDamping: 1,
+    knockbackResistance: 0.2, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd2742f, sfxPitch: 0.8,
+    visual: { kind: 'sprite', outline: 'mauler_idle', void: 'mauler_idle_void', size: 1.47, sparkleCount: 22, rig: 'maul' },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.5, moveSpeed: 2.4, orbitSpeed: 2, repositionSpeed: 2, maxTurnSpeed: 3,
+      attacks: [{ ability: 'MaulerSwing', weight: 0.65 }, { ability: 'MaulerSlam', weight: 0.35 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 500, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

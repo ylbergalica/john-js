@@ -22,7 +22,7 @@ export const BASE_LEVEL_CONFIG = {
   roomBusyness: 0.5,
   wallSizeRange: { x: 4, y: 7 },
   enemySpawn: {
-    enemies: [{ type: 'goblin', weight: 1 }, { type: 'striker', weight: 1 }],
+    enemies: [{ type: 'goblin', weight: 1 }, { type: 'striker', weight: 1 }, { type: 'mauler', weight: 0.6 }],
     minEnemiesPerRoom: 3,
     maxEnemiesPerRoom: 6,
     skipFirstRoom: true,

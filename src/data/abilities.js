@@ -16,6 +16,25 @@ export const ABILITIES = {
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.25),
     dashForce: 30, hitboxRadius: 0.55,
   },
+  // The Mauler's maul. Both lunge `stepDistance` along the locked aim over `stepTime` as
+  // they strike; `maul` says how the maul moves with them (maulerRig.js).
+  // Swing: hits the sector the maul sweeps, `reach` around the Mauler from `arcFromDeg` (its
+  // right) to `arcToDeg` (its left) off its facing, as the maul crosses it in `swingTime`.
+  MaulerSwing: {
+    type: 'swing', tell: 'swing', cooldown: 2.2, range: 2.5, windUpTime: 0.62, lockTime: 0.22, duration: 0.2, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
+    reach: 1.85, arcFromDeg: 105, arcToDeg: -85, swingTime: 0.12, stepDistance: 0.6, stepTime: 0.12,
+    strikeSound: 'heave', maul: 'swing',
+  },
+  // Slam: the maul comes down `landTime` after the strike, `impactAt` ahead (where the maul's
+  // head lands), and a circle there spreads from `radius[0]` to `radius[1]` over `spreadTime`.
+  MaulerSlam: {
+    type: 'smash', tell: 'smash', cooldown: 4.5, range: 3.5, windUpTime: 0.92, lockTime: 0.3, duration: 0.4, recoveryTime: 0.8,
+    damageMultiplier: 1.6, parryStunTime: 1.2, ...clearPath({ x: 1, y: 1 }, 0.3),
+    impactAt: 1.25, landTime: 0.09, radius: [0.55, 1.8], spreadTime: 0.25, stepDistance: 0.8, stepTime: 0.09,
+    strikeSound: 'heave', landSound: 'slam', maul: 'slam',
+    shake: { duration: 0.2, strength: 0.25, frequency: 20 },
+  },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),

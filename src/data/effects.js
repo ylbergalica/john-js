@@ -93,7 +93,8 @@ export const ATTACK_FX = {
   //             (a beam gathering at the muzzle)
   //   none      nothing (a throw shows its orb instead)
   // Pose: `lean` draws the body back, `squash` flattens it along its facing (a spring
-  // loading), `swell` grows it (fractions of body radius / size).
+  // loading), `swell` grows it (fractions of body radius / size), `twist` turns it back
+  // (degrees) and on the strike it whips through past its facing (a swing).
   tells: {
     charge: { shape: 'chevrons', count: 3, spacing: 0.4, size: 0.32, lean: 0.25, squash: 0.14, swell: 0 },
     punch: { shape: 'arc', arcDeg: 70, lines: 1, reach: 0.5, to: 1.15, lean: 0.14, squash: 0, swell: 0 },
@@ -102,11 +103,14 @@ export const ATTACK_FX = {
     throw: { shape: 'none', lean: 0.06, squash: 0, swell: 0 },
     boost: { shape: 'chevrons', count: 5, spacing: 0.45, size: 0.36, lean: 0.32, squash: 0.2, swell: 0 },
     missiles: { shape: 'none', lean: 0.05, squash: 0, swell: 0.05 },
+    swing: { shape: 'arc', arcDeg: 140, lines: 1, reach: 0.5, to: 1.2, lean: 0.06, squash: 0, swell: 0.04, twist: 18 },
+    smash: { shape: 'arc', arcDeg: 46, lines: 3, reach: 0.9, to: 1.2, lean: 0.22, squash: 0.08, swell: 0.1 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
   },
   strike: {
     pop: 0.1, popTime: 0.14, // the body swells by this fraction and settles
     releaseTime: 0.18, releaseReach: 0.9, // the tell bursts outward this many body radii as it fades
+    followTime: 0.3, // a twisted body's follow-through
   },
   // Charges: while active the body burns and leaves afterimages.
   body: {
@@ -134,4 +138,39 @@ export const ATTACK_FX = {
   },
   // A charge crashing into a wall.
   crash: { count: 14, speed: 9, lifetime: 0.4, size: 0.4, coneDeg: 70 },
+};
+
+// The Mauler's star-maul (src/enemies/maulerRig.js). Poses place it in the Mauler's frame
+// (+x forward, +y to its right, world units): the grip `r` out from the centre at angle
+// `phi`, the haft pointing `rot`, `pitch` tilting it up off the floor toward the camera
+// (π/2 straight up, π laid back over the Mauler's head), and `grow` making it bigger.
+// Angles in radians. How long a strike takes comes from the ability (swingTime, landTime).
+export const MAUL = {
+  lift: 0.18, // raised toward the camera it looks up to this much bigger
+  poses: {
+    idle: { phi: 0.9, r: 0.5, rot: 0.35, pitch: 0, grow: 0 },
+    swingReady: { phi: 1.95, r: 0.51, rot: 2.55, pitch: 0, grow: 0.12 }, // drawn back on its right
+    swingThrough: { phi: -1.05, r: 0.5, rot: -1.25, pitch: 0, grow: 0.32 }, // whipped across to its left
+    slamReady: { phi: 0, r: 0.05, rot: 0, pitch: 2.75, grow: 0 }, // heaved back over its head
+    slamDown: { phi: 0, r: 0.47, rot: 0, pitch: 0, grow: 0 }, // brought down in front: the head lands at MaulerSlam.impactAt
+    stunned: { phi: 1.25, r: 0.53, rot: 1.45, pitch: 0, grow: 0 }, // hanging off to the side
+  },
+  readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains
+  strain: { swing: { rot: 0.18, pitch: 0, shake: 0.04 }, slam: { rot: 0, pitch: 0.2, shake: 0.05 }, freq: 7 }, // freq: tremble Hz
+  settleTime: 0.45, // back to idle, or into a stunned droop
+  gait: { stride: 2.4, sway: 0.14, waddle: 0.045 }, // stride: gait radians per unit walked
+  // The star in the head brightens through a wind-up and flashes on the strike.
+  glint: { size: 0.55, grow: 0.7, flashTime: 0.18, color: 0xffe2b0 },
+  // A smear behind the maul as it strikes, from `inner` (× the tip's reach) to the head's
+  // tip for a swing, across the head for a slam, trailing `life` seconds.
+  trail: { life: 0.13, inner: 0.4, alpha: 0.55, samples: 10 },
+  // The slam landing: a flash and a few sparks, then dust rolling out from the impact as
+  // the struck circle spreads, and a haze hanging over it. Sizes in world units; dust
+  // starts on the circle's first radius.
+  impact: {
+    flash: { size: 1.1, grow: 1.6, time: 0.15, alpha: 0.6 },
+    sparks: { count: 8, speed: 6, lifetime: 0.3, size: 0.3, coneDeg: 70 },
+    dust: { count: 18, speed: [2, 3.2], size: [0.6, 1], life: [0.8, 1.3], alpha: 0.75, grow: 2, color: 0xd29a68, fade: 0x4a2a16 },
+    haze: { count: 5, speed: [0.2, 0.6], size: [1.1, 1.6], life: [1.1, 1.6], alpha: 0.4, grow: 1.6, color: 0xa86e44, fade: 0x2a1a10 },
+  },
 };

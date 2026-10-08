@@ -11,6 +11,7 @@ import { StarField } from '../render/starField.js';
 import { createAbility } from './abilities.js';
 import { EnemyAI } from './ai.js';
 import { EnemyAttackFx, renderTime } from './attackView.js';
+import { MaulerRig } from './maulerRig.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 
 export class Enemy extends Entity {
@@ -33,6 +34,7 @@ export class Enemy extends Entity {
     }
     this.ai = new EnemyAI(this, this.type.ai);
     this.attackFx = new EnemyAttackFx(this, this.silhouette);
+    this.rig = this.type.visual.rig === 'maul' ? new MaulerRig(this) : null; // a held weapon, posed by the attacks
   }
 
   get damage() { return this.type.damage; }
@@ -125,6 +127,7 @@ export class Enemy extends Entity {
     const { world, body, type } = this;
     this.ai.onDeath();
     world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
+    this.rig?.onDeath();
     world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
     for (let i = 0; i < drops; i++) {
@@ -146,6 +149,7 @@ export class Enemy extends Entity {
     this.view.position.set(p.x, p.y);
     this.view.rotation = rot;
     this.attackFx.render(now, p, rot, visible);
+    this.rig?.render(now, dt);
     if (!visible) return;
     this.setFlash(this.world.time < this.flashUntil);
     if (!this.flashing) this.stars?.update(this.world.time);
@@ -159,6 +163,7 @@ export class Enemy extends Entity {
     this.voidSprite.texture = tex[on ? `${v.void}_white` : v.void];
     this.outline.texture = tex[on ? `${v.outline}_white` : v.outline];
     this.stars.container.visible = !on;
+    this.rig?.setFlash(on);
   }
 
   dispose() {

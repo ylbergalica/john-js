@@ -8,9 +8,10 @@ import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
 import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
-import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME, GUARDIAN_INTRO as GI, PLAYER } from '../data/config.js';
+import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, GAME, GUARDIAN_INTRO as GI, PLAYER } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
+import { playgroundLayout } from '../level/playground.js';
 import { scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
@@ -71,16 +72,19 @@ export class World {
 
   // ── floors ───────────────────────────────────────────────────────
   startFloor() {
-    const cfg = this.session.scalesDifficulty ? scaleConfig(BASE_LEVEL_CONFIG, this.session.floor) : BASE_LEVEL_CONFIG;
     this.clearFloor();
+    if (this.session.mode === RunMode.Playground) {
+      this.buildLevel(playgroundLayout());
+      this.cores = { required: 0, collected: 0 };
+      this.floorStartedAt = this.time;
+      this.intro = null;
+      sfx.play('floor');
+      return;
+    }
 
-    const layout = (this.level = generateLayout(cfg));
-    this.physics = new Physics(layout.grid);
-    this.levelView.build(layout.grid);
-
-    this.player = this.add(new Player(this, layout.start.x, layout.start.y));
+    const cfg = scaleConfig(BASE_LEVEL_CONFIG, this.session.floor);
+    const layout = this.buildLevel(generateLayout(cfg));
     this.add(new Exit(this, layout.exit.x, layout.exit.y));
-    this.camera.snapTo(layout.start);
 
     const { rooms, grid } = layout;
     const es = cfg.enemySpawn;
@@ -106,8 +110,18 @@ export class World {
     this.floorStartedAt = this.time; // the clock is frozen through the guardian intro, so this still holds after it
     this.intro = null;
     const guardian = this.enemies.find((e) => e.type.isChaser);
-    if (guardian && this.session.mode === RunMode.Run && this.session.floor <= GI.floors) this.startIntro(guardian);
+    if (guardian && this.session.floor <= GI.floors) this.startIntro(guardian);
     else sfx.play('floor');
+  }
+
+  // Map, physics and the player at its start.
+  buildLevel(layout) {
+    this.level = layout;
+    this.physics = new Physics(layout.grid);
+    this.levelView.build(layout.grid);
+    this.player = this.add(new Player(this, layout.start.x, layout.start.y));
+    this.camera.snapTo(layout.start);
+    return layout;
   }
 
   // ── guardian intro ───────────────────────────────────────────────
@@ -194,6 +208,28 @@ export class World {
     const enemy = this.add(new Enemy(this, type, pos.x, pos.y));
     this.enemies.push(enemy);
     return enemy;
+  }
+
+  // Spawn menu: drops an enemy on a free spot a few units from the player. Summoned
+  // enemies earn nothing and unlock nothing when killed.
+  summonEnemy(type) {
+    const p = this.livePlayer, r = ENEMY_TYPES[type].radius;
+    if (!p) return null;
+    for (let i = 0; i < 60; i++) {
+      const a = Math.random() * Math.PI * 2, d = 5 + Math.random() * 4 + i * 0.1;
+      const x = p.body.pos.x + Math.cos(a) * d, y = p.body.pos.y + Math.sin(a) * d;
+      if (!this.physics.isCircleFree(x, y, r * 1.2)) continue;
+      const enemy = this.spawnEnemy(type, { x, y });
+      enemy.summoned = true;
+      return enemy;
+    }
+    return null;
+  }
+
+  // Removes every enemy without killing it (no drops, no death effects).
+  clearEnemies() {
+    for (const e of this.enemies) e.destroy();
+    this.enemies.length = 0;
   }
 
   // ── shared services ──────────────────────────────────────────────

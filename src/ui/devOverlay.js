@@ -1,21 +1,14 @@
-// Dev-only combat readout, toggled with ` (backquote): health over every enemy,
+// Dev-only combat readout, switched on from the dev menu: health over every enemy,
 // floating numbers for damage dealt/taken and adrenaline gained/spent, and a panel
 // with the player's exact health, adrenaline and run totals plus a recent-event log.
 import { h, DomWriter } from './dom.js';
+import { devFlags } from '../game/devFlags.js';
 
-const STORAGE_KEY = 'john.devOverlay';
 const FLOAT_LIFE = 0.9; // seconds a floating number lives
 const FLOAT_RISE = 1.4; // world units it drifts up over its life
 const LOG_LINES = 10;
 
 const fmt = (n) => String(Math.round(n * 100) / 100);
-
-function loadEnabled() {
-  try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch { return false; }
-}
-function saveEnabled(on) {
-  try { localStorage.setItem(STORAGE_KEY, on ? '1' : '0'); } catch { /* storage unavailable */ }
-}
 
 export class DevOverlay {
   constructor(root, scene) {
@@ -33,7 +26,6 @@ export class DevOverlay {
     this.floats = [];
     this.totals = { dealt: 0, taken: 0, takenRaw: 0, adrenaline: 0, adrenalineWasted: 0, spent: 0 };
     this.lastUses = scene.world.adrenaline.uses;
-    this.setEnabled(loadEnabled());
 
     const ev = scene.session.events;
     this.offs = [
@@ -41,14 +33,6 @@ export class DevOverlay {
       ev.playerDamaged.on((p, dmg, raw) => this.onPlayerDamaged(p, dmg, raw)),
       ev.adrenalineGained.on((got, offered) => this.onAdrenaline(got, offered)),
     ];
-  }
-
-  toggle() { this.setEnabled(!this.enabled); }
-
-  setEnabled(on) {
-    this.enabled = on;
-    this.el.classList.toggle('hidden', !on);
-    saveEnabled(on);
   }
 
   // ── events ───────────────────────────────────────────────────────
@@ -101,7 +85,9 @@ export class DevOverlay {
   // ── per frame ────────────────────────────────────────────────────
   update(dt, alpha) {
     this.checkActivation();
-    if (!this.enabled) {
+    const on = devFlags.combatReadout;
+    this.dom.set(this.el, 'hidden', !on);
+    if (!on) {
       for (const f of this.floats) f.el.remove();
       this.floats.length = 0;
       return;

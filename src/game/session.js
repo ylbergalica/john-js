@@ -35,8 +35,12 @@ export class RunSession {
 
   get scalesDifficulty() { return this.mode === RunMode.Run; }
 
+  // Only a run's own enemies count: the playground and the spawn menu earn nothing.
+  get earns() { return this.mode === RunMode.Run && !this.ended; }
+
   enemyKilled(enemy) {
-    if (this.ended) return;
+    if (!this.earns || enemy.summoned) return;
+    profile.recordKill(enemy.typeKey);
     const { kills } = this.stats;
     kills[enemy.typeKey] = (kills[enemy.typeKey] ?? 0) + 1;
     if (enemy.type.isChaser) this.addCoins(COINS.perGuardianKill, 'guardians');
@@ -44,7 +48,7 @@ export class RunSession {
   }
 
   floorCleared() {
-    if (this.ended) return;
+    if (!this.earns) return;
     this.stats.floorsCleared++;
     this.addCoins(COINS.perFloorCleared, 'floors');
   }

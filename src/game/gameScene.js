@@ -1,13 +1,18 @@
 // A run (or the playground): drives the world at a fixed rate with interpolated
-// rendering, and owns the HUD, pause state, keyboard shortcuts and, once a run ends
-// in death, the run summary.
-import { ENEMY_TYPES, FIXED_DT, MAX_STEPS_PER_FRAME } from '../data/config.js';
+// rendering, and owns the HUD, pause state, the tool menus at the top left (spawning in
+// the playground, dev tools in dev builds) and, once a run ends in death, the run summary.
+import { FIXED_DT, MAX_STEPS_PER_FRAME } from '../data/config.js';
 import { World } from './world.js';
 import { RunSession, RunMode } from './session.js';
 import { Hud } from '../ui/hud.js';
 import { RunSummary } from '../ui/runSummary.js';
 import { DevOverlay } from '../ui/devOverlay.js';
+import { DevMenu } from '../ui/devMenu.js';
+import { SpawnMenu } from '../ui/spawnMenu.js';
+import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
+
+const DEV = import.meta.env.DEV;
 
 export class GameScene {
   constructor({ app, input, uiRoot, mode, onExit }) {
@@ -23,7 +28,15 @@ export class GameScene {
     this.paused = false;
     this.summary = null;
     this.hud = new Hud(uiRoot, this);
-    this.devOverlay = import.meta.env.DEV ? new DevOverlay(uiRoot, this) : null;
+    this.devOverlay = DEV ? new DevOverlay(uiRoot, this) : null;
+
+    // Tool menus: one open at a time, and the world holds still while one is.
+    const playground = mode === RunMode.Playground;
+    this.menu = null;
+    this.toolCorner = h('div', { class: 'tool-corner' });
+    uiRoot.append(this.toolCorner);
+    this.spawnMenu = playground || DEV ? new SpawnMenu(this.toolCorner, this.world, { hotkey: playground ? 'Tab' : null }) : null;
+    this.devMenu = DEV ? new DevMenu(this.toolCorner, this) : null;
 
     input.reset();
     this.world.startFloor();
@@ -34,11 +47,13 @@ export class GameScene {
     window.addEventListener('blur', () => this.pause(), opts); // don't die while alt-tabbed
   }
 
+  get frozen() { return this.paused || !!this.menu; }
+
   frame(dt) {
     const world = this.world;
     if (this.summary) {
       this.summary.update(dt);
-    } else if (!this.paused) {
+    } else if (!this.frozen) {
       this.accumulator += dt;
       let steps = 0;
       while (this.accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
@@ -51,10 +66,11 @@ export class GameScene {
       this.alpha = this.accumulator / FIXED_DT;
       if (world.finished && !this.endRun()) return;
     }
-    world.render(this.alpha, this.paused ? 0 : dt, this.app.screen.width, this.app.screen.height);
+    const frameDt = this.frozen ? 0 : dt;
+    world.render(this.alpha, frameDt, this.app.screen.width, this.app.screen.height);
     if (!this.summary) {
       this.hud.update();
-      this.devOverlay?.update(this.paused ? 0 : dt, this.alpha);
+      this.devOverlay?.update(frameDt, this.alpha);
     }
   }
 
@@ -65,7 +81,9 @@ export class GameScene {
       this.onExit();
       return false;
     }
+    this.setMenu(null);
     this.hud.setVisible(false);
+    this.toolCorner.classList.add('hidden');
     this.devOverlay?.destroy();
     this.devOverlay = null;
     this.summary = new RunSummary(this.uiRoot, { session: this.session, onMenu: this.onExit });
@@ -74,18 +92,40 @@ export class GameScene {
 
   onKeyDown(e) {
     if (e.repeat || this.summary) return;
-    if (e.code === 'Escape') this.togglePause();
-    else if (e.code === 'Backquote' && this.devOverlay) this.devOverlay.toggle();
-    else if (import.meta.env.DEV && !this.paused) this.devShortcut(e.code);
+    if (e.code === 'Escape') {
+      if (this.menu) this.setMenu(null);
+      else this.togglePause();
+    } else if (this.paused) {
+      // the pause menu takes no other keys
+    } else if (e.code === 'Backquote' && this.devMenu) {
+      this.toggleMenu(this.devMenu);
+    } else if (e.code === 'Tab' && this.session.mode === RunMode.Playground) {
+      this.toggleMenu(this.spawnMenu);
+    } else if (!this.menu) {
+      this.devMenu?.hotkey(e.code);
+    }
+  }
+
+  toggleMenu(menu) { this.setMenu(this.menu === menu ? null : menu); }
+
+  setMenu(menu) {
+    if (menu === this.menu) return;
+    this.menu?.setOpen(false);
+    this.menu = menu;
+    menu?.setOpen(true);
+    this.toolCorner.classList.toggle('menu-open', !!menu);
+    this.input.reset();
   }
 
   togglePause() { if (this.paused) this.resume(); else this.pause(); }
 
   pause() {
     if (this.paused || this.summary) return;
+    this.setMenu(null);
     this.paused = true;
     this.input.reset();
     this.hud.setPaused(true);
+    this.toolCorner.classList.add('hidden');
     sfx.play('pause');
   }
 
@@ -94,6 +134,7 @@ export class GameScene {
     this.paused = false;
     this.input.reset();
     this.hud.setPaused(false);
+    this.toolCorner.classList.remove('hidden');
   }
 
   // Quitting forfeits the run's unbanked coins (dying banks them).
@@ -102,34 +143,11 @@ export class GameScene {
     this.onExit();
   }
 
-  devShortcut(code) {
-    const w = this.world, p = w.livePlayer;
-    switch (code) {
-      case 'KeyK': p?.takeDamage(99999); break;
-      case 'KeyH': p?.heal(99999); break;
-      case 'KeyL': w.adrenaline.add(99999); break;
-      case 'KeyC': w.cores.collected++; break;
-      case 'KeyN': w.requestNextFloor(); break;
-      case 'KeyR': p?.aspects.refreshCooldowns(); break;
-      case 'KeyG': this.devSpawnNear('seraph'); break;
-    }
-  }
-
-  // Drops an enemy on a free spot a few units from the player.
-  devSpawnNear(type) {
-    const w = this.world, p = w.livePlayer, r = ENEMY_TYPES[type].radius;
-    if (!p) return;
-    for (let i = 0; i < 40; i++) {
-      const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 4;
-      const x = p.body.pos.x + Math.cos(a) * d, y = p.body.pos.y + Math.sin(a) * d;
-      if (w.physics.isCircleFree(x, y, r)) { w.spawnEnemy(type, { x, y }); return; }
-    }
-  }
-
   destroy() {
     this.listeners.abort();
     this.summary?.destroy();
     this.devOverlay?.destroy();
+    this.toolCorner.remove();
     this.hud.destroy();
     this.world.destroy();
   }

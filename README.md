@@ -29,8 +29,11 @@ For Steam, upload the whole `release/win-unpacked/` folder as a depot with `John
 | Aspect slots | 1 / 2 / 3 |
 | Pause | Esc (also pauses when the window loses focus) |
 | Mute sound | M |
+| Spawn menu (playground only) | Tab |
 
-Dev builds only (`npm run dev`): K kill · H heal · L max adrenaline · C add core · N next floor · R refresh aspect cooldowns, plus console helpers `john.addCoins(10000)`, `john.resetSave()`, `john.start('run' | 'playground')` and `john.advance(seconds)`.
+The playground is a fixed test map (an arena with cover, a wide corridor and a 2-tile one to a side room) with no enemies of its own: spawn them from its menu. An enemy type becomes spawnable once you've killed one in a run (saved as `killedEnemyTypes`). Playground kills earn nothing.
+
+Dev builds only (`npm run dev`): `` ` `` opens the dev tools menu at the top left: heal, refresh cooldowns, fill adrenaline, collect a core, next floor, kill player, spawn enemies (in runs too), and switches for the combat readout, 100% resistance, dealing no damage, noclip (also 3× move speed) and unlocking every enemy in the spawn menu (switches persist as `john.devFlags`). H heal, R refresh cooldowns and G noclip also work as hotkeys. Console helpers: `john.addCoins(10000)`, `john.resetSave()`, `john.start('run' | 'playground')` and `john.advance(seconds)`.
 
 ## Architecture
 
@@ -40,16 +43,18 @@ src/
   data/config.js     all gameplay tuning
   engine/            math, input (presses latched per sim step), physics, events
   game/              World (entities, floors, services), GameScene (fixed-step loop,
-                     pause), RunSession (per-run state), adrenaline, pickups
+                     pause, tool menus), RunSession (per-run state), adrenaline,
+                     pickups, dev flags
   player/            Player logic, PlayerView visuals, input buffering
   enemies/           Enemy, EnemyAI state machine, ability phase machines, hitboxes, projectile
   aspects/           one module per aspect + the controller that routes slots/events
-  level/             generator, difficulty curve, shared flow-field navigation, teleport search
+  level/             generator, playground map, difficulty curve, shared flow-field
+                     navigation, teleport search
   render/            procedural sprite art + textures, camera, level view (wall shader),
                      effects, star fields
   audio/             synthesized sound effects (Web Audio)
   meta/              save (localStorage) and profile (coins, unlocks, loadout)
-  ui/                HUD, main menu, DOM helpers
+  ui/                HUD, main menu, spawn and dev tool menus, DOM helpers
 ```
 
 - **One clock.** Gameplay runs in a deterministic 50 Hz fixed step (`World.step`): entities `step()`, then physics, then `afterPhysics()` overlap tests. Rendering interpolates between steps. All timers are timestamps on `world.time`; pausing just stops stepping.
@@ -58,7 +63,7 @@ src/
 - **Navigation.** One Dijkstra flow field toward the player per actor footprint (1 tile for regular enemies, 3 for the Warden), rebuilt when the player changes cell, shared by every enemy.
 - **Rendering.** Wall outlines wobble and wall sparkles twinkle in a GLSL vertex shader over static 16×16-tile chunk meshes; off-screen chunks and entities are hidden. Particles are pooled in a `ParticleContainer`. Hit flashes swap to pre-baked white silhouettes instead of using filters.
 
-The save lives in `localStorage` (`john.save`: `totalCoins`, `unlockedAspectIds`, `equippedAspectIds`); aspect ids are save keys.
+The save lives in `localStorage` (`john.save`: `totalCoins`, `unlockedAspectIds`, `equippedAspectIds`, `killedEnemyTypes`); aspect ids are save keys.
 
 There are no image files: every sprite, animation frame and aspect icon is drawn with Canvas 2D at startup in `src/render/sprites.js` (crisp shapes over soft glows, deep-space fills, four-point star glints) and uploaded as mipmapped textures. Frame animations are generated at 48 fps.
 

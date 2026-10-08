@@ -13,6 +13,7 @@ import { EnemyAI } from './ai.js';
 import { EnemyAttackFx, renderTime } from './attackView.js';
 import { MaulerRig } from './maulerRig.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
+import { devFlags } from '../game/devFlags.js';
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -26,6 +27,7 @@ export class Enemy extends Entity {
     this.flashUntil = -Infinity;
     this.flashing = false;
     this.lastHitDir = null; // direction of the latest hit, so the death bursts along the killing blow
+    this.summoned = false; // spawned from the spawn menu (World.summonEnemy)
 
     this.buildView();
     this.abilities = new Map();
@@ -84,6 +86,7 @@ export class Enemy extends Entity {
     source ??= this.player ? { ...this.player.body.pos } : { ...this.body.pos };
     hitPoint ??= { ...this.body.pos };
     if (damage > 0) this.onHurt(hitPoint, source);
+    if (devFlags.noDamage) return; // hits still land, they just don't hurt
     this.health -= damage;
     if (damage > 0) this.world.events.enemyDamaged.emit(this, damage);
     if (this.health <= 0) this.die();

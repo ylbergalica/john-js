@@ -111,7 +111,7 @@ export class MenuScene {
 
     const hint = h('div', { class: 'hint' },
       CONTROLS.map(([key, action]) => h('span', {}, keycap(key), action)),
-      import.meta.env.DEV ? h('div', { class: 'hint-dev', text: 'Dev: K kill · H heal · L adrenaline · C core · N next floor · R refresh aspects · G seraph · ` overlay' }) : null,
+      import.meta.env.DEV ? h('div', { class: 'hint-dev', text: 'Dev: ` tools · H heal · R refresh aspects · G noclip' }) : null,
     );
     rise(hint);
 

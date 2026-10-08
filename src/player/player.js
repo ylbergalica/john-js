@@ -7,6 +7,7 @@ import { PLAYER, PARTICLES, ADRENALINE } from '../data/config.js';
 import { InputBuffer } from './inputBuffer.js';
 import { PlayerView } from './playerView.js';
 import { AspectController } from '../aspects/controller.js';
+import { devFlags } from '../game/devFlags.js';
 
 const A = PLAYER.attack, P = PLAYER.parry, D = PLAYER.dash, H = PLAYER.health;
 
@@ -61,6 +62,7 @@ export class Player extends Entity {
   // ── step ─────────────────────────────────────────────────────────
   step(dt) {
     const input = this.world.input, now = this.now;
+    this.body.collideWalls = !devFlags.noclip;
     this.movement = input.moveVector();
     const look = this.cursorWorld();
     const lx = look.x - this.body.pos.x, ly = look.y - this.body.pos.y;
@@ -86,7 +88,7 @@ export class Player extends Entity {
     if (this.teleporting) {
       this.steer(0, 0, 1);
     } else if (!this.dashing) {
-      const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier;
+      const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier * (devFlags.noclip ? 3 : 1);
       this.steer(this.movement.x * speed, this.movement.y * speed, PLAYER.movementResponsiveness);
     }
   }
@@ -244,7 +246,7 @@ export class Player extends Entity {
   // ── health ───────────────────────────────────────────────────────
   takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {
     if (this.dead || this.now < this.invincibleUntil) return;
-    const final = damage * this.world.adrenaline.damageTakenMultiplier;
+    const final = devFlags.fullResistance ? 0 : damage * this.world.adrenaline.damageTakenMultiplier;
     this.health -= final;
     if (final > 0) {
       this.onHurt(hitPoint, source);

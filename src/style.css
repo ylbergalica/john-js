@@ -233,7 +233,35 @@ kbd {
 .pause-title { margin: 0; font-size: 52px; font-weight: normal; text-transform: uppercase; --ls: 14px; letter-spacing: 14px; padding-left: 14px; --ls-from: 30px; --glow: rgba(255, 255, 255, 0.7); --glow-soft: rgba(255, 255, 255, 0.18); animation-duration: 0.6s; }
 .pause-buttons { display: flex; flex-direction: column; gap: 10px; width: 240px; animation: rise 0.4s var(--ease) 0.12s both; }
 
-/* ── Dev overlay (DEV builds, toggled with `) ── */
+/* ── Tool menus (top left): the playground's spawn menu and, in DEV builds, the dev tools ── */
+.tool-corner { position: fixed; top: 16px; left: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.tool-corner.menu-open .tool-hint { display: none; }
+.tool-hint { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); text-shadow: 0 0 4px #000, 0 1px 2px #000; }
+.tool-hint.dev-badge { font-family: Consolas, 'Courier New', monospace; color: #ffd76a; }
+.tool-menu { width: 240px; max-height: calc(100vh - 32px); overflow-y: auto; padding: 10px 8px 8px; background: rgba(8, 9, 18, 0.9); border: 1px solid var(--card-line); border-radius: 8px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.65); animation: tool-in 0.14s var(--ease) both; }
+@keyframes tool-in { from { opacity: 0; transform: translateY(-6px); } }
+.tool-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--astral); text-shadow: 0 0 8px rgba(159, 180, 255, 0.5); }
+.tool-menu.dev .tool-head { color: #ffd76a; text-shadow: none; }
+.tool-group { display: flex; flex-direction: column; gap: 1px; }
+.tool-rule { height: 1px; margin: 6px 8px; background: var(--card-line); }
+.tool-menu button.tool { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; font-size: 13px; letter-spacing: 0.3px; text-transform: none; text-align: left; border: none; border-radius: 4px; background: none; }
+.tool-menu button.tool:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); color: var(--fg); box-shadow: none; }
+.tool .grow { flex: 1; }
+.tool kbd { min-width: 18px; padding: 1px 4px 0; }
+.tool .check { width: 12px; height: 12px; flex: none; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 3px; transition: background 0.1s, box-shadow 0.1s; }
+.tool.on .check { background: #ffd76a; border-color: #ffd76a; box-shadow: 0 0 6px rgba(255, 215, 106, 0.7); }
+/* Spawn menu: enemy portraits, mobs in a row of four, guardians larger and gold-framed. */
+.spawn-grid { display: grid; gap: 6px; padding: 2px 4px; }
+.spawn-grid.mobs { grid-template-columns: repeat(4, 1fr); }
+.spawn-grid.guardians { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tool-menu button.spawn-tile { aspect-ratio: 1; padding: 4px; border-radius: 6px; border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.03); }
+.spawn-tile img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.tool-menu button.spawn-tile:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.5); box-shadow: 0 0 10px rgba(255, 255, 255, 0.15); }
+.tool-menu .guardians button.spawn-tile { padding: 6px; border-color: color-mix(in srgb, var(--mythic) 60%, transparent); background: radial-gradient(circle, color-mix(in srgb, var(--mythic) 14%, transparent), transparent 70%); box-shadow: 0 0 10px color-mix(in srgb, var(--mythic) 22%, transparent), inset 0 0 8px color-mix(in srgb, var(--mythic) 15%, transparent); }
+.tool-menu .guardians button.spawn-tile:hover:not(:disabled) { background: radial-gradient(circle, color-mix(in srgb, var(--mythic) 26%, transparent), transparent 75%); border-color: var(--mythic); box-shadow: 0 0 16px color-mix(in srgb, var(--mythic) 45%, transparent), inset 0 0 10px color-mix(in srgb, var(--mythic) 25%, transparent); }
+.spawn-empty { padding: 4px 8px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+
+/* ── Dev overlay (DEV builds, switched on from the dev menu) ── */
 .dev-overlay { position: fixed; inset: 0; font-family: Consolas, 'Courier New', monospace; }
 .dev-labels, .dev-floats { position: absolute; inset: 0; overflow: hidden; }
 .dev-hp, .dev-float { position: absolute; left: 0; top: 0; white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 2px #000; will-change: transform; }

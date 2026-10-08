@@ -176,6 +176,7 @@ export class Player extends Entity {
     this.dashReadyAt = now + D.dashCooldown;
     this.body.vel.x = d.x * D.dashSpeed;
     this.body.vel.y = d.y * D.dashSpeed;
+    this.view.playDash(d);
     this.world.sound('dash');
     return true;
   }

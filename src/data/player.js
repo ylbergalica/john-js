@@ -42,6 +42,30 @@ export const PLAYER = {
     comboVolumeStep: 0.08,
   },
   dash: { dashSpeed: 20, dashDuration: 0.15, dashCooldown: 1 },
+  // Dash visuals (src/player/dashView.js). Colours warm toward EXALTED_FX.tint while Exalted.
+  // Sizes are × the body's diameter unless noted; speeds and spacing in world units.
+  dashFx: {
+    color: 0xc8d2ff, fade: 0x4a55ff, // puffs cool from `color` to `fade` as they die
+    stretch: 0.34, squash: 0.2, stretchIn: 0.03, settleTime: 0.22, // the body pulls long along the dash, then wobbles back
+    afterimageSpacing: 0.26, afterimageLife: 0.26, afterimageAlpha: 0.75, afterimageShrink: 0.3,
+    afterimageColor: 0xffffff, afterimageFade: 0xdde3ff, // nearly white throughout, the faintest cool tinge as they die
+    launchRing: { life: 0.3, to: 2.6, flatten: 0.45, alpha: 0.85 }, // bursts behind the launch, flattened along the dash
+    launchSparks: { count: 14, speed: 10, lifetime: 0.3, size: 0.32, coneDeg: 28 },
+    puffs: { count: 7, speed: 4, spreadDeg: 75, size: 0.45, grow: 2.4, life: 0.42, alpha: 0.35 },
+    streakRate: 110, streaks: { count: 1, speed: 3, lifetime: 0.16, size: 0.42, coneDeg: 6 }, // peeling off the body's edges
+    brakePuffs: { count: 4, speed: 2.2, spreadDeg: 55, size: 0.35, grow: 2, life: 0.3, alpha: 0.25 },
+    ready: { life: 0.32, from: 2, alpha: 0.75 }, // a ring closing in on the body when the dash recharges
+    // While Exalted (scaled by how strong the state is): dark red afterimages, the body trails
+    // flame tongues and leaves embers along its path, and the launch flares harder.
+    exalted: {
+      afterimageColor: 0x8c0a0a, afterimageFade: 0x2a0000, afterimageAlpha: 0.9,
+      flameRate: 220, flames: { color: 0xe0200c, fade: 0x300000, size: [0.5, 0.85], life: [0.18, 0.3], speed: [3, 5], alpha: 0.9 },
+      emberRate: 70, embers: { color: 0xff3020, fade: 0x5a0000, size: [0.08, 0.15], life: [0.5, 0.9], speed: [0.6, 1.8] },
+      launchSparks: { count: 22, speed: 14, lifetime: 0.4, size: 0.4, coneDeg: 40, color: 0xff6a30 },
+      launchSmoke: { count: 8, speed: 3, spreadDeg: 180, size: 0.6, grow: 2.2, life: 0.5, alpha: 0.45, color: 0x9a0a0a, fade: 0x200000 },
+      shake: { duration: 0.12, strength: 0.12, frequency: 30 },
+    },
+  },
   health: { maxHealth: 10, invincibilityDuration: 1 },
   hitFeedback: { flashDuration: 0.1, blinkInterval: 0.08, shakeDuration: 0.2, shakeStrength: 1, shakeFrequency: 10 },
   blob: {

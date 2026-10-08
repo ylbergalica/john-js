@@ -31,6 +31,7 @@ export function sprites() {
     seraph_idle: seraphOutline(),
     seraph_idle_void: voidFill(seraphPath(), VOIDS.seraph),
     tail: tail(),
+    dash_ghost: dashGhost(),
     spark: spark(),
     anchor_object: anchorObject(),
     crescent_slash: crescentSlash(),
@@ -712,6 +713,21 @@ function tail(S = 128) {
   ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.45, ['#16163a', '#05050d', '#000000'], 0.4, 0.38);
   ctx.fill();
   glow(ctx, rgba('#c8d2ff', 0.85), px * 0.04, () => {
+    ctx.lineWidth = 0.06;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+  });
+  return c;
+}
+
+// Dash afterimage: the body's ring alone, glowing over a faint inner haze, white for tinting.
+function dashGhost(S = 128) {
+  const { c, ctx, px } = surface(S);
+  ctx.beginPath();
+  ctx.arc(0.5, 0.5, 0.45, 0, TAU);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.45, [rgba('#ffffff', 0), rgba('#ffffff', 0.06), rgba('#ffffff', 0.22)]);
+  ctx.fill();
+  glow(ctx, rgba('#ffffff', 0.9), px * 0.05, () => {
     ctx.lineWidth = 0.06;
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();

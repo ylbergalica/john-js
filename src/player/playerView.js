@@ -1,11 +1,12 @@
 // Player visuals: the wobbling blob body, trailing tail followers, swing and parry
-// sprites, the hurt flash/blink (derived from the time of the last hit), and the Exalted
-// state's fire and wings (ExaltedView).
+// sprites, the hurt flash/blink (derived from the time of the last hit), the dash's stretch,
+// afterimages and trails (DashView), and the Exalted state's fire and wings (ExaltedView).
 import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, lerpColor, smoothDamp, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { FrameAnim } from '../render/fx.js';
+import { DashView } from './dashView.js';
 import { ExaltedView } from './exaltedView.js';
 
 const B = PLAYER.blob, T = PLAYER.tail, A = PLAYER.attack, P = PLAYER.parry, HF = PLAYER.hitFeedback;
@@ -26,7 +27,7 @@ export class PlayerView {
       sprite.width = sprite.height = Math.max(0.1, T.firstFollowerScale - T.scaleStep * i);
       sprite.alpha = Math.max(0, Math.min(1, T.firstFollowerAlpha - T.alphaStep * i));
       sprite.position.set(x, y);
-      sprite.zIndex = i;
+      sprite.zIndex = T.followerCount - i; // nearer followers draw over farther ones
       layers.playerBack.addChild(sprite);
       return { sprite, vx: { v: 0 }, vy: { v: 0 }, smoothTime: T.baseSmoothTime + T.smoothTimeStep * i };
     });
@@ -63,6 +64,7 @@ export class PlayerView {
     this.attackPoint.addChild(parry);
     this.parryAnim = new FrameAnim(parry, anims.parry);
 
+    this.dash = new DashView(player);
     this.exalted = new ExaltedView(player);
     this.tint = 0xffffff; // white, warming to EXALTED_FX.tint while Exalted
   }
@@ -77,6 +79,10 @@ export class PlayerView {
 
   hideSwing() {
     for (const a of this.swings) { a.sprite.visible = false; a.stop(); }
+  }
+
+  playDash(dir) {
+    this.dash.start(dir);
   }
 
   playParry() {
@@ -130,8 +136,9 @@ export class PlayerView {
 
     const p = player.body.lerpPos(alpha);
     this.body.position.set(p.x, p.y);
-    this.body.scale.set(PLAYER.scale * player.sizeScale);
     this.exalted.render(p, dt);
+    this.dash.render(p, dt, this.exalted.glow);
+    this.dash.shape(this.body, PLAYER.scale * player.sizeScale);
     this.tint = lerpColor(0xffffff, EXALTED_FX.tint, this.exalted.glow);
     this.blob.outline.tint = lerpColor(B.outlineColor, EXALTED_FX.tint, this.exalted.glow);
     for (const a of this.swings) a.sprite.tint = this.tint;
@@ -176,6 +183,7 @@ export class PlayerView {
     this.body.destroy({ children: true });
     this.attackPoint.destroy({ children: true });
     this.exalted.destroy();
+    this.dash.destroy();
     for (const fl of this.followers) fl.sprite.destroy();
   }
 }

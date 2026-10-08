@@ -273,9 +273,8 @@ export class Player extends Entity {
 
   die() {
     this.world.sound('death');
-    this.world.session.bankCoins();
     this.destroy();
-    this.world.gameOver();
+    this.world.playerDied();
   }
 
   // ── lifecycle ────────────────────────────────────────────────────

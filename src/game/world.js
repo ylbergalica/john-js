@@ -63,6 +63,7 @@ export class World {
     this.nextFloorRequested = false;
     this.floorHeal = null; // health streaming in at the start of a floor (see carryHealth)
     this.gameOverAt = Infinity;
+    this.respawnAt = Infinity; // playground: when the dead player comes back at the start
   }
 
   get livePlayer() { return this.player && !this.player.dead ? this.player : null; }
@@ -166,6 +167,7 @@ export class World {
     this.effects.clear();
     this.deathFx.clear();
     this.floorHeal = null;
+    this.respawnAt = Infinity;
   }
 
   // ── floor heal ───────────────────────────────────────────────────
@@ -191,6 +193,23 @@ export class World {
   }
 
   requestNextFloor() { this.nextFloorRequested = true; }
+
+  // Death ends a run (banking its coins); the playground just puts the player back at the
+  // start after a moment.
+  playerDied() {
+    if (this.session.mode === RunMode.Playground) {
+      this.respawnAt = this.time + GAME.playgroundRespawnDelay;
+      return;
+    }
+    this.session.bankCoins();
+    this.gameOver();
+  }
+
+  respawnPlayer() {
+    this.respawnAt = Infinity;
+    const { x, y } = this.level.start;
+    this.player = this.add(new Player(this, x, y));
+  }
 
   gameOver() {
     if (this.isGameOver) return;
@@ -278,6 +297,7 @@ export class World {
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].afterPhysics();
     this.adrenaline.step(dt);
     this.stepFloorHeal(dt);
+    if (this.time >= this.respawnAt) this.respawnPlayer();
 
     compact(this.entities);
     compact(this.enemies);

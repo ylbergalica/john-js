@@ -1,12 +1,13 @@
-// Full-screen shockwave for entering the Exalted state: a refracting ring races out from a
-// world point, splitting colour along its crest, with a fainter echo ring behind it and a
-// dark-red wash over everything it has passed. The filter is attached to the world only
-// while a ripple plays.
+// Full-screen shockwave, for entering the Exalted state and for a guardian's death: a
+// refracting ring races out from a world point, splitting colour along its crest, with a
+// fainter echo ring behind it and a wash (dark red for Exalted) over everything it has
+// passed. The filter is attached to the world only while a ripple plays.
 import { Filter, GlProgram, Rectangle, defaultFilterVert } from 'pixi.js';
 import { EXALTED_FX } from '../data/config.js';
 import { clamp01 } from '../engine/math.js';
 
-const R = EXALTED_FX.ripple;
+// The Exalted look; play() takes another: { duration, strength, width, tint: [r, g, b], grade: [r, g, b] }.
+const EXALTED = EXALTED_FX.ripple;
 
 const fragment = /* glsl */ `
 in vec2 vTextureCoord;
@@ -22,6 +23,7 @@ uniform float uWidth;    // crest half-width, pixels
 uniform float uStrength; // displacement at the crest, pixels
 uniform float uFade;     // 1 → 0 over the ripple
 uniform vec3 uTint;
+uniform vec3 uGrade;  // the scene behind the main crest is multiplied by this
 
 vec4 sampleAt(vec2 uv) { return texture(uTexture, clamp(uv, uInputClamp.xy, uInputClamp.zw)); }
 
@@ -43,9 +45,9 @@ void main() {
   c.r = sampleAt(uv + split).r;
   c.b = sampleAt(uv - split).b;
 
-  // Crimson light on the crests; behind the main crest the scene is graded toward red.
+  // Tinted light on the crests; behind the main crest the scene is graded.
   float inside = 1.0 - smoothstep(-1.0, 0.5, x);
-  vec3 graded = c.rgb * vec3(1.0, 0.4, 0.4) + uTint * 0.1;
+  vec3 graded = c.rgb * uGrade + uTint * 0.1;
   c.rgb = mix(c.rgb, graded, inside * uFade * 0.75);
   float glow = (0.6 * crest + 0.25 * echo) * uFade;
   c.rgb += uTint * glow;
@@ -64,7 +66,8 @@ export class ScreenRipple {
           uWidth: { value: 1, type: 'f32' },
           uStrength: { value: 0, type: 'f32' },
           uFade: { value: 0, type: 'f32' },
-          uTint: { value: new Float32Array(R.tint), type: 'vec3<f32>' },
+          uTint: { value: new Float32Array(3), type: 'vec3<f32>' },
+          uGrade: { value: new Float32Array(3), type: 'vec3<f32>' },
         },
       },
       resolution: 'inherit',
@@ -72,10 +75,14 @@ export class ScreenRipple {
     this.uniforms = this.filter.resources.rippleUniforms.uniforms;
     this.area = new Rectangle();
     this.origin = null; // world point the ripple spreads from; null when idle
+    this.look = EXALTED;
     this.elapsed = 0;
   }
 
-  play(pos) {
+  play(pos, look = EXALTED) {
+    this.look = look;
+    this.uniforms.uTint.set(look.tint);
+    this.uniforms.uGrade.set(look.grade);
     this.origin = { x: pos.x, y: pos.y };
     this.elapsed = 0;
   }
@@ -83,6 +90,7 @@ export class ScreenRipple {
   // Runs after the camera has been applied to `root` for this frame.
   update(dt, cam, root) {
     if (!this.origin) return;
+    const R = this.look;
     this.elapsed += dt;
     const t = this.elapsed / R.duration;
     if (t >= 1) {

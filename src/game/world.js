@@ -6,6 +6,7 @@ import { randInt, pickWeighted, clamp, clamp01, lerp, dist } from '../engine/mat
 import { Camera } from '../render/camera.js';
 import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
+import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
 import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME, GUARDIAN_INTRO as GI, PLAYER } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
@@ -43,6 +44,7 @@ export class World {
     };
     this.root.addChild(...Object.values(this.layers));
     this.effects = new Effects(this.layers.fx);
+    this.deathFx = new DeathFx(this); // enemies bursting apart as they die
     this.camera = new Camera();
     this.ripple = new ScreenRipple(); // full-screen shockwave on entering Exalted
 
@@ -148,6 +150,7 @@ export class World {
     this.navFields.clear();
     this.activeAttackers = 0;
     this.effects.clear();
+    this.deathFx.clear();
     this.floorHeal = null;
   }
 
@@ -261,6 +264,7 @@ export class World {
     const view = cam.viewRect(2);
     for (const e of this.entities) if (!e.dead) e.render(alpha, dt, view);
     this.effects.update(dt);
+    this.deathFx.update(dt);
     cam.apply(this.root);
     this.ripple.update(dt, cam, this.root);
     this.levelView.update(dt, view);

@@ -11,6 +11,51 @@ export const PARTICLES = {
   swing: { count: 8, speed: 5, lifetime: 0.2, size: 0.14, coneDeg: 50, color: 0xffffff },
 };
 
+// Enemy deaths (src/render/deathFx.js), all at the moment of the killing blow: the enemy's
+// silhouette pops white and swells away, light flashes, rings race out, sparks spray all
+// around and along the blow, the stars of its void spill out and a puff of its colour hangs
+// a moment. Guardians are bosses, so theirs is the same, only far grander, with light rays
+// bursting from the body, drifting embers, a heavy shake and a screen-wide shockwave.
+// Colours not given are the enemy's hitColor. pop/flash/rings/rays are sized in body radii,
+// particles in world units; times in seconds; [min, max] picks at random.
+export const DEATH_FX = {
+  enemy: {
+    pop: { time: 0.22, scale: 1.6 },
+    flash: { size: 3, grow: 1.8, time: 0.18, alpha: 0.85 },
+    rings: [{ delay: 0, time: 0.35, from: 1, to: 3.6, alpha: 0.9 }],
+    rays: null,
+    sparks: [{ count: 22, speed: 9, lifetime: 0.45, size: 0.34, coneDeg: 180 }],
+    blow: { count: 14, speed: 13, lifetime: 0.4, size: 0.42, coneDeg: 22, color: 0xffffff }, // along the killing blow
+    stars: { count: 9, speed: [2, 5.5], size: [0.18, 0.32], life: [0.5, 0.9], color: 0xffffff },
+    mist: { count: 6, speed: [0.6, 2], size: [0.9, 1.3], grow: 2, life: [0.45, 0.7], alpha: 0.35 },
+    embers: null,
+    shake: { duration: 0.14, strength: 0.08, frequency: 22 },
+    ripple: null,
+  },
+  guardian: {
+    pop: { time: 0.5, scale: 2.4 },
+    flash: { size: 7, grow: 2.4, time: 0.5, alpha: 1 },
+    rings: [
+      { delay: 0, time: 0.45, from: 1, to: 6, alpha: 1, color: 0xffffff },
+      { delay: 0.06, time: 0.8, from: 1, to: 10, alpha: 0.85 },
+      { delay: 0.18, time: 1.1, from: 2, to: 15, alpha: 0.5 },
+    ],
+    rays: { count: 12, length: [5, 10], width: [0.35, 0.65], time: [0.4, 0.7] },
+    sparks: [
+      { count: 90, speed: 22, lifetime: 0.9, size: 0.7, coneDeg: 180 },
+      { count: 50, speed: 15, lifetime: 0.7, size: 0.5, coneDeg: 180, color: 0xffffff },
+    ],
+    blow: { count: 36, speed: 26, lifetime: 0.6, size: 0.6, coneDeg: 28, color: 0xffffff },
+    stars: { count: 40, speed: [4, 14], size: [0.25, 0.55], life: [0.9, 1.8], color: 0xffffff },
+    mist: { count: 28, speed: [3, 7], size: [1.6, 2.4], grow: 2.6, life: [1.1, 1.6], alpha: 0.4 },
+    embers: { count: 40, speed: [2, 9], size: [0.18, 0.34], life: [1.2, 2.4] },
+    shake: { duration: 0.9, strength: 0.75, frequency: 14 },
+    // As the Exalted ripple (strength/width: fractions of screen height); its light is the
+    // guardian's colour × `glow`, and the scene it has passed is multiplied by `grade`.
+    ripple: { duration: 1.3, strength: 0.06, width: 0.1, glow: 0.6, grade: [0.75, 0.75, 0.85] },
+  },
+};
+
 export const FX = {
   animFps: 48, // frame animations are generated at twice the original art's 24 fps
   swingAnimSpeed: 1.5, // the swing clip plays faster than the rest so it lands within attackDuration

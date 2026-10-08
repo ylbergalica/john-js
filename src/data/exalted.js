@@ -50,5 +50,6 @@ export const EXALTED_FX = {
     smokeRing: { count: 30, speed: 7, color: 0x9a0a0a, fade: 0x200000, size: 0.9, grow: 2.2, life: 0.9, alpha: 0.55 },
   },
   exit: { sparks: { count: 24, speed: 7, lifetime: 0.45, size: 0.35, coneDeg: 180, color: 0x8a0a0a } },
-  ripple: { duration: 1.1, strength: 0.05, width: 0.09, tint: [0.62, 0.02, 0.03] }, // strength/width: fractions of screen height
+  // strength/width: fractions of screen height; the scene the ripple has passed is multiplied by grade.
+  ripple: { duration: 1.1, strength: 0.05, width: 0.09, tint: [0.62, 0.02, 0.03], grade: [1, 0.4, 0.4] },
 };

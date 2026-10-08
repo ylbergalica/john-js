@@ -33,6 +33,8 @@ export function sprites() {
     tail: tail(),
     dash_ghost: dashGhost(),
     spark: spark(),
+    glint: glint(),
+    ring: ring(),
     anchor_object: anchorObject(),
     crescent_slash: crescentSlash(),
     orb: orb(),
@@ -60,6 +62,8 @@ export function icons() {
 
 // Sprites drawn with a halo are this many times their visible body size.
 export const ORB_PAD = 2;
+// The ring sprite's bright band, as a fraction of its width.
+export const RING_RADIUS = 0.4;
 // The comet's head as a fraction of its length.
 export const COMET_HEAD = 0.9;
 
@@ -460,6 +464,25 @@ function spark(S = 64) {
   ctx.fillRect(0, 0, 1, 1);
   ctx.restore();
   glow(ctx, rgba('#ffffff', 0.9), px * 0.08, () => streak(ctx, 0.5, 0.5, 0.36, 0.11, 0, '#ffffff'));
+  return c;
+}
+
+// Four-point star glint, white so it can be tinted: the stars spilling out of a dying enemy's void.
+function glint(S = 64) {
+  const { c, ctx, px } = surface(S);
+  glow(ctx, rgba('#ffffff', 0.8), px * 0.06, () => sparkle(ctx, 0.5, 0.5, 0.42, '#ffffff'));
+  return c;
+}
+
+// Soft shockwave ring, white so it can be tinted: a bright band at RING_RADIUS of the
+// texture width, feathering out to either side.
+function ring(S = 256) {
+  const { c, ctx } = surface(S);
+  const g = ctx.createRadialGradient(0.5, 0.5, 0, 0.5, 0.5, 0.5);
+  [[0, 0], [0.55, 0], [0.7, 0.08], [0.76, 0.35], [RING_RADIUS * 2, 1], [0.86, 0.15], [1, 0]]
+    .forEach(([at, a]) => g.addColorStop(at, rgba('#ffffff', a)));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 1, 1);
   return c;
 }
 

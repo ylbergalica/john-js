@@ -24,6 +24,7 @@ export class Enemy extends Entity {
     this.stunned = false;
     this.flashUntil = -Infinity;
     this.flashing = false;
+    this.lastHitDir = null; // direction of the latest hit, so the death bursts along the killing blow
 
     this.buildView();
     this.abilities = new Map();
@@ -93,6 +94,7 @@ export class Enemy extends Entity {
     if (dir.x * dir.x + dir.y * dir.y < 0.0001) dir = { x: b.pos.x - hitPoint.x, y: b.pos.y - hitPoint.y };
     if (dir.x * dir.x + dir.y * dir.y < 0.0001) dir = fromAngle(b.rotation);
     dir = norm(dir);
+    this.lastHitDir = dir;
     // Particles spray out of the far side of the body.
     const off = b.radius + this.type.particleOffset;
     const x = b.pos.x + dir.x * off, y = b.pos.y + dir.y * off, angle = Math.atan2(dir.y, dir.x);
@@ -122,6 +124,7 @@ export class Enemy extends Entity {
   die() {
     const { world, body, type } = this;
     this.ai.onDeath();
+    world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
     world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
     for (let i = 0; i < drops; i++) {

@@ -8,7 +8,7 @@
 //   zone        an area near the enemy is struck (in front of it, all around, or a beam); a
 //               parry only disarms it: it plays out harmlessly while the enemy is stunned
 //   projectile  something is thrown; a parry breaks the projectile
-import { dist, dirTo, norm, fromAngle } from '../engine/math.js';
+import { dist, dirTo, fromAngle } from '../engine/math.js';
 import { ATTACK_FX, FIXED_DT } from '../data/config.js';
 import { EnemyHitbox } from './hitbox.js';
 import { Projectile } from './projectile.js';
@@ -204,7 +204,7 @@ class HitboxAbility extends Ability {
   }
 }
 
-// Body: charges at the player.
+// Body: charges the way it faces.
 class DashAbility extends HitboxAbility {
   constructor(enemy, data) {
     super(enemy, data, { type: 'circle', r: data.hitboxRadius }, null, {
@@ -212,7 +212,7 @@ class DashAbility extends HitboxAbility {
     });
   }
   strike() {
-    const d = this.dirToPlayer();
+    const d = fromAngle(this.enemy.body.rotation);
     this.enemy.body.addImpulse(d.x * this.data.dashForce, d.y * this.data.dashForce);
   }
 }
@@ -331,7 +331,7 @@ class SlamAbility extends HitboxAbility {
   }
 }
 
-// Projectile: throws an orb at the player.
+// Projectile: throws an orb the way it faces.
 class ThrowAbility extends Ability {
   constructor(enemy, data) {
     super(enemy, data);
@@ -367,7 +367,7 @@ class ThrowAbility extends Ability {
   }
 
   release() {
-    const e = this.enemy, d = this.data, dir = norm(this.dirToPlayer());
+    const e = this.enemy, d = this.data, dir = fromAngle(e.body.rotation);
     this.world.add(new Projectile(this.world, this, e.body.pos.x + dir.x * d.spawnDistance, e.body.pos.y + dir.y * d.spawnDistance, {
       dir, speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
       size: d.projectileSize,
@@ -377,9 +377,8 @@ class ThrowAbility extends Ability {
 
   // Where ChargeView grows the orbs, as the frame `alpha` shows the enemy: [{ x, y, rot }].
   chargePoints(alpha) {
-    const p = this.enemy.body.lerpPos(alpha), target = this.player.body.lerpPos(alpha), s = this.data.spawnDistance;
-    const dx = target.x - p.x, dy = target.y - p.y, l = Math.hypot(dx, dy) || 1;
-    return [{ x: p.x + (dx / l) * s, y: p.y + (dy / l) * s, rot: Math.atan2(dy, dx) }];
+    const b = this.enemy.body, p = b.lerpPos(alpha), rot = b.lerpRotation(alpha), s = this.data.spawnDistance;
+    return [{ x: p.x + Math.cos(rot) * s, y: p.y + Math.sin(rot) * s, rot }];
   }
 
   // A parried projectile punishes its thrower, even mid-way through a later attack.

@@ -214,8 +214,12 @@ export class EnemyAI {
 
   setVelocity(v) { this.body.vel.x = v.x; this.body.vel.y = v.y; }
 
+  // Eases toward `dir`, never faster than `maxTurnSpeed` (rad/s).
   turnToward(dir, dt) {
-    this.body.rotation = smoothDampAngle(this.body.rotation, Math.atan2(dir.y, dir.x), this.turnVelocity, this.cfg.turnSmoothTime, dt);
+    const b = this.body, max = this.cfg.maxTurnSpeed;
+    const next = smoothDampAngle(b.rotation, Math.atan2(dir.y, dir.x), this.turnVelocity, this.cfg.turnSmoothTime, dt);
+    b.rotation += clamp(next - b.rotation, -max * dt, max * dt);
+    this.turnVelocity.v = clamp(this.turnVelocity.v, -max, max);
   }
 
   shouldAggro(d) { return this.isChaser || d <= this.cfg.aggroRange; }

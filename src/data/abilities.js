@@ -1,16 +1,18 @@
 // Enemy attacks. Each enemy type lists which of these it uses (see enemies.js).
+// `lockTime`: the enemy turns to follow the player through the wind-up, except for its
+// last `lockTime` seconds, when its aim is fixed. Dashes and throws fire along the facing.
 
 const clearPath = (size, offset) => ({ requireClearAttackPath: true, attackPathCastSize: size, attackPathOriginOffset: offset });
 
 export const ABILITIES = {
   GoblinThrow: {
-    type: 'throw', tell: 'throw', cooldown: 5, range: 15, windUpTime: 1, duration: 0.3, recoveryTime: 0.5,
+    type: 'throw', tell: 'throw', cooldown: 5, range: 15, windUpTime: 1, lockTime: 0.25, duration: 0.3, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 0, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
     projectileSpeed: 7, projectileLifetime: 4, spawnDistance: 0.75,
     projectileSize: 0.3,
   },
   StrikerDash: {
-    type: 'dash', tell: 'charge', cooldown: 3, range: 5, windUpTime: 0.5, duration: 0.4, recoveryTime: 0.1,
+    type: 'dash', tell: 'charge', cooldown: 3, range: 5, windUpTime: 0.5, lockTime: 0.2, duration: 0.4, recoveryTime: 0.1,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.25),
     dashForce: 30, hitboxRadius: 0.55,
   },
@@ -34,8 +36,6 @@ export const ABILITIES = {
     // Slam box: `range` long, `slamWidth` wide, both scaled by the Warden's 2x size.
     slamWidth: 2, sizeScale: 2,
   },
-  // `lockTime`: the enemy turns to follow the player through the wind-up, except for its
-  // last `lockTime` seconds, when its aim is fixed.
   SeraphDash: {
     type: 'dash', tell: 'charge', cooldown: 2.5, range: 6, windUpTime: 0.6, duration: 0.85, recoveryTime: 0.4,
     damageMultiplier: 0.8, parryStunTime: 1, ...clearPath({ x: 1.6, y: 1.6 }, 0.4),

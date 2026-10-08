@@ -7,7 +7,7 @@ const AI_DEFAULTS = {
   pathRefreshInterval: 0.25, pathGoalSearchRadius: 2, chaserPathGoalSearchRadius: 8,
   decisionDelayRange: { x: 0.8, y: 1.5 }, recoverDuration: 0.5,
   orbitPreference: 0.5, repositionDurationRange: { x: 0.5, y: 1.5 },
-  turnSmoothTime: 0.1,
+  turnSmoothTime: 0.1, maxTurnSpeed: Infinity, // rad/s
 };
 
 export const ENEMY_TYPES = {
@@ -16,7 +16,7 @@ export const ENEMY_TYPES = {
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84, sfxPitch: 1.2,
     visual: { kind: 'sprite', outline: 'goblin_idle', void: 'goblin_idle_void', size: 1.5 * 0.9, sparkleCount: 20 },
-    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
+    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 3.5,
       attacks: [{ ability: 'GoblinThrow', weight: 1 }] },
   },
   striker: {
@@ -24,7 +24,7 @@ export const ENEMY_TYPES = {
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b, sfxPitch: 1,
     visual: { kind: 'sprite', outline: 'striker_idle', void: 'striker_idle_void', size: 1.5, sparkleCount: 22 },
-    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3,
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 5,
       attacks: [{ ability: 'StrikerDash', weight: 1 }] },
   },
   warden: {

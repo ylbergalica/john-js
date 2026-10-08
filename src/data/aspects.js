@@ -2,9 +2,9 @@
 
 export const AspectTier = { Gift: 0, Prestige: 1, Mythic: 2 };
 export const TIERS = [
-  { tier: AspectTier.Gift, name: 'Gift', price: 2500, color: 'var(--gift)' },
-  { tier: AspectTier.Prestige, name: 'Prestige', price: 6000, color: 'var(--prestige)' },
-  { tier: AspectTier.Mythic, name: 'Mythic', price: 10000, color: 'var(--mythic)' },
+  { tier: AspectTier.Gift, name: 'Gift', price: 1000, color: 'var(--gift)' },
+  { tier: AspectTier.Prestige, name: 'Prestige', price: 5000, color: 'var(--prestige)' },
+  { tier: AspectTier.Mythic, name: 'Mythic', price: 15000, color: 'var(--mythic)' },
 ];
 export const MAX_EQUIPPED_ASPECTS = 3;
 

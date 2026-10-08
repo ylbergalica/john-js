@@ -4,6 +4,11 @@ export function scaleConfig(base, floor) {
   const F = Math.floor;
   const es = s.enemySpawn;
 
+  // Types are introduced floor by floor.
+  const introduced = (e) => (e.fromFloor ?? 1) <= floor;
+  es.enemies = es.enemies.filter(introduced);
+  s.chasers = s.chasers.filter(introduced);
+
   const enemyBonus = F(floor * 0.4);
   es.minEnemiesPerRoom = Math.min(es.minEnemiesPerRoom + enemyBonus, 10);
   es.maxEnemiesPerRoom = Math.min(es.maxEnemiesPerRoom + enemyBonus, 15);

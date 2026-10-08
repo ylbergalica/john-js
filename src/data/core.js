@@ -16,8 +16,13 @@ export const GAME = { returnDelay: 3, floorIntroDuration: 3, playgroundRespawnDe
 // player. The glide takes `panPerUnit` seconds per unit of distance, within min/maxPan.
 export const GUARDIAN_INTRO = { floors: 5, fadeIn: 0.5, hold: 2, zoom: 1.15, panPerUnit: 0.03, minPan: 1.1, maxPan: 2 };
 
-// Coins a run earns (banked on death). Achievements will name their own rewards.
-export const COINS = { perEnemyKill: 3, perGuardianKill: 10, perFloorCleared: 50 };
+// Coins a run earns (banked on death): `base` on floor 1, plus `perFloor` for each floor
+// after it. Achievements will name their own rewards.
+export const COINS = {
+  enemyKill: { base: 3, perFloor: 1 },
+  guardianKill: { base: 10, perFloor: 2 },
+  floorCleared: { base: 50, perFloor: 5 },
+};
 
 export const HUD = {
   pixelsPerHealthPoint: 22,

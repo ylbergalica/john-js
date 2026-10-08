@@ -43,15 +43,18 @@ export class RunSession {
     profile.recordKill(enemy.typeKey);
     const { kills } = this.stats;
     kills[enemy.typeKey] = (kills[enemy.typeKey] ?? 0) + 1;
-    if (enemy.type.isChaser) this.addCoins(COINS.perGuardianKill, 'guardians');
-    else this.addCoins(COINS.perEnemyKill, 'enemies');
+    if (enemy.type.isChaser) this.addCoins(this.coinsFor(COINS.guardianKill), 'guardians');
+    else this.addCoins(this.coinsFor(COINS.enemyKill), 'enemies');
   }
 
   floorCleared() {
     if (!this.earns) return;
     this.stats.floorsCleared++;
-    this.addCoins(COINS.perFloorCleared, 'floors');
+    this.addCoins(this.coinsFor(COINS.floorCleared), 'floors');
   }
+
+  // A COINS yield on the current floor.
+  coinsFor({ base, perFloor }) { return base + perFloor * (this.floor - 1); }
 
   aspectUsed(id) {
     if (this.ended) return;

@@ -21,15 +21,20 @@ export const BASE_LEVEL_CONFIG = {
   edgeRoughness: 0.3,
   roomBusyness: 0.5,
   wallSizeRange: { x: 4, y: 7 },
+  // `fromFloor`: the first floor an enemy (or guardian) type can spawn on.
   enemySpawn: {
-    enemies: [{ type: 'goblin', weight: 1 }, { type: 'striker', weight: 1 }, { type: 'mauler', weight: 0.6 }],
+    enemies: [
+      { type: 'goblin', weight: 1, fromFloor: 1 },
+      { type: 'striker', weight: 1, fromFloor: 1 },
+      { type: 'mauler', weight: 0.6, fromFloor: 2 },
+    ],
     minEnemiesPerRoom: 3,
     maxEnemiesPerRoom: 6,
     skipFirstRoom: true,
     skipLastRoom: true,
   },
   chaserCount: 1,
-  chasers: [{ type: 'warden', weight: 1 }, { type: 'seraph', weight: 1 }],
+  chasers: [{ type: 'warden', weight: 1, fromFloor: 1 }, { type: 'seraph', weight: 1, fromFloor: 1 }],
 };
 
 export const WALL_VISUAL = {

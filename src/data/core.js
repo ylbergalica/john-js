@@ -17,9 +17,10 @@ export const GAME = { returnDelay: 3, floorIntroDuration: 3, playgroundRespawnDe
 export const GUARDIAN_INTRO = { floors: 5, fadeIn: 0.5, hold: 2, zoom: 1.15, panPerUnit: 0.03, minPan: 1.1, maxPan: 2 };
 
 // Coins a run earns (banked on death): `base` on floor 1, plus `perFloor` for each floor
-// after it. Achievements will name their own rewards.
+// after it. Kills don't grow: deeper floors already hold more enemies, and growing both
+// makes a run's coins snowball with depth. Achievements will name their own rewards.
 export const COINS = {
-  enemyKill: { base: 3, perFloor: 1 },
+  enemyKill: { base: 3, perFloor: 0 },
   guardianKill: { base: 10, perFloor: 2 },
   floorCleared: { base: 50, perFloor: 5 },
 };

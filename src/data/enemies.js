@@ -14,7 +14,7 @@ export const ENEMY_TYPES = {
   goblin: {
     name: 'Goblin', maxHealth: 5, damage: 1, radius: 0.5 * 0.9, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84, sfxPitch: 1.2,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84, sfxPitch: 1.2,
     visual: { kind: 'sprite', outline: 'goblin_idle', void: 'goblin_idle_void', size: 1.5 * 0.9, sparkleCount: 20 },
     ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 3.5,
       attacks: [{ ability: 'GoblinThrow', weight: 1 }] },
@@ -22,7 +22,7 @@ export const ENEMY_TYPES = {
   striker: {
     name: 'Striker', maxHealth: 7, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b, sfxPitch: 1,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b, sfxPitch: 1,
     visual: { kind: 'sprite', outline: 'striker_idle', void: 'striker_idle_void', size: 1.5, sparkleCount: 22 },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3, moveSpeed: 3, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 5,
       attacks: [{ ability: 'StrikerDash', weight: 1 }] },
@@ -33,7 +33,7 @@ export const ENEMY_TYPES = {
   mauler: {
     name: 'Mauler', maxHealth: 13, damage: 1.5, radius: 0.52, mass: 5, linearDamping: 1,
     knockbackResistance: 0.2, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 1, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd2742f, sfxPitch: 0.8,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd2742f, sfxPitch: 0.8,
     visual: { kind: 'sprite', outline: 'mauler_idle', void: 'mauler_idle_void', size: 1.47, sparkleCount: 22, rig: 'maul' },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.5, moveSpeed: 2.4, orbitSpeed: 2, repositionSpeed: 2, maxTurnSpeed: 3,
       attacks: [{ ability: 'MaulerSwing', weight: 0.65 }, { ability: 'MaulerSlam', weight: 0.35 }] },

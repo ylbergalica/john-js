@@ -18,11 +18,12 @@ export function scaleConfig(base, floor) {
   s.chaserCount += F(floor / 20);
   s.roomCount += F(floor * 0.2);
 
-  const roomSizeBonus = F(floor * 0.1);
-  s.roomMinSize.x = Math.min(s.roomMinSize.x + roomSizeBonus, 50);
-  s.roomMinSize.y = Math.min(s.roomMinSize.y + roomSizeBonus, 50);
-  s.roomMaxSize.x = Math.min(s.roomMaxSize.x + roomSizeBonus, 70);
-  s.roomMaxSize.y = Math.min(s.roomMaxSize.y + roomSizeBonus, 70);
+  // Rooms grow alongside the enemy counts above, both levelling off in the early 20s.
+  const roomSizeBonus = Math.min(F(floor * 0.5), 12);
+  s.roomMinSize.x += roomSizeBonus;
+  s.roomMinSize.y += roomSizeBonus;
+  s.roomMaxSize.x += roomSizeBonus;
+  s.roomMaxSize.y += roomSizeBonus;
 
   const levelSizeBonus = F(floor * 5);
   s.width += levelSizeBonus;

@@ -51,7 +51,6 @@ export class MenuScene {
         window.desktop ? rise(h('button', { text: 'Quit', onclick: () => window.desktop.quit() })) : null,
       ),
       rise(h('div', { class: 'loadout' },
-        h('div', { class: 'eyebrow', text: 'Loadout' }),
         h('div', { class: 'loadout-slots' }, this.loadoutSlots),
       )),
       rise(coinPill()),

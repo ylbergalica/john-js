@@ -137,3 +137,6 @@ dist
 
 # Claude Code local config
 .claude/
+
+# Desktop builds (electron-builder)
+release

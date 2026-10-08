@@ -6,7 +6,15 @@ Top-down 2D roguelite for the browser: procedurally generated floors, melee + pa
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # static site in dist/
+npm run desktop  # build and run in the Electron desktop shell
+npm run dist:win # Windows build: release/win-unpacked/John.exe (+ a zip)
 ```
+
+## Desktop build
+
+The game ships as a Windows app via [Electron](https://www.electronjs.org/) (`electron/main.js`), packaged with electron-builder (config under `build` in `package.json`). It opens fullscreen; F11 or Alt+Enter toggles windowed mode and the choice is kept in `%APPDATA%\John\window.json`. The main menu gets a Quit button only in the desktop build (`window.desktop`, exposed by `electron/preload.cjs`). Saves use the same `localStorage` keys, stored in `%APPDATA%\John`.
+
+For Steam, upload the whole `release/win-unpacked/` folder as a depot with `John.exe` as the launch executable.
 
 ## Controls
 

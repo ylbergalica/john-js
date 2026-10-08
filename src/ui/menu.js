@@ -42,12 +42,13 @@ export class MenuScene {
       return b;
     });
     const main = h('div', { class: 'menu interactive' },
-      h('h1', { class: 'menu-title title-in', text: 'John' }),
+      h('h1', { class: 'menu-title title-in', text: 'Starspite' }),
       h('div', { class: 'rule menu-rule' }, '✦'),
       h('div', { class: 'main-buttons' },
         rise(h('button', { class: 'primary', text: 'Start Run', onclick: onStartRun })),
         rise(h('button', { text: 'Aspects', onclick: () => this.openAspects() })),
         rise(h('button', { text: 'Playground', onclick: onPlayground })),
+        window.desktop ? rise(h('button', { text: 'Quit', onclick: () => window.desktop.quit() })) : null,
       ),
       rise(h('div', { class: 'loadout' },
         h('div', { class: 'eyebrow', text: 'Loadout' }),

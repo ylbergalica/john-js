@@ -395,6 +395,7 @@ kbd {
 .run-summary.done .rs-actions { opacity: 1; transform: none; visibility: visible; transition: opacity 0.4s, transform 0.4s; }
 .run-summary.done .rs-hint { opacity: 0; }
 @media (max-width: 520px) {
+  .menu-title { font-size: 40px; --ls: 8px; letter-spacing: 8px; padding-left: 8px; --ls-from: 20px; }
   .rs-title { font-size: 40px; letter-spacing: 8px; padding-left: 8px; --ls: 8px; }
   .rs-grid { grid-template-columns: 1fr; }
 }

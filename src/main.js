@@ -14,18 +14,9 @@ import './style.css';
 const MAX_FRAME_TIME = 0.1; // clamp long stalls (tab switches, debugger) to one hitch
 
 const app = new Application();
-await app.init({
-  resizeTo: window,
-  background: '#000000',
-  antialias: true,
-  autoDensity: true,
-  resolution: Math.min(window.devicePixelRatio || 1, 2),
-  preference: 'webgl', // the wall shader is GLSL
-});
-document.getElementById('game').append(app.canvas);
 const uiRoot = document.getElementById('ui');
 uiRoot.append(h('div', { class: 'vignette' }));
-const input = new Input(app.canvas);
+let input = null; // created in boot(), once the canvas exists
 
 // Audio can only start inside a user gesture. M toggles mute anywhere.
 window.addEventListener('pointerdown', sfx.unlock);
@@ -39,7 +30,6 @@ uiRoot.addEventListener('pointerover', (e) => {
   if (b && !b.contains(e.relatedTarget)) sfx.play('hover');
 });
 uiRoot.addEventListener('click', (e) => { if (e.target.closest('button:not(:disabled)')) sfx.play('click'); });
-await loadAssets();
 
 let scene = null;
 
@@ -59,8 +49,6 @@ function startGame(mode) {
   show(() => new GameScene({ app, input, uiRoot, mode, onExit: showMenu }));
 }
 
-app.ticker.add((ticker) => scene?.frame(Math.min(ticker.deltaMS / 1000, MAX_FRAME_TIME)));
-
 if (import.meta.env.DEV) {
   // Console helpers for testing: john.addCoins(), john.resetSave(), john.advance(seconds).
   window.john = {
@@ -73,4 +61,23 @@ if (import.meta.env.DEV) {
   };
 }
 
-showMenu();
+// Not top-level await: Pixi lazy-loads renderer chunks that import shared code back from
+// this entry chunk, so awaiting them while this module is still evaluating deadlocks the
+// production build (dev serves modules unbundled and never hits it).
+async function boot() {
+  await app.init({
+    resizeTo: window,
+    background: '#000000',
+    antialias: true,
+    autoDensity: true,
+    resolution: Math.min(window.devicePixelRatio || 1, 2),
+    preference: 'webgl', // the wall shader is GLSL
+  });
+  document.getElementById('game').append(app.canvas);
+  input = new Input(app.canvas);
+  await loadAssets();
+  app.ticker.add((ticker) => scene?.frame(Math.min(ticker.deltaMS / 1000, MAX_FRAME_TIME)));
+  showMenu();
+}
+
+boot();

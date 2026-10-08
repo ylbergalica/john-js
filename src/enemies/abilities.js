@@ -2,10 +2,12 @@
 //   ready → windup → active → recovery → ready   (melee hitbox abilities)
 //   ready → windup → recovery → ready            (projectile throw)
 // A parry interrupts with damage and a stun phase.
-// Each ability is one of three kinds, which decides how it looks (attackView.js):
-//   body        the enemy itself is the weapon (a charge)
-//   zone        an area near the enemy is struck (in front of it, all around, or a beam)
-//   projectile  something is thrown
+// Each ability is one of three kinds, which decides how it looks (attackView.js) and what
+// a parry does to the attack itself:
+//   body        the enemy itself is the weapon (a charge); a parry cuts it short
+//   zone        an area near the enemy is struck (in front of it, all around, or a beam); a
+//               parry only disarms it: it plays out harmlessly while the enemy is stunned
+//   projectile  something is thrown; a parry breaks the projectile
 import { dist, dirTo, norm, fromAngle } from '../engine/math.js';
 import { ATTACK_FX, FIXED_DT } from '../data/config.js';
 import { EnemyHitbox } from './hitbox.js';
@@ -124,8 +126,9 @@ class Ability {
   }
 }
 
-// Melee abilities with a hitbox (Dash, Punch, Ground Pound, Slam). Zones pass `area`, the
-// shape ZoneView burns (see there): everywhere the hitbox reaches while active.
+// Melee abilities with a hitbox (Dash, Ram, Laser, Punch, Ground Pound, Slam). Zones pass
+// `area`, the shape ZoneView burns (see there): everywhere the hitbox reaches while active.
+// `kind` defaults to 'zone', so a new zone attack is disarmed rather than cut short by a parry.
 class HitboxAbility extends Ability {
   constructor(enemy, data, shape, area, { kind = 'zone', stopsOnStart = true, parryKnockback = 5, strikeSound, continuous = false } = {}) {
     super(enemy, data);
@@ -135,6 +138,7 @@ class HitboxAbility extends Ability {
     this.strikeSound = strikeSound;
     this.stopsOnStart = stopsOnStart;
     this.parryKnockback = parryKnockback;
+    this.parriedStunEndsAt = null; // set while a parried zone plays out
   }
 
   execute() {
@@ -158,7 +162,10 @@ class HitboxAbility extends Ability {
         break;
       case 'active':
         this.endActive();
-        this.setPhase('recovery', this.data.recoveryTime);
+        if (this.parriedStunEndsAt !== null) {
+          this.setPhase('stunned', this.parriedStunEndsAt - this.world.time);
+          this.parriedStunEndsAt = null;
+        } else this.setPhase('recovery', this.data.recoveryTime);
         break;
       case 'recovery':
         e.isActing = false;
@@ -179,17 +186,21 @@ class HitboxAbility extends Ability {
     this.activeEndedAt = this.world.time;
   }
 
+  // A zone stays active (and keeps its look) with its hitbox off. The stun starts now either
+  // way; for a zone, whatever is left of it once the strike ends follows (see advance).
   onParry() {
-    if (this.phase !== 'active') return;
-    const e = this.enemy;
-    this.endActive();
+    if (this.phase !== 'active' || this.parriedStunEndsAt !== null) return;
+    const e = this.enemy, zone = this.kind === 'zone';
+    if (zone) this.hitbox.setActive(false);
+    else this.endActive();
     e.body.stop();
     const k = this.awayFromPlayer();
     e.body.addImpulse(k.x * this.parryKnockback, k.y * this.parryKnockback);
     e.takeDamage(this.parryDamage());
     if (e.dead) return;
     e.stunned = true;
-    this.setPhase('stunned', this.data.parryStunTime);
+    if (zone) this.parriedStunEndsAt = this.world.time + this.data.parryStunTime;
+    else this.setPhase('stunned', this.data.parryStunTime);
   }
 }
 

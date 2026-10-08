@@ -203,19 +203,15 @@ export class MaulerRig {
     puff(I.haze, r0 * 0.3);
   }
 
-  // Local point → world, through the enemy's view as last placed.
-  toWorld(p) {
-    const v = this.enemy.view, c = Math.cos(v.rotation), s = Math.sin(v.rotation);
-    const x = p.x * v.scale.x, y = p.y * v.scale.y;
-    return { x: v.position.x + c * x - s * y, y: v.position.y + s * x + c * y };
-  }
+  // Where the parry cue flashes: the maul's head, as last posed.
+  cuePoint() { return onMaul(this.pose, MAUL_ART.head[0]); }
 
   setFlash(on) { this.maul.texture = on ? tex.star_maul_white : tex.star_maul; }
 
   // The maul pops white and swells away along with the body.
   onDeath() {
     const pose = this.pose, size = sizeOf(pose), reach = Math.cos(pose.pitch) * size, D = DEATH_FX.enemy.pop;
-    const grip = this.toWorld(onMaul(pose, 0)), w = MAUL_ART.w * Math.abs(reach), h = MAUL_ART.h * size;
+    const grip = this.enemy.attackFx.toWorld(onMaul(pose, 0)), w = MAUL_ART.w * Math.abs(reach), h = MAUL_ART.h * size;
     const rot = this.enemy.view.rotation + pose.rot + (reach < 0 ? Math.PI : 0);
     this.world.deathFx.flare(tex.star_maul_white, grip.x, grip.y, rot, {
       time: D.time, w0: w, h0: h, w1: w * D.scale, h1: h * D.scale, color0: 0xffffff, color1: this.enemy.type.hitColor, fade: 1.5,

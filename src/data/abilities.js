@@ -1,6 +1,9 @@
 // Enemy attacks. Each enemy type lists which of these it uses (see enemies.js).
 // `lockTime`: the enemy turns to follow the player through the wind-up, except for its
 // last `lockTime` seconds, when its aim is fixed. Dashes and throws fire along the facing.
+// Every attack flashes a parry cue just before it can hurt (ATTACK_FX.cue), where it comes
+// from: a held weapon's head, a throw's muzzle, a laser's nose, missiles' engines, or else
+// `cueAt` body radii ahead (default 1, the enemy's front).
 
 const clearPath = (size, offset) => ({ requireClearAttackPath: true, attackPathCastSize: size, attackPathOriginOffset: offset });
 
@@ -18,20 +21,21 @@ export const ABILITIES = {
   },
   // The Mauler's maul. Both lunge `stepDistance` along the locked aim over `stepTime` as
   // they strike; `maul` says how the maul moves with them (maulerRig.js).
-  // Swing: hits the sector the maul sweeps, `reach` around the Mauler from `arcFromDeg` (its
-  // right) to `arcToDeg` (its left) off its facing, as the maul crosses it in `swingTime`.
+  // Swing: the maul crosses the front in `swingTime` as the Mauler lunges. The Mauler is the
+  // hitbox (a charge, parried like one): a circle `hitboxRadius` around a point
+  // `hitboxForward` ahead, hurting for `duration`.
   MaulerSwing: {
-    type: 'swing', tell: 'swing', cooldown: 2.2, range: 2.5, windUpTime: 0.62, lockTime: 0.22, duration: 0.2, recoveryTime: 0.5,
+    type: 'swing', tell: 'swing', cooldown: 2.2, range: 2.5, windUpTime: 0.62, lockTime: 0.22, duration: 0.18, recoveryTime: 0.25,
     damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
-    reach: 1.85, arcFromDeg: 105, arcToDeg: -85, swingTime: 0.12, stepDistance: 0.6, stepTime: 0.12,
+    hitboxRadius: 0.85, hitboxForward: 0.3, swingTime: 0.12, stepDistance: 1.3, stepTime: 0.15, parryKnockback: 15,
     strikeSound: 'heave', maul: 'swing',
   },
   // Slam: the maul comes down `landTime` after the strike, `impactAt` ahead (where the maul's
   // head lands), and a circle there spreads from `radius[0]` to `radius[1]` over `spreadTime`.
   MaulerSlam: {
-    type: 'smash', tell: 'smash', cooldown: 4.5, range: 3.5, windUpTime: 0.92, lockTime: 0.3, duration: 0.4, recoveryTime: 0.8,
+    type: 'smash', tell: 'smash', cooldown: 4.5, range: 3.5, windUpTime: 0.92, lockTime: 0.3, duration: 0.4, recoveryTime: 0.45,
     damageMultiplier: 1.6, parryStunTime: 1.2, ...clearPath({ x: 1, y: 1 }, 0.3),
-    impactAt: 1.25, landTime: 0.09, radius: [0.55, 1.8], spreadTime: 0.25, stepDistance: 0.8, stepTime: 0.09,
+    impactAt: 1.25, landTime: 0.09, radius: [0.55, 1.8], spreadTime: 0.25, stepDistance: 1.15, stepTime: 0.09,
     strikeSound: 'heave', landSound: 'slam', maul: 'slam',
     shake: { duration: 0.2, strength: 0.25, frequency: 20 },
   },
@@ -42,7 +46,7 @@ export const ABILITIES = {
   },
   WardenGroundPound: {
     type: 'groundPound', tell: 'pound', cooldown: 6, range: 4, windUpTime: 1.5, duration: 0.3, recoveryTime: 1,
-    damageMultiplier: 1.3, parryStunTime: 0.6, requireClearAttackPath: false, radius: 3.5,
+    damageMultiplier: 1.3, parryStunTime: 0.6, requireClearAttackPath: false, radius: 3.5, cueAt: 0,
   },
   WardenPunch: {
     type: 'punch', tell: 'punch', cooldown: 1.5, range: 4, windUpTime: 0.5, duration: 0.15, recoveryTime: 0.3,

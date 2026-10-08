@@ -2,7 +2,7 @@
 // ATTACK_FX). Abilities pick the view for their kind and the views derive everything
 // from the ability's phase and timestamps, so nothing here affects the simulation.
 //   EnemyAttackFx  per enemy: the wind-up glow, pose and tell (different for each attack),
-//                  the strike pop, and a charging body's burn and afterimages.
+//                  the parry cue, the strike pop, and a charging body's burn and afterimages.
 //   ZoneView       per zone ability: the struck area, burning while it can hurt.
 //   ChargeView     per throw: the projectiles' orbs growing where they will be released.
 //   BeamView       per laser: the charge gathering at the muzzle, then the beam out to the
@@ -13,9 +13,9 @@ import { ATTACK_FX, FIXED_DT } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
-import { COMET_HEAD, ORB_PAD } from '../render/sprites.js';
+import { COMET_HEAD, ORB_PAD, RING_RADIUS } from '../render/sprites.js';
 
-const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone;
+const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone, C = X.cue;
 const FADE_IN = 0.1; // seconds for a wind-up's marks to appear
 const DEG = Math.PI / 180;
 
@@ -52,9 +52,19 @@ export class EnemyAttackFx {
     enemy.world.layers.fx.addChild(this.tell);
     this.afterimages = []; // { sprite, bornAt }, created on the first charge
     this.lastAfterimageAt = -Infinity;
+    this.cues = []; // { halo, star } per cue point, created as needed
+    this.sparkedCueAt = -Infinity; // the last cue whose sparks have flown
   }
 
   get radius() { return this.enemy.body.radius; }
+
+  // A point in the enemy's frame → world, through its view as last placed (posed and
+  // scaled by render).
+  toWorld(p) {
+    const v = this.enemy.view, c = Math.cos(v.rotation), s = Math.sin(v.rotation);
+    const x = p.x * v.scale.x, y = p.y * v.scale.y;
+    return { x: v.position.x + c * x - s * y, y: v.position.y + s * x + c * y };
+  }
 
   // Poses the enemy's view (already placed at `p`, rotated to `rot`) and draws the wind-up
   // and strike effects. `visible`: whether the enemy is on screen.
@@ -132,6 +142,49 @@ export class EnemyAttackFx {
     view.scale.set(sx, sy);
     view.rotation = rot + turn;
     this.updateAfterimages(now);
+  }
+
+  // The parry cue, once any rig has posed the enemy's weapon: a star flashing on each of the
+  // latest cued attack's cue points, throwing sparks and a ring out as it appears.
+  renderCue(now, visible) {
+    let cued = null;
+    for (const a of this.enemy.abilities.values()) if (!cued || a.cueAt > cued.cueAt) cued = a;
+    const k = cued ? (now - cued.cueAt) / C.time : -1;
+    const points = visible && k >= 0 && k < 1 ? cued.cuePoints().map((p) => this.toWorld(p)) : [];
+    const fx = this.enemy.world.layers.fx;
+    while (this.cues.length < points.length) {
+      this.cues.push({
+        halo: sprite(tex.mist, fx, { blendMode: 'add', tint: C.haloColor }),
+        ring: sprite(tex.ring, fx, { blendMode: 'add', tint: C.color }),
+        star: sprite(tex.glint, fx, { blendMode: 'add', tint: C.color }),
+        core: sprite(tex.glint, fx, { blendMode: 'add', tint: C.coreColor }),
+      });
+    }
+    if (points.length && cued.cueAt !== this.sparkedCueAt) {
+      this.sparkedCueAt = cued.cueAt;
+      for (const p of points) this.enemy.world.effects.burst(p.x, p.y, 0, C.sparks);
+    }
+    const s = k < C.rise ? easeOut(k / C.rise) : 1 - smoothStep01((k - C.rise) / (1 - C.rise));
+    const scale = Math.sqrt(this.radius / 0.5), size = scale * s;
+    const R = lerp(C.ring.from, C.ring.to, easeOut(k)) * scale;
+    this.cues.forEach((cue, i) => {
+      const p = points[i], { halo, ring } = cue;
+      for (const sp of Object.values(cue)) sp.visible = !!p;
+      if (!p) return;
+      halo.position.set(p.x, p.y);
+      halo.width = halo.height = C.haloSize * size;
+      halo.alpha = C.haloAlpha * s;
+      ring.position.set(p.x, p.y);
+      ring.width = ring.height = R / RING_RADIUS;
+      ring.alpha = C.ring.alpha * (1 - k);
+      // The star and its core: one shape at two sizes.
+      for (const [sp, part] of [[cue.star, 1], [cue.core, C.core]]) {
+        sp.position.set(p.x, p.y);
+        sp.rotation = C.spin * k;
+        sp.width = C.size * C.stretch * size * part;
+        sp.height = C.size * size * part;
+      }
+    });
   }
 
   // Draws a tell in the enemy's frame (+x forward). `t`: wind-up progress, the tell tightening
@@ -214,6 +267,7 @@ export class EnemyAttackFx {
   destroy() {
     this.tell.destroy();
     for (const { sprite: s } of this.afterimages) s.destroy();
+    for (const cue of this.cues) for (const sp of Object.values(cue)) sp.destroy();
   }
 }
 
@@ -224,8 +278,6 @@ export class EnemyAttackFx {
 //   { type: 'box', near, far, hh }         from `near` to `far` ahead, `hh` to each side
 //   { type: 'circle', r, from, growTime }  all around, spreading from radius `from` to `r`
 //                                          over `growTime` if given
-//   { type: 'sector', r, from, to, revealTime }  a pie slice between angles `from` and `to`,
-//                                          lit edge to edge over `revealTime` (a swing)
 // The area stays where it was struck, or where the ability pins it. It burns from the
 // ability's `zoneAt`.
 export class ZoneView {
@@ -233,7 +285,6 @@ export class ZoneView {
     this.ability = ability;
     this.shape = shape;
     this.r = shape.r; // a spreading circle's radius as last drawn
-    this.reveal = 1; // how much of a sector is lit, 0 → 1
     this.gfx = new Graphics();
     this.gfx.blendMode = 'add';
     this.gfx.visible = false;
@@ -250,7 +301,6 @@ export class ZoneView {
 
   strikeSparks() {
     const { x, y } = this.gfx.position, rot = this.gfx.rotation, s = this.shape, fx = this.ability.world.effects;
-    if (s.type === 'sector') return; // the swung weapon leaves its own trail
     if (s.type === 'circle') {
       const r = s.from ?? s.r, n = Math.max(6, Math.round((TAU * r) / (Z.sparkSpacing * 2)));
       const opts = { ...Z.sparks, count: Math.ceil(Z.sparks.count / 2), color: X.color };
@@ -276,7 +326,6 @@ export class ZoneView {
     if (a.phase === 'active') {
       if (now < a.zoneAt) return;
       const since = now - a.zoneAt;
-      this.reveal = s.revealTime ? easeOut(clamp01(since / s.revealTime)) : 1;
       if (s.growTime) this.r = lerp(s.from, s.r, easeOut(clamp01(since / s.growTime)));
       this.drawBurn(since, now);
     } else if (a.phase !== 'windup') {
@@ -286,21 +335,20 @@ export class ZoneView {
   }
 
   // A white-hot flash settling into a flickering burn, with a band sweeping across it (the
-  // lit edge of a sector, the rim of a spreading circle).
+  // rim of a spreading circle).
   drawBurn(since, now) {
-    const s = this.shape, sweepTime = s.revealTime ?? s.growTime ?? Z.sweepTime;
+    const s = this.shape, sweepTime = s.growTime ?? Z.sweepTime;
     const flash = Math.max(0, 1 - since / Z.flashTime);
     const color = lerpColor(X.color, X.hot, flash * 0.75);
     this.fill(Z.burnAlpha + Z.flicker * Math.sin(now * 55) + Z.flashAlpha * flash, color);
     this.outline(color, 0.6 + 0.4 * flash);
-    if (since < sweepTime) this.sweep(s.revealTime ? this.reveal : easeOut(since / sweepTime), X.hot, 1 - since / sweepTime);
+    if (since < sweepTime) this.sweep(easeOut(since / sweepTime), X.hot, 1 - since / sweepTime);
   }
 
   // Shape geometry ------------------------------------------------------
   path() {
     const g = this.gfx, s = this.shape;
     if (s.type === 'circle') return g.circle(0, 0, this.r);
-    if (s.type === 'sector') return g.moveTo(0, 0).arc(0, 0, s.r, s.from, lerp(s.from, s.to, this.reveal), s.to < s.from).closePath();
     return g.rect(s.near, -s.hh, s.far - s.near, s.hh * 2);
   }
 
@@ -311,17 +359,12 @@ export class ZoneView {
   }
 
   // A bright band at fraction t of the way across the area: a ring for circles (at the rim
-  // of a spreading one), a spoke for sectors.
+  // of a spreading one), a bar for boxes.
   sweep(t, color, alpha) {
     const g = this.gfx, s = this.shape, width = Z.sweepWidth;
     if (s.type === 'circle') {
       const r = s.growTime ? this.r : s.r * t;
       if (r > width) g.circle(0, 0, r).stroke({ width, color, alpha });
-      return;
-    }
-    if (s.type === 'sector') {
-      const a = lerp(s.from, s.to, t);
-      g.moveTo(0, 0).lineTo(Math.cos(a) * s.r, Math.sin(a) * s.r).stroke({ width, color, alpha: clamp01(alpha) });
       return;
     }
     g.rect(lerp(s.near, s.far, t) - width / 2, -s.hh, width, s.hh * 2).fill({ color, alpha: clamp01(alpha) });

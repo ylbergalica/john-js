@@ -25,6 +25,7 @@ class Ability {
     this.phaseStartedAt = 0;
     this.phaseEndsAt = 0;
     this.strikeAt = -Infinity; // when the attack last fired
+    this.cueAt = -Infinity; // when its cue last flashed
     this.activeEndedAt = -Infinity; // when its hitbox last stopped hurting
     this.hitbox = null;
     this.view = null;
@@ -57,9 +58,20 @@ class Ability {
   }
 
   step() {
+    // The parry cue: a flash where the attack comes from, `ATTACK_FX.cue.lead` before it can
+    // first hurt, so the player knows when to parry (EnemyAttackFx shows it).
+    if (this.phase === 'windup' && this.cueAt < this.phaseStartedAt
+      && this.world.time >= this.phaseEndsAt + this.armDelay - ATTACK_FX.cue.lead) this.cueAt = this.world.time;
     // Loop so zero-length phases chain within one step.
     while (this.phase !== 'ready' && this.world.time >= this.phaseEndsAt) this.advance();
   }
+
+  // How long after the wind-up ends the attack can first hurt.
+  get armDelay() { return 0; }
+
+  // Where the cue flashes, in the enemy's frame (+x forward): its front, or `cueAt` body
+  // radii ahead.
+  cuePoints() { return [{ x: this.enemy.body.radius * (this.data.cueAt ?? 1), y: 0 }]; }
 
   // Sweeps a circle toward the player; walls and other enemies block the attack.
   hasClearAttackPath() {
@@ -308,6 +320,8 @@ class LaserAbility extends HitboxAbility {
     const b = this.enemy.body, s = this.hitbox.shape, c = Math.cos(b.rotation), sn = Math.sin(b.rotation);
     s.length = this.world.physics.rayLength(b.pos.x + c * s.from, b.pos.y + sn * s.from, c, sn, this.data.maxLength);
   }
+
+  cuePoints() { return [{ x: this.hitbox.shape.from, y: 0 }]; }
 }
 
 // Zone: a blow in front that steps into the player; the area stretches over the step.
@@ -350,15 +364,22 @@ class LungeAbility extends HitboxAbility {
     const s = this.data.shake, { volume } = this.world.positional(this.enemy.body.pos);
     if (s && volume > 0) this.world.camera.shake(s.duration, s.strength * volume, s.frequency);
   }
+
+  // The cue flashes on the held weapon's head, if the enemy's rig has one.
+  cuePoints() {
+    const at = this.enemy.rig?.cuePoint();
+    return at ? [at] : super.cuePoints();
+  }
 }
 
-// Zone: a held weapon swung across the front (the Mauler's maul), hitting where it sweeps:
-// a sector `reach` around the enemy from `arcFromDeg` to `arcToDeg` off its facing, lit up
-// over `swingTime` as the weapon passes.
+// Body: a held weapon swung across the front as the enemy lunges (the Mauler's maul). The
+// enemy and its weapon are the hitbox, a circle `hitboxRadius` around a point
+// `hitboxForward` ahead, so a parry meets the enemy itself and cuts the swing short.
 class SwingAbility extends LungeAbility {
   constructor(enemy, data) {
-    const shape = { type: 'sector', r: data.reach, from: data.arcFromDeg * DEG, to: data.arcToDeg * DEG };
-    super(enemy, data, shape, { ...shape, revealTime: data.swingTime }, { strikeSound: data.strikeSound });
+    super(enemy, data, { type: 'circle', r: data.hitboxRadius, forward: data.hitboxForward }, null, {
+      kind: 'body', parryKnockback: data.parryKnockback, strikeSound: data.strikeSound,
+    });
   }
 }
 
@@ -377,6 +398,7 @@ class SmashAbility extends LungeAbility {
 
   get landed() { return this.landedAt >= this.strikeAt; }
   get zoneAt() { return this.landed ? this.landedAt : Infinity; }
+  get armDelay() { return this.data.landTime; }
 
   step() {
     super.step();
@@ -470,6 +492,8 @@ class ThrowAbility extends Ability {
     return [{ x: p.x + Math.cos(rot) * s, y: p.y + Math.sin(rot) * s, rot }];
   }
 
+  cuePoints() { return [{ x: this.data.spawnDistance, y: 0 }]; }
+
   // A parried projectile punishes its thrower, even mid-way through a later attack.
   onParry() {
     const e = this.enemy;
@@ -500,6 +524,8 @@ class MissilesAbility extends ThrowAbility {
   chargePoints(alpha) {
     return this.launches(this.enemy.body.lerpPos(alpha), this.enemy.body.lerpRotation(alpha));
   }
+
+  cuePoints() { return this.launches({ x: 0, y: 0 }, 0); }
 
   // Both engines' launch points and headings for an enemy at `pos` facing `rot`.
   launches(pos, rot) {

@@ -71,6 +71,8 @@ export const FX = {
 //   Winding up: the enemy glows `color` and trembles, and shows its attack's tell (below),
 //     which tightens to land the moment the attack fires. It never shows where the attack
 //     will land.
+//   Cue: `cue.lead` before the attack can hurt, a star flashes where it comes from (the
+//     weapon, muzzle or front): parry now.
 //   Striking: whatever can hurt burns `color` around a `hot` core (a charging body with
 //     afterimages, a struck zone, a projectile in flight). Once it can't hurt, it only fades.
 // Sizes are in world units unless noted.
@@ -106,6 +108,20 @@ export const ATTACK_FX = {
     swing: { shape: 'arc', arcDeg: 140, lines: 1, reach: 0.5, to: 1.2, lean: 0.06, squash: 0, swell: 0.04, twist: 18 },
     smash: { shape: 'arc', arcDeg: 46, lines: 3, reach: 0.9, to: 1.2, lean: 0.22, squash: 0.08, swell: 0.1 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
+  },
+  // The parry cue: an amber four-point star with a small white core in a soft halo, popping
+  // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
+  // with a few sparks, and a ring bursting out from radius `ring.from` to `ring.to` so it
+  // still reads past an enemy flashing white from a hit.
+  // `lead`: how long before the attack can hurt it flashes, about a reaction's worth so a
+  // parry pressed on seeing it is open as the attack lands. Sizes grow with the enemy
+  // (× √(body radius / 0.5)).
+  cue: {
+    lead: 0.25, time: 0.24, rise: 0.2, spin: 0.7,
+    size: 1.3, stretch: 1.6, color: 0xffa020, core: 0.4, coreColor: 0xffffff,
+    haloSize: 2.6, haloAlpha: 0.9, haloColor: 0xff9a1f,
+    ring: { from: 0.2, to: 0.9, alpha: 0.9 },
+    sparks: { count: 8, speed: 5, lifetime: 0.22, size: 0.2, coneDeg: 180, color: 0xffa020 },
   },
   strike: {
     pop: 0.1, popTime: 0.14, // the body swells by this fraction and settles

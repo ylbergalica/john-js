@@ -153,6 +153,7 @@ export class Enemy extends Entity {
     this.view.rotation = rot;
     this.attackFx.render(now, p, rot, visible);
     this.rig?.render(now, dt);
+    this.attackFx.renderCue(now, visible);
     if (!visible) return;
     this.setFlash(this.world.time < this.flashUntil);
     if (!this.flashing) this.stars?.update(this.world.time);

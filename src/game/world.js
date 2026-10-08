@@ -8,7 +8,7 @@ import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
 import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
-import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, GAME, GUARDIAN_INTRO as GI, PLAYER } from '../data/config.js';
+import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
@@ -91,13 +91,23 @@ export class World {
     const es = cfg.enemySpawn;
     const first = es.skipFirstRoom ? 1 : 0;
     const last = es.skipLastRoom ? rooms.length - 1 : rooms.length;
+    // → the adrenaline points the spawned enemy is expected to drop (0 if none spawned).
+    const spawnIn = (room) => {
+      const pos = randomFloorInRoom(grid, room);
+      if (!pos) return 0;
+      const key = pickWeighted(es.enemies).type;
+      this.spawnEnemy(key, pos);
+      const t = ENEMY_TYPES[key];
+      return ((t.minAdrenalineDrops + t.maxAdrenalineDrops) / 2) * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
+    };
+    let supply = 0;
     for (let i = first; i < last; i++) {
       const count = randInt(es.minEnemiesPerRoom, es.maxEnemiesPerRoom + 1);
-      for (let n = 0; n < count; n++) {
-        const pos = randomFloorInRoom(grid, rooms[i]);
-        if (pos) this.spawnEnemy(pickWeighted(es.enemies).type, pos);
-      }
+      for (let n = 0; n < count; n++) supply += spawnIn(rooms[i]);
     }
+    // Low rolls get topped up so the floor holds enough adrenaline to meet the guardian Exalted.
+    const demand = this.adrenaline.shortfall * es.adrenalineSurplus;
+    for (let tries = 0; last > first && supply < demand && tries < 100; tries++) supply += spawnIn(rooms[randInt(first, last)]);
 
     // Cores gate the exit; require exactly as many as chasers actually spawned.
     let chasers = 0;

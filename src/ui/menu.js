@@ -210,10 +210,6 @@ export class MenuScene {
   refreshList() {
     const unlocked = ASPECTS.filter((a) => profile.isUnlocked(a.id))
       .sort((a, b) => a.tier - b.tier || a.displayName.localeCompare(b.displayName));
-    if (unlocked.length === 0) {
-      this.list.replaceChildren(h('div', { class: 'empty-list', text: 'No aspects yet. Earn coins on your runs, then request one.' }));
-      return;
-    }
     // Icons only; the tooltip carries the name and details, and a click equips or unequips.
     this.list.replaceChildren(...unlocked.map((a) => {
       const equipped = profile.isEquipped(a.id);

@@ -259,7 +259,6 @@ kbd {
 .tool-menu button.spawn-tile:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.5); box-shadow: 0 0 10px rgba(255, 255, 255, 0.15); }
 .tool-menu .guardians button.spawn-tile { padding: 6px; border-color: color-mix(in srgb, var(--mythic) 60%, transparent); background: radial-gradient(circle, color-mix(in srgb, var(--mythic) 14%, transparent), transparent 70%); box-shadow: 0 0 10px color-mix(in srgb, var(--mythic) 22%, transparent), inset 0 0 8px color-mix(in srgb, var(--mythic) 15%, transparent); }
 .tool-menu .guardians button.spawn-tile:hover:not(:disabled) { background: radial-gradient(circle, color-mix(in srgb, var(--mythic) 26%, transparent), transparent 75%); border-color: var(--mythic); box-shadow: 0 0 16px color-mix(in srgb, var(--mythic) 45%, transparent), inset 0 0 10px color-mix(in srgb, var(--mythic) 25%, transparent); }
-.spawn-empty { padding: 4px 8px; font-size: 12px; line-height: 1.4; color: var(--muted); }
 
 /* ── Dev overlay (DEV builds, switched on from the dev menu) ── */
 .dev-overlay { position: fixed; inset: 0; font-family: Consolas, 'Courier New', monospace; }
@@ -343,7 +342,6 @@ kbd {
 .collection-tile.equipped { border: 2px solid var(--tier); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tier) 22%, transparent), 0 0 20px color-mix(in srgb, var(--tier) 45%, transparent); }
 .collection-tile.unavailable img { filter: grayscale(0.6) brightness(0.55); }
 .tile-check { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; color: #000; background: var(--tier); box-shadow: 0 0 8px var(--tier); }
-.empty-list { flex: 1 1 100%; padding: 28px 20px; text-align: center; color: var(--muted); border: 1px dashed rgba(255, 255, 255, 0.12); border-radius: 6px; }
 
 .boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 /* Tier cards: a wash of the tier colour behind the gem, an inner hairline frame with
@@ -427,7 +425,7 @@ kbd {
 .rs-title { margin: 0 0 12px; text-align: center; font-size: 56px; font-weight: normal; letter-spacing: 12px; padding-left: 12px; text-transform: uppercase; opacity: 0; --ls: 12px; --glow: rgba(202, 0, 0, 0.9); --glow-soft: rgba(202, 0, 0, 0.45); }
 .rs-title.in { animation: title-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .rs-pending { opacity: 0; transform: translateY(8px); }
-.rs-panel, .rs-coins, .rs-coin-source { transition: opacity 0.3s ease-out, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.rs-panel, .rs-coins { transition: opacity 0.3s ease-out, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
 .rs-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
 .rs-run, .rs-achievements { grid-column: 1 / -1; }
@@ -450,8 +448,6 @@ kbd {
 .rs-coins.banked .coin-icon { animation: coin-flip 0.9s var(--ease); }
 @keyframes rs-bank { 20% { transform: scale(1.25); text-shadow: 0 0 22px var(--coin), 0 0 4px #fff; } 100% { text-shadow: 0 0 10px rgba(255, 209, 64, 0.35); } }
 @keyframes coin-flip { 0% { transform: rotateY(0); } 60% { filter: drop-shadow(0 0 12px var(--coin)) brightness(1.4); } 100% { transform: rotateY(2turn); } }
-.rs-coin-sources { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; min-height: 18px; font-size: 13px; color: var(--muted); }
-.rs-coin-source b { font-weight: normal; color: var(--coin); }
 
 .rs-actions { display: flex; justify-content: center; margin-top: 14px; opacity: 0; transform: translateY(10px); visibility: hidden; transition: opacity 0.4s, transform 0.4s, visibility 0s 0.4s; }
 .rs-actions button { width: 200px; }

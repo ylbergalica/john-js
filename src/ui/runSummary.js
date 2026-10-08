@@ -1,5 +1,5 @@
 // End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect uses),
-// slain enemies, slain guardians and achievements, then the coins earned by source.
+// slain enemies, slain guardians and achievements, then the total coins earned.
 // Everything is revealed step by step with counting numbers; any key or click skips
 // to the end. Tiles wrap, so long runs with many enemy types stay compact.
 import { h } from './dom.js';
@@ -13,7 +13,6 @@ const SKIP_GUARD = 0.5; // seconds before input can skip, so a key held while dy
 const TICK_INTERVAL = 0.05; // fastest a counter ticks, seconds
 const TILE_STAGGER = 0.09; // between tiles popping in; shrinks so a full panel takes ≤ TILES_MAX
 const TILES_MAX = 1.2;
-const COIN_SOURCES = [['enemies', 'Enemies'], ['guardians', 'Guardians'], ['floors', 'Floors'], ['achievements', 'Achievements']];
 
 const times = (n) => `×${n}`;
 // Bigger numbers count for longer, within limits.
@@ -41,9 +40,8 @@ export class RunSummary {
     const guardians = panel('rs-guardians');
     const achievements = panel('rs-achievements');
     this.coinTotal = h('span', { class: 'rs-coin-total', text: '+0' });
-    this.coinSources = h('div', { class: 'rs-coin-sources' });
     const coins = h('div', { class: 'rs-coins rs-pending' },
-      h('div', { class: 'eyebrow', text: 'Coins earned' }), h('div', { class: 'rs-coin-line' }, coinIcon(), this.coinTotal), this.coinSources);
+      h('div', { class: 'eyebrow', text: 'Coins earned' }), h('div', { class: 'rs-coin-line' }, coinIcon(), this.coinTotal));
     this.el = h('div', { class: 'run-summary interactive' },
       h('div', { class: 'rs-card' },
         this.title,
@@ -80,17 +78,9 @@ export class RunSummary {
     this.showPanel(0.2, achievements.el);
     this.tiles(achievements.body, []);
 
-    // Coins: each source joins the breakdown and the total climbs by its amount.
-    this.show(0.3, coins);
-    let total = 0;
-    for (const [key, label] of COIN_SOURCES) {
-      const n = stats.coins[key];
-      if (!n) continue;
-      const chip = h('span', { class: 'rs-coin-source rs-pending' }, `${label} `, h('b', { text: `+${n}` }));
-      this.coinSources.append(chip);
-      this.show(0.15, chip, { sound: null, dur: countDuration(n), run: this.counter(this.coinTotal, total, total + n, (v) => `+${v}`, 'coin') });
-      total += n;
-    }
+    // Coins: the run's total climbs from zero.
+    const total = Object.values(stats.coins).reduce((sum, n) => sum + n, 0);
+    this.show(0.3, coins, { dur: countDuration(total, 1.6), run: this.counter(this.coinTotal, 0, total, (v) => `+${v}`, 'coin') });
     this.beat(0.05, 0, { start: () => { coins.classList.add('banked'); if (total > 0) this.sound('bank'); } });
 
     this.listeners = new AbortController();

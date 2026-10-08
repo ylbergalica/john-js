@@ -16,11 +16,10 @@ export class SpawnMenu {
     this.mobs = h('div', { class: 'spawn-grid mobs' });
     this.split = h('div', { class: 'tool-rule' });
     this.guardians = h('div', { class: 'spawn-grid guardians' });
-    this.empty = h('div', { class: 'spawn-empty', text: 'Kill enemies in a run to spawn them here.' });
+    this.clearRule = h('div', { class: 'tool-rule' });
     this.el = h('div', { class: 'tool-menu interactive hidden' },
       h('div', { class: 'tool-head' }, h('span', { text: 'Spawn' }), hotkey ? keycap(hotkey) : null),
-      this.mobs, this.split, this.guardians, this.empty,
-      h('div', { class: 'tool-rule' }),
+      this.mobs, this.split, this.guardians, this.clearRule,
       h('button', { class: 'tool', onclick: () => world.clearEnemies() }, h('span', { class: 'grow', text: 'Clear enemies' })),
     );
     // While closed, a reminder of the hotkey.
@@ -45,7 +44,7 @@ export class SpawnMenu {
     this.mobs.classList.toggle('hidden', !mobs.length);
     this.guardians.classList.toggle('hidden', !guardians.length);
     this.split.classList.toggle('hidden', !mobs.length || !guardians.length);
-    this.empty.classList.toggle('hidden', unlocked.length > 0);
+    this.clearRule.classList.toggle('hidden', !unlocked.length);
   }
 
   destroy() {

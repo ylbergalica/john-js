@@ -247,6 +247,11 @@ const SOUNDS = {
     tone(v, { freq: 130, to: 260, dur: 0.7, vol: 0.18, attack: 0.2 });
     arp(v, [392, 523, 784], 0.08, { type: 'triangle', at: 0.45, dur: 0.6, vol: 0.1 });
   },
+  astralHeal(v) { // starlight pouring into the health bar: an airy shimmer under a slow, rising chime
+    noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 1.8, vol: 0.05, attack: 0.6 });
+    tone(v, { freq: 523, to: 784, at: 0.3, dur: 1.6, vol: 0.06, attack: 0.5 });
+    arp(v, [1047, 1319, 1568, 2093], 0.16, { type: 'triangle', at: 0.45, dur: 0.9, vol: 0.05, attack: 0.02 });
+  },
   guardian(v) { // the camera finds the floor's guardian: a sub hit under a low, uneasy swell
     tone(v, { freq: 72, to: 36, dur: 1.8, vol: 0.4, attack: 0.01 });
     noise(v, { filter: 'lowpass', freq: 700, to: 70, dur: 1.4, vol: 0.3 });

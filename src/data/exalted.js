@@ -7,7 +7,7 @@ export const ADRENALINE = {
   basePointValue: 1,
   toleranceIncreasePerUse: 2,
   damageMultiplier: 10,
-  damageResistance: 0.4,
+  damageResistance: 0.5,
   speedMultiplier: 1.3,
   // While Exalted, every time an enemy takes damage (swings, parries, aspects) buys back
   // extendPerHit seconds, and a parry buys extendPerParry more on top, never past the

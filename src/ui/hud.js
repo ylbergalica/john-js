@@ -19,6 +19,14 @@ function adrenalineFx() {
   return fx;
 }
 
+// Starlight sinking into the health bar while a floor heal streams in: pale-blue mist and
+// falling star motes over a soft halo, placed over the part of the bar being filled.
+function astralFx() {
+  const fx = mistFx('astral-fx', { puffs: 14, embers: 18, y: [0.7, 0.95], size: [18, 30], dur: [0.9, 1.5], emberDur: [0.7, 1.2] });
+  fx.prepend(h('span', { class: 'astral-halo' }));
+  return fx;
+}
+
 export class Hud {
   constructor(root, scene) {
     this.scene = scene;
@@ -31,7 +39,10 @@ export class Hud {
     this.icons = h('div', { class: 'aspect-icons' });
     this.healthFill = h('div', { class: 'fill' });
     this.healthTrail = h('div', { class: 'trail' });
-    this.health = h('div', { class: 'bar health' }, this.healthTrail, this.healthFill);
+    this.healIncoming = h('div', { class: 'incoming' }); // the floor heal still to come, ahead of the fill
+    this.health = h('div', { class: 'bar health' }, this.healthTrail, this.healIncoming, this.healthFill);
+    this.astralFx = astralFx();
+    this.healthWrap = h('div', { class: 'hp' }, this.astralFx, this.health);
     this.adrenalineFill = h('div', { class: 'fill' });
     this.adrenaline = h('div', { class: 'bar adrenaline' }, this.adrenalineFill);
     this.adrenalineWrap = h('div', { class: 'adr' }, adrenalineFx(), this.adrenaline);
@@ -58,7 +69,7 @@ export class Hud {
       this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.floorIntro,
       h('div', { class: 'hud-cluster' },
         this.icons,
-        this.health,
+        this.healthWrap,
         this.adrenalineWrap,
       ),
       this.pausePanel,
@@ -70,6 +81,7 @@ export class Hud {
     this.introFor = null; // floorStartedAt of the intro on screen
     this.trackedPlayer = null;
     this.lastHealth = 0;
+    this.healFor = null; // the world.floorHeal on screen
     this.adrenalineReady = false;
   }
 
@@ -102,6 +114,7 @@ export class Hud {
       d.set(this.healthTrail, 'width', '0px');
       d.set(this.health, '.low', false);
     }
+    this.updateFloorHeal(world, p);
     this.updateHurt(world.player);
 
     // The bar itself grows as tolerance rises.
@@ -121,6 +134,24 @@ export class Hud {
     d.set(this.exaltedGlow, 'animation-play-state', a.isExalted ? 'running' : 'paused');
 
     this.updateAspectIcons(p);
+  }
+
+  // The floor heal (World.carryHealth), once play starts: the bar blooms with starlight, the
+  // health to come shows ahead of the fill as it streams in, and a flash when it's all in.
+  updateFloorHeal(world, p) {
+    const d = this.dom, px = HUD.pixelsPerHealthPoint;
+    const fh = p && !world.intro ? world.floorHeal : null;
+    const health = Math.max(0, p?.health ?? 0);
+    d.set(this.healIncoming, 'width', `${(health + (fh ? fh.amount - fh.applied : 0)) * px}px`);
+    d.set(this.healthWrap, '.astral', !!fh);
+    if (fh && this.healFor !== fh) {
+      d.set(this.astralFx, 'left', `${health * px}px`);
+      d.set(this.astralFx, 'width', `${fh.amount * px}px`);
+      replay(this.healthWrap, 'astral-surge');
+    } else if (!fh && this.healFor && p) {
+      replay(this.healthWrap, 'astral-done');
+    }
+    this.healFor = fh;
   }
 
   // While the camera shows the guardian the HUD steps aside for the framing.

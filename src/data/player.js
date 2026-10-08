@@ -66,7 +66,10 @@ export const PLAYER = {
       shake: { duration: 0.12, strength: 0.12, frequency: 30 },
     },
   },
-  health: { maxHealth: 10, invincibilityDuration: 1 },
+  // floorHeal: fraction of max health restored on each new floor, streamed in once play starts
+  // (after any guardian intro): floorHealDelay seconds of astral build-up on the health bar,
+  // then filling over floorHealDuration.
+  health: { maxHealth: 10, invincibilityDuration: 1, floorHeal: 0.2, floorHealDelay: 0.5, floorHealDuration: 1.4 },
   hitFeedback: { flashDuration: 0.1, blinkInterval: 0.08, shakeDuration: 0.2, shakeStrength: 1, shakeFrequency: 10 },
   blob: {
     radius: 0.5, waveAmplitude: 0.023, waveCount: 9, resolution: 120, waveSpeed: 1,

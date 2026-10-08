@@ -7,7 +7,7 @@ import { Camera } from '../render/camera.js';
 import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
-import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME, GUARDIAN_INTRO as GI } from '../data/config.js';
+import { AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, GAME, GUARDIAN_INTRO as GI, PLAYER } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { scaleConfig } from '../level/difficulty.js';
@@ -58,6 +58,7 @@ export class World {
     this.floorStartedAt = 0;
     this.intro = null; // guardian intro in progress (see GUARDIAN_INTRO); the world is frozen meanwhile
     this.nextFloorRequested = false;
+    this.floorHeal = null; // health streaming in at the start of a floor (see carryHealth)
     this.gameOverAt = Infinity;
   }
 
@@ -147,6 +148,29 @@ export class World {
     this.navFields.clear();
     this.activeAttackers = 0;
     this.effects.clear();
+    this.floorHeal = null;
+  }
+
+  // ── floor heal ───────────────────────────────────────────────────
+  // Health carried in from the last floor, plus PLAYER.health.floorHeal of max streamed in
+  // once play starts; the HUD draws it as astral light pouring into the health bar.
+  carryHealth(health) {
+    const p = this.player, H = PLAYER.health;
+    p.health = health;
+    const amount = Math.min(p.maxHealth - health, p.maxHealth * H.floorHeal);
+    if (amount > 0) this.floorHeal = { amount, applied: 0, t: 0 };
+  }
+
+  stepFloorHeal(dt) {
+    const fh = this.floorHeal, p = this.livePlayer, H = PLAYER.health;
+    if (!fh) return;
+    if (!p) { this.floorHeal = null; return; }
+    if (fh.t === 0) sfx.play('astralHeal');
+    fh.t += dt;
+    const healed = fh.amount * easeInOut(clamp01((fh.t - H.floorHealDelay) / H.floorHealDuration));
+    p.heal(healed - fh.applied);
+    fh.applied = healed;
+    if (healed >= fh.amount) this.floorHeal = null;
   }
 
   requestNextFloor() { this.nextFloorRequested = true; }
@@ -214,6 +238,7 @@ export class World {
     this.physics.step(dt);
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].afterPhysics();
     this.adrenaline.step(dt);
+    this.stepFloorHeal(dt);
 
     compact(this.entities);
     compact(this.enemies);
@@ -222,7 +247,9 @@ export class World {
       this.nextFloorRequested = false;
       this.session.floorCleared();
       if (this.session.scalesDifficulty) this.session.floor++;
+      const health = this.player.health; // the player is rebuilt each floor
       this.startFloor();
+      if (health > 0) this.carryHealth(health);
     }
   }
 

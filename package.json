@@ -1,6 +1,6 @@
 {
   "name": "john-js",
-  "productName": "John",
+  "productName": "Starspite",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -12,7 +12,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "desktop": "vite build && electron .",
-    "dist:win": "vite build && electron-builder --win"
+    "dist:win": "vite build && electron-builder --win",
+    "icon": "electron build/icon.mjs"
   },
   "devDependencies": {
     "electron": "^44.7.0",
@@ -21,8 +22,8 @@
     "vite": "^6.0.7"
   },
   "build": {
-    "appId": "com.ylbergalica.john",
-    "productName": "John",
+    "appId": "com.ylbergalica.starspite",
+    "productName": "Starspite",
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
@@ -32,6 +33,7 @@
       "electron/**"
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "dir",
         "zip"

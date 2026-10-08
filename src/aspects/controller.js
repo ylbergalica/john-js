@@ -12,10 +12,14 @@ export class AspectController {
     this.buffers = this.aspects.map(() => new InputBuffer(PLAYER.inputBufferTime));
     const events = player.world.events;
     this.unsubscribe = [
-      events.enemyKilled.on(() => this.aspects.forEach((a) => a.onEnemyKilled())),
+      events.enemyDamaged.on((enemy, damage, cause) => this.others(cause, (a) => a.onEnemyDamaged(enemy, damage, cause))),
+      events.enemyKilled.on((enemy, cause) => this.others(cause, (a) => a.onEnemyKilled(enemy, cause))),
       events.parried.on(() => this.aspects.forEach((a) => a.onParry())),
     ];
   }
+
+  // Every aspect except the one that caused the event: aspects never trigger themselves.
+  others(cause, fn) { for (const a of this.aspects) if (a.data.id !== cause) fn(a); }
 
   step(dt) {
     const { input, time } = this.player.world;

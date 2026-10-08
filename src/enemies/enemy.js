@@ -81,15 +81,16 @@ export class Enemy extends Entity {
     return { x: b.pos.x + d.x * b.radius, y: b.pos.y + d.y * b.radius };
   }
 
-  takeDamage(damage, hitPoint = null, source = null) {
+  // `cause`: what dealt the hit (a DamageCause or an aspect id).
+  takeDamage(damage, hitPoint = null, source = null, cause = null) {
     if (this.dead) return;
     source ??= this.player ? { ...this.player.body.pos } : { ...this.body.pos };
     hitPoint ??= { ...this.body.pos };
     if (damage > 0) this.onHurt(hitPoint, source);
     if (devFlags.noDamage) return; // hits still land, they just don't hurt
     this.health -= damage;
-    if (damage > 0) this.world.events.enemyDamaged.emit(this, damage);
-    if (this.health <= 0) this.die();
+    if (damage > 0) this.world.events.enemyDamaged.emit(this, damage, cause);
+    if (this.health <= 0) this.die(cause);
   }
 
   onHurt(hitPoint, source) {
@@ -126,7 +127,7 @@ export class Enemy extends Entity {
     this.ai.suppressMovementFor(this.type.knockbackMovementPause);
   }
 
-  die() {
+  die(cause = null) {
     const { world, body, type } = this;
     this.ai.onDeath();
     world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
@@ -140,7 +141,7 @@ export class Enemy extends Entity {
     }
     if (type.isChaser) world.add(new ChaserCore(world, body.pos.x, body.pos.y));
     this.destroy();
-    world.events.enemyKilled.emit(this);
+    world.events.enemyKilled.emit(this, cause);
   }
 
   render(alpha, dt, view) {

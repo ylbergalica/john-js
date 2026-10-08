@@ -17,8 +17,11 @@ export class Aspect {
 
   tryActivate() { return false; } // slot key, only for `data.activatable` aspects
   beforeAttack() {}
-  onHitEnemy(_enemy, _hitPoint) {}
-  onEnemyKilled() {}
+  onHitEnemy(_enemy, _hitPoint) {} // the player's attack landed
+  // Any damage or kill, with its cause (a DamageCause or an aspect id). The controller
+  // never sends an aspect its own hits.
+  onEnemyDamaged(_enemy, _damage, _cause) {}
+  onEnemyKilled(_enemy, _cause) {}
   onParry() {}
   refreshCooldown() {}
   dispose() {}

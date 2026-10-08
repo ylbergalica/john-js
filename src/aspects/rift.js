@@ -61,7 +61,7 @@ export class RiftAspect extends Aspect {
 
   hit(enemy, source) {
     if (enemy.dead) return;
-    enemy.takeDamage(this.damage, enemy.closestPoint(source), source);
+    enemy.takeDamage(this.damage, enemy.closestPoint(source), source, this.data.id);
     if (!enemy.dead) enemy.applyKnockback(this.data.enemyKnockbackForce, source);
     if (this.damage >= this.data.minDamage) this.damage *= 0.5;
   }

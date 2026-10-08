@@ -13,9 +13,9 @@ export class RunSession {
     this.mode = mode;
     this.floor = 1;
     this.events = {
-      enemyKilled: new Emitter(),
+      enemyKilled: new Emitter(), // (enemy, cause) — see DamageCause
       parried: new Emitter(),
-      enemyDamaged: new Emitter(), // (enemy, damage)
+      enemyDamaged: new Emitter(), // (enemy, damage, cause)
       playerDamaged: new Emitter(), // (player, damage after resistance, raw damage)
       adrenalineGained: new Emitter(), // (points added, points offered)
     };
@@ -50,6 +50,7 @@ export class RunSession {
   floorCleared() {
     if (!this.earns) return;
     this.stats.floorsCleared++;
+    profile.recordFloorCleared();
     this.addCoins(this.coinsFor(COINS.floorCleared), 'floors');
   }
 

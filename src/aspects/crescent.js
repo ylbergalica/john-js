@@ -63,7 +63,7 @@ class CrescentSlash extends Entity {
       if (e.dead || this.hit.has(e) || !circleVsBox(e.body.pos.x, e.body.pos.y, e.body.radius, box)) continue;
       this.hit.add(e);
       const src = { ...b.pos };
-      e.takeDamage(this.damage, e.closestPoint(src), src);
+      e.takeDamage(this.damage, e.closestPoint(src), src, this.data.id);
       if (!e.dead) e.applyKnockback(this.data.enemyKnockbackForce, src);
     }
   }

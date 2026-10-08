@@ -1,5 +1,5 @@
 // Meta progression: banked coins, aspect unlocks (tier boxes), the equipped loadout and
-// the enemy types killed so far.
+// the enemy types killed so far, and how much each aspect has been played with.
 // The save is the single source of truth.
 import { ASPECTS, TIERS, MAX_EQUIPPED_ASPECTS } from '../data/config.js';
 import { randInt } from '../engine/math.js';
@@ -67,6 +67,14 @@ export const profile = {
   recordKill(type) {
     if (profile.hasKilled(type)) return;
     save.data.killedEnemyTypes.push(type);
+    save.write();
+  },
+
+  // Run floors cleared with each aspect equipped: how much it's been played with.
+  floorsWithAspect: (id) => save.data.aspectFloors[id] ?? 0,
+  recordFloorCleared() {
+    const floors = save.data.aspectFloors;
+    for (const id of save.data.equippedAspectIds) floors[id] = (floors[id] ?? 0) + 1;
     save.write();
   },
 

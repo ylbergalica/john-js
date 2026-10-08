@@ -12,6 +12,7 @@ import { clamp01, dist, dirTo, fromAngle, lerp } from '../engine/math.js';
 import { ATTACK_FX, FIXED_DT } from '../data/config.js';
 import { EnemyHitbox } from './hitbox.js';
 import { Projectile } from './projectile.js';
+import { DamageCause } from '../game/damage.js';
 import { ZoneView, ChargeView, BeamView } from './attackView.js';
 
 const DEG = Math.PI / 180;
@@ -218,7 +219,7 @@ class HitboxAbility extends Ability {
     e.body.stop();
     const k = this.awayFromPlayer();
     e.body.addImpulse(k.x * this.parryKnockback, k.y * this.parryKnockback);
-    e.takeDamage(this.parryDamage());
+    e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
     if (e.dead) return;
     e.stunned = true;
     if (zone) this.parriedStunEndsAt = this.world.time + this.data.parryStunTime;
@@ -499,7 +500,7 @@ class ThrowAbility extends Ability {
     const e = this.enemy;
     if (this.phase === 'stunned' || e.dead) return;
     e.body.stop();
-    e.takeDamage(this.parryDamage());
+    e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
     if (e.dead) return;
     e.stunned = true;
     e.isActing = false;

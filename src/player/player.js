@@ -8,6 +8,7 @@ import { InputBuffer } from './inputBuffer.js';
 import { PlayerView } from './playerView.js';
 import { AspectController } from '../aspects/controller.js';
 import { devFlags } from '../game/devFlags.js';
+import { DamageCause } from '../game/damage.js';
 
 const A = PLAYER.attack, P = PLAYER.parry, D = PLAYER.dash, H = PLAYER.health;
 
@@ -148,7 +149,7 @@ export class Player extends Entity {
     if (enemy.dead) return;
     const src = this.attackPoint;
     const hitPoint = enemy.closestPoint(src);
-    enemy.takeDamage(A.attackDamage * this.world.adrenaline.damageMultiplier, hitPoint, src);
+    enemy.takeDamage(A.attackDamage * this.world.adrenaline.damageMultiplier, hitPoint, src, DamageCause.Attack);
     this.view.playHitImpact(hitPoint);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit);
     if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src);

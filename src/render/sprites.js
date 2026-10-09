@@ -629,14 +629,10 @@ const MAULER_PALETTE = { stroke: ['#f2b97e', '#c8682a', '#7e3810'], glow: rgba('
 // ends in a crosswise head `head` (centre along the haft, depth, width) holding a star;
 // `tip` is the head's far edge.
 export const MAUL_ART = { w: 1.12, h: 0.8, grip: 0.07, unit: 216, head: [0.78, 0.34, 0.66], tip: 0.95 };
-// The Shade's body: rounded at the front, its back a mirrored crown of sharp, straight-
-// edged teeth raked toward the back along the curve of the rim, the tallest straight back.
-// `crown` lists the right half from the side round to the back as [angle°, height past the
-// rim]: heights of 0 are notches on the rim (180° is straight back).
-const SHADE = {
-  r: 0.31, line: 0.045,
-  crown: [[110, 0], [132, 0.05], [136, 0], [158, 0.075], [163, 0], [180, 0.1]],
-};
+// The Shade's body: a circle with two sharp notches cut into its back, mirrored. The right
+// one opens `half`° either side of `at`° (180° is straight back) and cuts `depth` in to a
+// point raked `rake`° toward the back.
+const SHADE = { r: 0.31, line: 0.045, notch: { at: 150, half: 7, depth: 0.085, rake: 5 } };
 const SHADE_PALETTE = { stroke: ['#878c96', '#878c96'], glow: rgba('#7c8392', 0.5) };
 // The Shade's arms, a separate sprite so they can be swung: a crescent blade, thick in the
 // middle and pointed at the tip, whose spine runs `len` along an arc of radius `bend`,
@@ -645,7 +641,7 @@ const SHADE_PALETTE = { stroke: ['#878c96', '#878c96'], glow: rgba('#7c8392', 0.
 // World units: the sprite is `w` × `h` with the root `rootX` in from the left and `rootY`
 // down from the top, `unit` px per unit; `width` is half its thickness at the widest.
 // `cue`: where along it (× len) the parry cue flashes.
-export const BLADE_ART = { w: 0.84, h: 0.8, rootX: 0.08, rootY: 0.66, unit: 216, len: 0.85, bend: 0.65, width: 0.09, barb: 0.48, cue: 0.75 };
+export const BLADE_ART = { w: 0.86, h: 0.82, rootX: 0.08, rootY: 0.71, unit: 216, len: 1, bend: 0.68, width: 0.055, barb: 0.48, cue: 0.75 };
 // A point on the blade's spine `along` from the root, in the sprite's frame (root at 0).
 export function bladeAt(along) {
   const R = BLADE_ART.bend, a = along / R;
@@ -689,12 +685,12 @@ function seraphPath() {
 }
 
 function shadePath() {
-  const { r, crown } = SHADE;
-  const right = crown.map(([a, h]) => [a, r + h]);
-  const left = right.slice(0, -1).reverse().map(([a, rad]) => [360 - a, rad]);
+  const { r, notch: { at, half, depth, rake } } = SHADE;
   const p = new Path2D();
-  p.arc(0.5, 0.5, r, -crown[0][0] * DEG, crown[0][0] * DEG);
-  for (const [a, rad] of [...right.slice(1), ...left]) p.lineTo(...polar(0.5, 0.5, a, rad));
+  p.arc(0.5, 0.5, r, (at + half) * DEG, (360 - at - half) * DEG);
+  p.lineTo(...polar(0.5, 0.5, 360 - at - rake, r - depth));
+  p.arc(0.5, 0.5, r, (360 - at + half) * DEG, (360 + at - half) * DEG);
+  p.lineTo(...polar(0.5, 0.5, at + rake, r - depth));
   p.closePath();
   return p;
 }
@@ -779,6 +775,7 @@ function maulerOutline(S = 256) {
 function shadeOutline(S = 256) {
   return outline(S, SHADE_PALETTE, (ctx) => {
     ctx.lineWidth = SHADE.line;
+    ctx.lineJoin = 'miter'; // keeps the notches sharp
     ctx.stroke(shadePath());
   });
 }
@@ -800,8 +797,8 @@ function shadeBlade() {
   for (let i = 0; i <= N; i++) {
     const t = i / N, rise = clamp01((t - (barb - 0.16)) / 0.16);
     inner.push(edge(t, -half(t)));
-    if (t > barb && t - 1 / N <= barb) outer.push(edge(barb, half(barb) + width * 0.9), edge(barb + 0.012, half(barb + 0.012))); // the barb
-    else outer.push(edge(t, half(t) + (t < barb ? rise * rise * width * 0.9 : 0)));
+    if (t > barb && t - 1 / N <= barb) outer.push(edge(barb, half(barb) + width * 1.1), edge(barb + 0.01, half(barb + 0.01))); // the barb
+    else outer.push(edge(t, half(t) + (t < barb ? rise * rise * width * 1.1 : 0)));
   }
   const path = new Path2D();
   path.moveTo(...inner[0]);

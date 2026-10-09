@@ -204,12 +204,12 @@ export const MAUL = {
 // the ability (swingTime).
 export const BLADES = {
   poses: {
-    idle: { phi: 1.75, r: 0.65, rot: 0.18, grow: 0 }, // folded round its side, points ahead
-    guard: { phi: 1.85, r: 0.66, rot: 0.28, grow: 0 }, // the arm not striking, kept folded
+    idle: { phi: 1.8, r: 0.68, rot: 0.23, grow: 0 }, // folded round its side, points ahead
+    guard: { phi: 1.9, r: 0.69, rot: 0.33, grow: 0 }, // the arm not striking, kept folded
     slashReady: { phi: 2, r: 0.64, rot: 0.75, grow: 0.06 }, // pulled back along its side
     slashThrough: { phi: 0.8, r: 0.5, rot: 0.1, grow: 0.15 }, // driven forward and across its front
-    lungeReady: { phi: 2.05, r: 0.64, rot: 0.55, grow: 0.04 }, // both cocked back along its sides
-    lungeThrust: { phi: 0.9, r: 0.48, rot: 0.29, grow: 0.2 }, // both thrust ahead, points meeting
+    lungeReady: { phi: 2.05, r: 0.66, rot: 0.55, grow: 0.04 }, // both cocked back along its sides
+    lungeThrust: { phi: 0.9, r: 0.48, rot: 0.38, grow: 0.12 }, // both thrust ahead, points meeting
     stunned: { phi: 1.9, r: 0.7, rot: 0.9, grow: 0 }, // drooping
   },
   bow: 0.08, // the root swings this far out mid-slash, arcing it

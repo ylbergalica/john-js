@@ -205,8 +205,8 @@ export const MAUL = {
 // the ability (swingTime).
 export const BLADES = {
   poses: {
-    idle: { phi: 1.8, r: 0.68, rot: 0.23, grow: 0 }, // folded round its side, points ahead
-    guard: { phi: 1.9, r: 0.69, rot: 0.33, grow: 0 }, // the arm not striking, kept folded
+    idle: { phi: 2, r: 0.68, rot: 0.43, grow: 0 }, // folded round its side, points ahead
+    guard: { phi: 2.1, r: 0.69, rot: 0.53, grow: 0 }, // the arm not striking, kept folded
     slashReady: { phi: 1.95, r: 0.92, rot: 0.26, grow: 0.06 }, // slid out from its side, tilted slightly in
     slashThrough: { phi: 0.64, r: 1.05, rot: -0.1, grow: 0.15 }, // stabbed far ahead, the point past the middle
     lungeReady: { phi: 1.9, r: 0.88, rot: 0.21, grow: 0.04 }, // both slid out from its sides, tilted slightly in

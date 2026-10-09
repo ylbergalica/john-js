@@ -1,7 +1,8 @@
-// The Shade's arm-blades: a sprite on each side, posed every frame from the attacks' phases
-// (tuning in BLADES). They bob with its stride, one is drawn far back on its side and swept
-// across the front for each slash (the other kept clear), or both are spread out and
-// thrust ahead for the lunge. A smear trails each striking blade, and they share the
+// The Shade's arm-blades: a sprite floating at each side, posed every frame from the
+// attacks' phases (tuning in BLADES). At rest they hang folded, bobbing in and out and
+// swaying with its stride. For each slash one is pulled back along its side and driven
+// forward and across (the other stays folded); for the lunge both are cocked back and
+// thrust ahead. A smear trails each striking blade, and they share the
 // Shade's wind-up tint, hit flash and death pop. Purely cosmetic.
 import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, BLADES, DEATH_FX } from '../data/config.js';
@@ -66,7 +67,7 @@ export class ShadeRig {
     if (e.stunned) this.poses = this.settle(now, () => P.stunned);
     else if (ability?.phase === 'windup') this.poses = this.windup(ability, now);
     else if (ability) this.poses = this.strikePoses(this.strike, now - ability.strikeAt, now);
-    else this.poses = this.settle(now, (i) => this.idle(walk, SIDES[i]));
+    else this.poses = this.settle(now, (i) => this.idle(now, walk, SIDES[i]));
     this.place();
 
     const t = e.attackFx.tint;
@@ -91,10 +92,11 @@ export class ShadeRig {
   }
 
   // Poses (one per blade, right then left) -----------------------------------
-  // The blades bob out of step with each other as it walks.
-  idle(walk, side) {
-    const sway = Math.sin(this.gait) * walk * BLADES.gait.sway * side;
-    return { ...P.idle, rot: P.idle.rot + sway, phi: P.idle.phi + sway * 0.3 };
+  // Folded, the arms bob in and out out of step with each other, and sway as it walks.
+  idle(now, walk, side) {
+    const H = BLADES.hover, sway = Math.sin(this.gait) * walk * BLADES.gait.sway * side;
+    const bob = Math.sin(now * H.freq * TAU + (side > 0 ? 0 : Math.PI)) * H.amount;
+    return { ...P.idle, r: P.idle.r + bob, rot: P.idle.rot + sway, phi: P.idle.phi + sway * 0.3 };
   }
 
   settle(now, target) {
@@ -116,7 +118,7 @@ export class ShadeRig {
   }
 
   // The striking blades whip out of their wind-up, a slash arcing out as it crosses; the
-  // other blade keeps clear.
+  // other stays folded.
   strikePoses({ ability, from, sides }, since, now = null) {
     const k = easeOut(clamp01(since / ability.data.swingTime)), lunge = ability.data.blades === 'lunge';
     return SIDES.map((side, i) => {

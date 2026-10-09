@@ -38,10 +38,10 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.5, moveSpeed: 2.4, orbitSpeed: 2, repositionSpeed: 2, maxTurnSpeed: 3,
       attacks: [{ ability: 'MaulerSwing', weight: 0.65 }, { ability: 'MaulerSlam', weight: 0.35 }] },
   },
-  // A shadow with a long blade for each arm (no joints) and jagged spines along its back.
-  // It steps into a slash from one side, then the other, or readies both blades and lunges
-  // with them in a dash much like the player's. The blades are their own sprites, swung by
-  // the attacks (`rig`, see shadeRig.js).
+  // A steel shadow, two lightning-bolt fins arching along its back, its arms blades that
+  // float free at its sides, folded at rest. It steps into a stab-and-slash from one side,
+  // then the other, or cocks both arms and lunges with them in a dash much like the
+  // player's. The arms are their own sprites, moved by the attacks (`rig`, see shadeRig.js).
   shade: {
     name: 'Shade', maxHealth: 8, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0.1, knockbackMovementPause: 0.12,

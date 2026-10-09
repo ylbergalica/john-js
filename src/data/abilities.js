@@ -39,17 +39,17 @@ export const ABILITIES = {
     strikeSound: 'heave', landSound: 'slam', maul: 'slam',
     shake: { duration: 0.2, strength: 0.25, frequency: 20 },
   },
-  // The Shade's blades; `blades` says how they move (shadeRig.js). Both lunge like the
+  // The Shade's arm-blades; `blades` says how they move (shadeRig.js). Both lunge like the
   // Mauler's swing, the Shade the hitbox.
-  // Slashes: `strikes` swings, the right blade first and then each side in turn, one every
+  // Slashes: `strikes` of them, the right arm first and then each side in turn, one every
   // `strikeInterval` seconds. Each steps `stepDistance` over `stepTime` along its aim, the
-  // blade crossing from far back on its side to ahead of the other in `swingTime`. Between
-  // strikes it re-aims, except for the last `lockTime` before the next.
+  // arm driven from its side to ahead of the other in `swingTime`, half pierce, half
+  // slash. Between strikes it re-aims, except for the last `lockTime` before the next.
   ShadeSlashes: {
-    type: 'slashes', tell: 'slash', cooldown: 3, range: 2.6, windUpTime: 0.55, lockTime: 0.18, duration: 0.16, recoveryTime: 0.35,
+    type: 'slashes', tell: 'slash', cooldown: 3, range: 2.8, windUpTime: 0.55, lockTime: 0.18, duration: 0.16, recoveryTime: 0.35,
     damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
     strikes: 2, strikeInterval: 0.5,
-    hitboxRadius: 0.8, hitboxForward: 0.35, swingTime: 0.11, stepDistance: 1.2, stepTime: 0.13, parryKnockback: 15,
+    hitboxRadius: 0.8, hitboxForward: 0.5, swingTime: 0.11, stepDistance: 1.2, stepTime: 0.13, parryKnockback: 15,
     strikeSound: 'slash', blades: 'slash',
   },
   // Lunge: both blades thrust ahead as the Shade dashes `stepDistance` in `stepTime`, a

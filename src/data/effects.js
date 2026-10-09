@@ -107,7 +107,7 @@ export const ATTACK_FX = {
     missiles: { shape: 'none', lean: 0.05, squash: 0, swell: 0.05 },
     swing: { shape: 'arc', arcDeg: 140, lines: 1, reach: 0.5, to: 1.2, lean: 0.06, squash: 0, swell: 0.04, twist: 18 },
     smash: { shape: 'arc', arcDeg: 46, lines: 3, reach: 0.9, to: 1.2, lean: 0.22, squash: 0.08, swell: 0.1 },
-    slash: { shape: 'arc', arcDeg: 90, lines: 1, reach: 0.45, to: 1.2, lean: 0.1, squash: 0, swell: 0.03 },
+    slash: { shape: 'none', lean: 0.1, squash: 0, swell: 0.03 },
     lunge: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.3, squash: 0.12, swell: 0.04 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
   },

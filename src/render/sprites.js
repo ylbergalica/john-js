@@ -3,7 +3,7 @@
 // a little astral: crisp shapes over soft glows, deep-space fills and four-point
 // star glints, each keeping its original silhouette and colour.
 // Drawing happens in normalised units (1 = canvas width) unless noted otherwise.
-import { seededRandom, lerp, clamp01, TAU } from '../engine/math.js';
+import { seededRandom, lerp, clamp01, smoothStep01, TAU } from '../engine/math.js';
 
 const DEG = Math.PI / 180;
 
@@ -619,7 +619,7 @@ const VOIDS = {
   striker: { core: '#33200f', edge: '#06050c', clouds: [['#d07a26', 0.2], ['#7b44d6', 0.14]], seed: 37 },
   seraph: { core: '#221547', edge: '#06040f', clouds: [['#8a63ff', 0.24], ['#3fa8ff', 0.14]], seed: 41 },
   mauler: { core: '#2b1709', edge: '#070403', clouds: [['#a8501c', 0.24], ['#6b2a10', 0.2]], seed: 43 },
-  shade: { core: '#1d1f24', edge: '#050506', clouds: [['#6f7c92', 0.18], ['#3a3f4a', 0.22]], seed: 47 },
+  shade: { core: '#1d1e22', edge: '#050506', clouds: [['#5a5f6a', 0.2], ['#33363e', 0.22]], seed: 47 },
 };
 // The Mauler's body: a square with heavily rounded corners ([x, y, size, corner radius]).
 const MAULER = { body: [0.14, 0.14, 0.72, 0.27], line: 0.045 };
@@ -629,22 +629,28 @@ const MAULER_PALETTE = { stroke: ['#f2b97e', '#c8682a', '#7e3810'], glow: rgba('
 // ends in a crosswise head `head` (centre along the haft, depth, width) holding a star;
 // `tip` is the head's far edge.
 export const MAUL_ART = { w: 1.12, h: 0.8, grip: 0.07, unit: 216, head: [0.78, 0.34, 0.66], tip: 0.95 };
-// The Shade's body: a steel circle with a solid steel fin on each side of its back,
-// mirrored, each a lightning bolt arching along the rim toward the back. A fin's outline
-// is [u, v] points: u runs 0 → 1 from `from`° to `to`° round the rim (180° is straight
-// back), v is the height above it.
+// The Shade's body: rounded at the front, its back a mirrored crown of sharp, straight-
+// edged teeth raked toward the back along the curve of the rim, the tallest straight back.
+// `crown` lists the right half from the side round to the back as [angle°, height past the
+// rim]: heights of 0 are notches on the rim (180° is straight back).
 const SHADE = {
-  r: 0.31, line: 0.045, from: 108, to: 172,
-  bolt: [[0, 0], [0.6, 0.035], [0.5, 0.062], [1, 0.095], [0.4, 0.088], [0.48, 0.058], [0, 0.055]],
+  r: 0.31, line: 0.045,
+  crown: [[110, 0], [132, 0.05], [136, 0], [158, 0.075], [163, 0], [180, 0.1]],
 };
-// Polished steel: light and dark bands along the stroke.
-const SHADE_PALETTE = { stroke: ['#d6dbe3', '#5d626b', '#b3b9c3', '#3b3e45', '#8a909a', '#2a2c31'], glow: rgba('#9aa6ba', 0.45) };
-// The Shade's arms, a separate sprite so they can be swung: a blade drawn along +x from its
-// root, its inner edge (-y) smooth and its outer edge barbed once midway, curving toward
-// -y at the tip (the right arm; the left is mirrored), in world units (`w` × `h`, the root
-// `root` in from the left, `unit` px per unit). `tip` is how far the point reaches, `cue`
-// where along it the parry cue flashes.
-export const BLADE_ART = { w: 0.98, h: 0.36, root: 0.06, unit: 216, tip: 0.88, cue: 0.7 };
+const SHADE_PALETTE = { stroke: ['#878c96', '#878c96'], glow: rgba('#7c8392', 0.5) };
+// The Shade's arms, a separate sprite so they can be swung: a crescent blade, thick in the
+// middle and pointed at the tip, whose spine runs `len` along an arc of radius `bend`,
+// starting from its root heading +x and curving toward -y (the right arm; the left is
+// mirrored). Its inner edge is smooth, its outer edge barbed once `barb` of the way along.
+// World units: the sprite is `w` × `h` with the root `rootX` in from the left and `rootY`
+// down from the top, `unit` px per unit; `width` is half its thickness at the widest.
+// `cue`: where along it (× len) the parry cue flashes.
+export const BLADE_ART = { w: 0.84, h: 0.8, rootX: 0.08, rootY: 0.66, unit: 216, len: 0.85, bend: 0.65, width: 0.09, barb: 0.48, cue: 0.75 };
+// A point on the blade's spine `along` from the root, in the sprite's frame (root at 0).
+export function bladeAt(along) {
+  const R = BLADE_ART.bend, a = along / R;
+  return { x: R * Math.sin(a), y: -R * (1 - Math.cos(a)) };
+}
 // The Seraph's hull, nose to the right: [x, y] for the top half, mirrored below.
 // Nose, wingtip, trailing edge, engine nozzle (outer, inner), tail notch.
 const SERAPH_HULL = [[0.9, 0.5], [0.15, 0.18], [0.27, 0.3], [0.17, 0.35], [0.2, 0.43], [0.33, 0.5]];
@@ -683,16 +689,12 @@ function seraphPath() {
 }
 
 function shadePath() {
+  const { r, crown } = SHADE;
+  const right = crown.map(([a, h]) => [a, r + h]);
+  const left = right.slice(0, -1).reverse().map(([a, rad]) => [360 - a, rad]);
   const p = new Path2D();
-  p.arc(0.5, 0.5, SHADE.r, 0, TAU);
-  return p;
-}
-
-// One back fin; `side` 1 for the right, -1 for the left.
-function shadeFin(side) {
-  const { r, from, to, bolt } = SHADE;
-  const p = new Path2D();
-  bolt.forEach(([u, v], i) => p[i ? 'lineTo' : 'moveTo'](...polar(0.5, 0.5, side * lerp(from, to, u), r + v)));
+  p.arc(0.5, 0.5, r, -crown[0][0] * DEG, crown[0][0] * DEG);
+  for (const [a, rad] of [...right.slice(1), ...left]) p.lineTo(...polar(0.5, 0.5, a, rad));
   p.closePath();
   return p;
 }
@@ -774,59 +776,45 @@ function maulerOutline(S = 256) {
   });
 }
 
-// The round body, its two fins in solid steel, and a glint of light off its front.
 function shadeOutline(S = 256) {
   return outline(S, SHADE_PALETTE, (ctx) => {
     ctx.lineWidth = SHADE.line;
     ctx.stroke(shadePath());
-    for (const side of [1, -1]) {
-      const fin = shadeFin(side);
-      ctx.fillStyle = linear(ctx, 0.1, 0.2, 0.3, 0.8, ['#e3e7ee', '#8d939d', '#c2c7d0', '#5f646d']);
-      ctx.fill(fin);
-      ctx.save();
-      ctx.lineWidth = 0.01;
-      ctx.strokeStyle = '#f2f5fa';
-      ctx.stroke(fin);
-      ctx.restore();
-    }
-    ctx.strokeStyle = rgba('#f2f5fa', 0.55);
-    ctx.lineWidth = 0.014;
-    ctx.beginPath();
-    ctx.arc(0.5, 0.5, SHADE.r * 0.84, -68 * DEG, -24 * DEG);
-    ctx.stroke();
-    sparkle(ctx, ...polar(0.5, 0.5, -46, SHADE.r * 0.84), 0.05, '#ffffff', 0.8);
   });
 }
 
-// One arm: a steel blade, smooth along its honed inner edge and barbed once on the outer,
-// the whole of it curving slightly.
+// One arm: a crescent blade, widest a little before the middle, its outer edge stepping
+// out to a single barb that points toward the tip.
 function shadeBlade() {
-  const { w, h, root, unit, tip: T } = BLADE_ART;
+  const { w, h, rootX, rootY, unit, len, bend, width, barb } = BLADE_ART;
   const { c, ctx, px } = surface(Math.round(w * unit), Math.round(h * unit), unit);
-  ctx.translate(root, h / 2);
+  ctx.translate(rootX, rootY);
+  // Half its thickness `t` of the way along: slim at the root, full by 0.4, then tapering.
+  const half = (t) => (t < 0.4 ? lerp(0.35, 1, smoothStep01(t / 0.4)) : (1 - (t - 0.4) / 0.6) ** 0.85) * width;
+  // `off` > 0: outward, away from the curve's centre.
+  const edge = (t, off) => {
+    const a = (t * len) / bend, { x, y } = bladeAt(t * len);
+    return [x + Math.sin(a) * off, y + Math.cos(a) * off];
+  };
+  const N = 28, outer = [], inner = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, rise = clamp01((t - (barb - 0.16)) / 0.16);
+    inner.push(edge(t, -half(t)));
+    if (t > barb && t - 1 / N <= barb) outer.push(edge(barb, half(barb) + width * 0.9), edge(barb + 0.012, half(barb + 0.012))); // the barb
+    else outer.push(edge(t, half(t) + (t < barb ? rise * rise * width * 0.9 : 0)));
+  }
   const path = new Path2D();
-  path.moveTo(0, -0.045);
-  path.quadraticCurveTo(T * 0.5, 0, T, -0.06); // the inner edge
-  path.quadraticCurveTo(T * 0.75, 0.02, T * 0.56, 0.06);
-  path.lineTo(T * 0.44, 0.115); // the barb
-  path.lineTo(T * 0.43, 0.07);
-  path.quadraticCurveTo(T * 0.2, 0.08, 0, 0.055);
-  path.quadraticCurveTo(-0.045, 0.005, 0, -0.045);
-  ctx.fillStyle = linear(ctx, 0, -0.06, 0, 0.11, ['#aeb4be', '#4a4f58', '#202328', '#3a3e45', '#111215']);
+  path.moveTo(...inner[0]);
+  for (const pt of inner.slice(1)) path.lineTo(...pt);
+  for (const pt of outer.reverse()) path.lineTo(...pt);
+  path.quadraticCurveTo(-width * 0.9, 0, ...inner[0]);
+  ctx.fillStyle = VOIDS.shade.core;
   ctx.fill(path);
   glow(ctx, SHADE_PALETTE.glow, px * 0.03, () => {
-    ctx.strokeStyle = linear(ctx, 0, -0.1, T, 0.1, SHADE_PALETTE.stroke);
-    ctx.lineWidth = SHADE.line * 0.8;
+    ctx.strokeStyle = SHADE_PALETTE.stroke[0];
+    ctx.lineWidth = SHADE.line * 0.75;
     ctx.stroke(path);
   });
-  // The honed inner edge, catching the light.
-  ctx.strokeStyle = rgba('#f2f5fa', 0.75);
-  ctx.lineWidth = 0.014;
-  ctx.beginPath();
-  ctx.moveTo(T * 0.08, -0.03);
-  ctx.quadraticCurveTo(T * 0.5, 0.005, T * 0.96, -0.056);
-  ctx.stroke();
-  sparkle(ctx, T * 0.3, -0.018, 0.05, '#ffffff', 0.8);
   return c;
 }
 

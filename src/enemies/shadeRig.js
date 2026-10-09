@@ -8,7 +8,7 @@ import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, BLADES, DEATH_FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { BLADE_ART } from '../render/sprites.js';
+import { BLADE_ART, bladeAt } from '../render/sprites.js';
 
 const P = BLADES.poses;
 const SIDES = [1, -1]; // right blade, left blade
@@ -16,11 +16,13 @@ const easeOut = (t) => 1 - (1 - t) ** 2;
 const progress = (a, now) => clamp01((now - a.phaseStartedAt) / Math.max(1e-3, a.phaseEndsAt - a.phaseStartedAt));
 const mix = (a, b, t) => ({ phi: lerp(a.phi, b.phi, t), r: lerp(a.r, b.r, t), rot: lerp(a.rot, b.rot, t), grow: lerp(a.grow, b.grow, t) });
 
-// Where a point `along` a blade posed `pose` sits in the Shade's frame, `side` 1 for the
-// right blade, -1 for the left (poses are the right blade's; the left mirrors them).
+// Where a point `along` a blade's curved spine sits in the Shade's frame for `pose`, `side`
+// 1 for the right blade, -1 for the left (poses are the right blade's; the left mirrors
+// them).
 function onBlade(pose, side, along) {
-  const phi = pose.phi * side, rot = pose.rot * side, x = along * (1 + pose.grow);
-  return { x: Math.cos(phi) * pose.r + Math.cos(rot) * x, y: Math.sin(phi) * pose.r + Math.sin(rot) * x };
+  const phi = pose.phi * side, rot = pose.rot * side, k = 1 + pose.grow, b = bladeAt(along);
+  const x = b.x * k, y = b.y * k * side, c = Math.cos(rot), s = Math.sin(rot);
+  return { x: Math.cos(phi) * pose.r + c * x - s * y, y: Math.sin(phi) * pose.r + s * x + c * y };
 }
 
 export class ShadeRig {
@@ -45,7 +47,7 @@ export class ShadeRig {
 
   bladeSprite(texture, parent) {
     const s = new Sprite(texture);
-    s.anchor.set(BLADE_ART.root / BLADE_ART.w, 0.5);
+    s.anchor.set(BLADE_ART.rootX / BLADE_ART.w, BLADE_ART.rootY / BLADE_ART.h);
     parent.addChild(s);
     return s;
   }
@@ -150,7 +152,7 @@ export class ShadeRig {
     const since = now - s.ability.strikeAt;
     const t1 = Math.min(since, s.ability.data.swingTime), t0 = Math.max(0, since - T.life);
     if (t1 <= t0) return;
-    const tip = BLADE_ART.tip, rows = [];
+    const tip = BLADE_ART.len, rows = [];
     for (let i = 0; i <= T.samples; i++) rows.push(this.strikePoses(s, lerp(t0, t1, i / T.samples)));
     for (const side of s.sides) {
       const b = side === 1 ? 0 : 1;
@@ -164,7 +166,7 @@ export class ShadeRig {
 
   // Where the parry cue flashes: on each blade the attack is about to swing, as last posed.
   cuePoints(a) {
-    return this.striking(a).map((side) => onBlade(this.poses[side === 1 ? 0 : 1], side, BLADE_ART.tip * BLADE_ART.cue));
+    return this.striking(a).map((side) => onBlade(this.poses[side === 1 ? 0 : 1], side, BLADE_ART.len * BLADE_ART.cue));
   }
 
   setFlash(on) {
@@ -179,7 +181,7 @@ export class ShadeRig {
       const w = BLADE_ART.w * size, h = BLADE_ART.h * size;
       this.enemy.world.deathFx.flare(tex.shade_blade_white, root.x, root.y, this.enemy.view.rotation + pose.rot * side, {
         time: D.time, w0: w, h0: h, w1: w * D.scale, h1: h * D.scale, color0: 0xffffff, color1: this.enemy.type.hitColor, fade: 1.5,
-        anchorX: BLADE_ART.root / BLADE_ART.w, flipY: side < 0,
+        anchorX: BLADE_ART.rootX / BLADE_ART.w, anchorY: BLADE_ART.rootY / BLADE_ART.h, flipY: side < 0,
       });
     });
   }

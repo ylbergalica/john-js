@@ -194,21 +194,23 @@ export const MAUL = {
   },
 };
 
-// The Shade's arms (src/enemies/shadeRig.js), floating free of its body. Poses are for its
-// right arm, in the Shade's frame (+x forward, +y to its right, world units): the root `r`
-// out from the centre at angle `phi`, the blade pointing `rot` and `grow` making it bigger.
-// The left arm mirrors them. Angles in radians. Strikes pierce more than they sweep: the
-// arm is pulled back along its side and driven forward and across, turning little. How
-// long a strike takes comes from the ability (swingTime).
+// The Shade's arms (src/enemies/shadeRig.js), crescent blades floating free of its body.
+// Poses are for its right arm, in the Shade's frame (+x forward, +y to its right, world
+// units): the root `r` out from the centre at angle `phi`, the blade leaving it heading
+// `rot` and curving in toward the body, `grow` making it bigger. With rot = phi - π/2 and r
+// at the blade's bend (BLADE_ART.bend) it hugs the body's curve. The left arm mirrors them.
+// Angles in radians. Strikes pierce more than they sweep: the arm is pulled back along its
+// side and driven forward and across, turning little. How long a strike takes comes from
+// the ability (swingTime).
 export const BLADES = {
   poses: {
-    idle: { phi: 1.32, r: 0.64, rot: -0.3, grow: 0 }, // folded at its side, a little ahead
-    guard: { phi: 1.45, r: 0.64, rot: -0.15, grow: 0 }, // the arm not striking, kept folded
-    slashReady: { phi: 1.95, r: 0.62, rot: 0.6, grow: 0.06 }, // pulled back along its side, angled out
-    slashThrough: { phi: 0.55, r: 0.58, rot: -0.5, grow: 0.15 }, // driven forward and across its front
-    lungeReady: { phi: 2, r: 0.62, rot: 0.2, grow: 0.04 }, // both cocked back along its sides
-    lungeThrust: { phi: 0.75, r: 0.5, rot: -0.33, grow: 0.15 }, // both thrust ahead, points meeting
-    stunned: { phi: 1.6, r: 0.66, rot: 0.9, grow: 0 }, // drooping
+    idle: { phi: 1.75, r: 0.65, rot: 0.18, grow: 0 }, // folded round its side, points ahead
+    guard: { phi: 1.85, r: 0.66, rot: 0.28, grow: 0 }, // the arm not striking, kept folded
+    slashReady: { phi: 2, r: 0.64, rot: 0.75, grow: 0.06 }, // pulled back along its side
+    slashThrough: { phi: 0.8, r: 0.5, rot: 0.1, grow: 0.15 }, // driven forward and across its front
+    lungeReady: { phi: 2.05, r: 0.64, rot: 0.55, grow: 0.04 }, // both cocked back along its sides
+    lungeThrust: { phi: 0.9, r: 0.48, rot: 0.29, grow: 0.2 }, // both thrust ahead, points meeting
+    stunned: { phi: 1.9, r: 0.7, rot: 0.9, grow: 0 }, // drooping
   },
   bow: 0.08, // the root swings this far out mid-slash, arcing it
   hover: { amount: 0.025, freq: 0.8 }, // idle arms bob in and out, out of step (Hz)

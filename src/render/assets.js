@@ -92,7 +92,7 @@ function shadePortrait(c, ctx, visual, S) {
     ctx.translate(cx + Math.cos(phi * side) * r * u, cy + Math.sin(phi * side) * r * u);
     ctx.rotate(rot * side);
     ctx.scale(1, side);
-    ctx.drawImage(tex.shade_blade.source.resource, -BLADE_ART.root * u, (-BLADE_ART.h / 2) * u, BLADE_ART.w * u, BLADE_ART.h * u);
+    ctx.drawImage(tex.shade_blade.source.resource, -BLADE_ART.rootX * u, -BLADE_ART.rootY * u, BLADE_ART.w * u, BLADE_ART.h * u);
     ctx.restore();
   }
   return c;

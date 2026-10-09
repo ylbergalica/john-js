@@ -86,9 +86,9 @@ export class DeathFx {
 
   // A one-shot sprite growing from (w0, h0) to (w1, h1) and fading over `time`, after `delay`,
   // mirrored across its length if `flipY`.
-  flare(texture, x, y, rotation, { delay = 0, time, w0, h0, w1, h1, alpha = 1, fade = 1, color0, color1 = color0, anchorX = 0.5, flipY = false }) {
+  flare(texture, x, y, rotation, { delay = 0, time, w0, h0, w1, h1, alpha = 1, fade = 1, color0, color1 = color0, anchorX = 0.5, anchorY = 0.5, flipY = false }) {
     const sprite = new Sprite(texture);
-    sprite.anchor.set(anchorX, 0.5);
+    sprite.anchor.set(anchorX, anchorY);
     sprite.blendMode = 'add';
     sprite.position.set(x, y);
     sprite.rotation = rotation;

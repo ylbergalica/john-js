@@ -213,6 +213,7 @@ export const BLADES = {
     stunned: { phi: 1.9, r: 0.7, rot: 0.9, grow: 0 }, // drooping
   },
   bow: 0.08, // the root swings this far out mid-slash, arcing it
+  lungeHold: 0.5, // fraction of the lunge's recovery its blades stay thrust out; the rest folds them back
   hover: { amount: 0.025, freq: 0.8 }, // idle arms bob in and out, out of step (Hz)
   readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains
   strain: { rot: 0.1, shake: 0.035, freq: 8 }, // freq: tremble Hz

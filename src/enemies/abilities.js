@@ -349,12 +349,15 @@ class LungeAbility extends HitboxAbility {
 
   strike() { this.dir = fromAngle(this.enemy.body.rotation); }
 
+  // How far the current strike steps.
+  get stepDistance() { return this.data.stepDistance; }
+
   step() {
     super.step();
     const b = this.enemy.body, d = this.data;
     const stepping = this.phase === 'active' && this.parriedStunEndsAt === null && this.world.time - this.strikeAt < d.stepTime;
     if (stepping) {
-      const speed = d.stepDistance / d.stepTime;
+      const speed = this.stepDistance / d.stepTime;
       b.vel.x = this.dir.x * speed;
       b.vel.y = this.dir.y * speed;
     } else if (this.stepping && !this.enemy.stunned) b.stop();
@@ -385,9 +388,10 @@ class SwingAbility extends LungeAbility {
 }
 
 // Body: swings from each side in turn, right first, `strikes` of them `strikeInterval`
-// apart (the Shade's slashes). Between strikes it winds up again, so each strike is told
-// and cued like the first, turning to follow the player until its aim locks. A parry cuts
-// the rest short.
+// apart (the Shade's slashes), each stepping its own `stepDistance`. Between strikes it
+// winds up again, so each strike is told and cued like the first, turning to follow the
+// player until its aim locks. Through every wind-up it keeps advancing on the player at
+// `advanceSpeed`, until it is `advanceStop` away. A parry cuts the rest short.
 class SlashesAbility extends SwingAbility {
   constructor(enemy, data) {
     super(enemy, data);
@@ -397,6 +401,8 @@ class SlashesAbility extends SwingAbility {
   // The side the coming strike (in a wind-up) or the latest one swings from: 1 right, -1 left.
   get side() { return (this.phase === 'windup' ? this.strikeCount : this.strikeCount - 1) % 2 ? -1 : 1; }
 
+  get stepDistance() { return this.data.stepDistance[Math.max(0, this.strikeCount - 1)]; }
+
   execute() {
     this.strikeCount = 0;
     super.execute();
@@ -404,7 +410,11 @@ class SlashesAbility extends SwingAbility {
 
   step(dt) {
     super.step(dt);
-    if (this.phase === 'windup' && this.strikeCount > 0 && this.tracking()) this.enemy.ai.turnToward(this.dirToPlayer(), dt);
+    if (this.phase !== 'windup' || !this.player) return;
+    const ai = this.enemy.ai, d = this.data, dir = ai.pathDirection(d.advanceStop);
+    if (dir) ai.steer(dir.x * d.advanceSpeed, dir.y * d.advanceSpeed);
+    else ai.steer(0, 0);
+    if (this.strikeCount > 0 && this.tracking()) ai.turnToward(this.dirToPlayer(), dt);
   }
 
   advance() {

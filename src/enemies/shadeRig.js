@@ -2,8 +2,9 @@
 // attacks' phases (tuning in BLADES). At rest they hang folded, bobbing in and out and
 // swaying with its stride. For each slash one is pulled back along its side and driven
 // forward and across (the other stays folded); for the lunge both are cocked back and
-// thrust ahead. A smear trails each striking blade, and they share the
-// Shade's wind-up tint, hit flash and death pop. Purely cosmetic.
+// thrust ahead, held there after the dash and folded back as it recovers. A smear trails
+// each striking blade, and they share the Shade's wind-up tint, hit flash and death pop.
+// Purely cosmetic.
 import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, BLADES, DEATH_FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
@@ -55,9 +56,12 @@ export class ShadeRig {
   // After EnemyAttackFx has placed and posed the enemy's view for render time `now`.
   render(now, dt) {
     const e = this.enemy;
-    let ability = null;
-    for (const a of e.abilities.values()) if (a.phase === 'windup' || a.phase === 'active') ability = a;
-    const motion = e.stunned ? 'stunned' : ability ? `${ability.data.blades}:${ability.phase}:${ability.side ?? 0}` : 'idle';
+    let ability = null, folding = null; // folding: a lunge recovering, its blades still out
+    for (const a of e.abilities.values()) {
+      if (a.phase === 'windup' || a.phase === 'active') ability = a;
+      else if (a.phase === 'recovery' && a.data.blades === 'lunge') folding = a;
+    }
+    const motion = e.stunned ? 'stunned' : ability ? `${ability.data.blades}:${ability.phase}:${ability.side ?? 0}` : folding ? 'lunge:recovery' : 'idle';
     if (motion !== this.motion) {
       this.motion = motion;
       this.motionAt = now;
@@ -69,6 +73,7 @@ export class ShadeRig {
     if (e.stunned) this.poses = this.settle(now, () => P.stunned);
     else if (ability?.phase === 'windup') this.poses = this.windup(ability, now);
     else if (ability) this.poses = this.strikePoses(this.strike, now - ability.strikeAt, now);
+    else if (folding) this.poses = this.foldBack(folding, now);
     else this.poses = this.settle(now, (i) => this.idle(now, walk, SIDES[i]));
     this.place();
 
@@ -129,6 +134,13 @@ export class ShadeRig {
       if (!lunge) pose.r += BLADES.bow * Math.sin(Math.PI * k);
       return pose;
     });
+  }
+
+  // After a lunge the blades hold their thrust, then fold back to rest just as the
+  // recovery ends.
+  foldBack(a, now) {
+    const k = smoothStep01(clamp01((progress(a, now) - BLADES.lungeHold) / (1 - BLADES.lungeHold)));
+    return this.from.map((p, i) => mix(p, this.idle(now, 0, SIDES[i]), k));
   }
 
   place() {

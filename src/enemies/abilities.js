@@ -139,7 +139,7 @@ class Ability {
   }
 }
 
-// Melee abilities with a hitbox (Dash, Ram, Laser, Punch, Swing, Smash, Ground Pound, Slam). Zones pass
+// Melee abilities with a hitbox (Dash, Ram, Laser, Punch, Swing, Slashes, Smash, Ground Pound, Slam). Zones pass
 // `area`, the shape ZoneView burns (see there): everywhere the hitbox reaches while active.
 // `kind` defaults to 'zone', so a new zone attack is disarmed rather than cut short by a parry.
 // Unless `armOnStrike` is off, the hitbox starts hurting (and the zone shows) on the strike.
@@ -366,10 +366,10 @@ class LungeAbility extends HitboxAbility {
     if (s && volume > 0) this.world.camera.shake(s.duration, s.strength * volume, s.frequency);
   }
 
-  // The cue flashes on the held weapon's head, if the enemy's rig has one.
+  // The cue flashes on the held weapon, if the enemy's rig has one.
   cuePoints() {
-    const at = this.enemy.rig?.cuePoint();
-    return at ? [at] : super.cuePoints();
+    const at = this.enemy.rig?.cuePoints(this);
+    return at?.length ? at : super.cuePoints();
   }
 }
 
@@ -381,6 +381,41 @@ class SwingAbility extends LungeAbility {
     super(enemy, data, { type: 'circle', r: data.hitboxRadius, forward: data.hitboxForward }, null, {
       kind: 'body', parryKnockback: data.parryKnockback, strikeSound: data.strikeSound,
     });
+  }
+}
+
+// Body: swings from each side in turn, right first, `strikes` of them `strikeInterval`
+// apart (the Shade's slashes). Between strikes it winds up again, so each strike is told
+// and cued like the first, turning to follow the player until its aim locks. A parry cuts
+// the rest short.
+class SlashesAbility extends SwingAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.strikeCount = 0; // strikes made since the attack began
+  }
+
+  // The side the coming strike (in a wind-up) or the latest one swings from: 1 right, -1 left.
+  get side() { return (this.phase === 'windup' ? this.strikeCount : this.strikeCount - 1) % 2 ? -1 : 1; }
+
+  execute() {
+    this.strikeCount = 0;
+    super.execute();
+  }
+
+  step(dt) {
+    super.step(dt);
+    if (this.phase === 'windup' && this.strikeCount > 0 && this.tracking()) this.enemy.ai.turnToward(this.dirToPlayer(), dt);
+  }
+
+  advance() {
+    const d = this.data;
+    if (this.phase === 'active' && this.strikeCount < d.strikes) {
+      this.endActive();
+      this.setPhase('windup', d.strikeInterval - d.duration);
+      return;
+    }
+    if (this.phase === 'windup') this.strikeCount++;
+    super.advance();
   }
 }
 
@@ -539,7 +574,7 @@ class MissilesAbility extends ThrowAbility {
 }
 
 const TYPES = {
-  dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
+  dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, slashes: SlashesAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
   slam: SlamAbility, throw: ThrowAbility, missiles: MissilesAbility,
 };
 

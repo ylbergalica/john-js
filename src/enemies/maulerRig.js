@@ -204,7 +204,7 @@ export class MaulerRig {
   }
 
   // Where the parry cue flashes: the maul's head, as last posed.
-  cuePoint() { return onMaul(this.pose, MAUL_ART.head[0]); }
+  cuePoints() { return [onMaul(this.pose, MAUL_ART.head[0])]; }
 
   setFlash(on) { this.maul.texture = on ? tex.star_maul_white : tex.star_maul; }
 

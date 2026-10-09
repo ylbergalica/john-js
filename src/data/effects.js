@@ -107,6 +107,9 @@ export const ATTACK_FX = {
     missiles: { shape: 'none', lean: 0.05, squash: 0, swell: 0.05 },
     swing: { shape: 'arc', arcDeg: 140, lines: 1, reach: 0.5, to: 1.2, lean: 0.06, squash: 0, swell: 0.04, twist: 18 },
     smash: { shape: 'arc', arcDeg: 46, lines: 3, reach: 0.9, to: 1.2, lean: 0.22, squash: 0.08, swell: 0.1 },
+    // Twisting to whichever side the next slash comes from (the ability's `side`).
+    slash: { shape: 'arc', arcDeg: 150, lines: 1, reach: 0.45, to: 1.2, lean: 0.05, squash: 0, swell: 0.03, twist: 16 },
+    lunge: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.3, squash: 0.12, swell: 0.04 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
@@ -189,4 +192,29 @@ export const MAUL = {
     dust: { count: 18, speed: [2, 3.2], size: [0.6, 1], life: [0.8, 1.3], alpha: 0.75, grow: 2, color: 0xd29a68, fade: 0x4a2a16 },
     haze: { count: 5, speed: [0.2, 0.6], size: [1.1, 1.6], life: [1.1, 1.6], alpha: 0.4, grow: 1.6, color: 0xa86e44, fade: 0x2a1a10 },
   },
+};
+
+// The Shade's arm-blades (src/enemies/shadeRig.js). Poses are for its right blade, in the
+// Shade's frame (+x forward, +y to its right, world units): the root `r` out from the
+// centre at angle `phi`, the blade pointing `rot` and `grow` making it bigger. The left
+// blade mirrors them. Angles in radians. How long a strike takes comes from the ability
+// (swingTime).
+export const BLADES = {
+  poses: {
+    idle: { phi: 1.2, r: 0.44, rot: 0.08, grow: 0 }, // held forward along its side
+    guard: { phi: 1.4, r: 0.44, rot: 0.6, grow: 0 }, // the blade not slashing, kept clear of the one that is
+    slashReady: { phi: 1.95, r: 0.46, rot: 2.45, grow: 0.08 }, // drawn far back on its side
+    slashThrough: { phi: 0.95, r: 0.44, rot: -0.85, grow: 0.18 }, // across the front, ahead of its other side
+    lungeReady: { phi: 1.75, r: 0.46, rot: 1.35, grow: 0.05 }, // both spread out to the sides
+    lungeThrust: { phi: 0.85, r: 0.42, rot: -0.27, grow: 0.15 }, // both thrust ahead, points meeting
+    stunned: { phi: 1.5, r: 0.45, rot: 1.75, grow: 0 }, // hanging limp
+  },
+  bow: 0.1, // the root swings this far out mid-slash, arcing it
+  readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains
+  strain: { rot: 0.14, shake: 0.04, freq: 8 }, // freq: tremble Hz
+  settleTime: 0.3, // back to idle, or into a stunned droop
+  gait: { stride: 3, sway: 0.12 }, // stride: gait radians per unit walked
+  // A smear behind each striking blade, from `inner` (× its reach) to the point, trailing
+  // `life` seconds.
+  trail: { life: 0.12, inner: 0.35, alpha: 0.5, samples: 10 },
 };

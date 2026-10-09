@@ -38,6 +38,18 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.5, moveSpeed: 2.4, orbitSpeed: 2, repositionSpeed: 2, maxTurnSpeed: 3,
       attacks: [{ ability: 'MaulerSwing', weight: 0.65 }, { ability: 'MaulerSlam', weight: 0.35 }] },
   },
+  // A shadow with a long blade for each arm (no joints) and jagged spines along its back.
+  // It steps into a slash from one side, then the other, or readies both blades and lunges
+  // with them in a dash much like the player's. The blades are their own sprites, swung by
+  // the attacks (`rig`, see shadeRig.js).
+  shade: {
+    name: 'Shade', maxHealth: 8, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
+    knockbackResistance: 0.1, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x9aa1ad, sfxPitch: 1.05,
+    visual: { kind: 'sprite', outline: 'shade_idle', void: 'shade_idle_void', size: 1.62, sparkleCount: 22, rig: 'blades' },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.5, moveSpeed: 3.2, orbitSpeed: 2.6, repositionSpeed: 2.6, maxTurnSpeed: 4.5,
+      attacks: [{ ability: 'ShadeSlashes', weight: 0.6 }, { ability: 'ShadeLunge', weight: 0.4 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 500, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

@@ -84,13 +84,15 @@ export class DeathFx {
     }
   }
 
-  // A one-shot sprite growing from (w0, h0) to (w1, h1) and fading over `time`, after `delay`.
-  flare(texture, x, y, rotation, { delay = 0, time, w0, h0, w1, h1, alpha = 1, fade = 1, color0, color1 = color0, anchorX = 0.5 }) {
+  // A one-shot sprite growing from (w0, h0) to (w1, h1) and fading over `time`, after `delay`,
+  // mirrored across its length if `flipY`.
+  flare(texture, x, y, rotation, { delay = 0, time, w0, h0, w1, h1, alpha = 1, fade = 1, color0, color1 = color0, anchorX = 0.5, flipY = false }) {
     const sprite = new Sprite(texture);
     sprite.anchor.set(anchorX, 0.5);
     sprite.blendMode = 'add';
     sprite.position.set(x, y);
     sprite.rotation = rotation;
+    if (flipY) sprite.scale.y = -1; // sizing keeps the sign
     sprite.visible = false;
     this.flares.addChild(sprite);
     this.live.push({ sprite, age: 0, delay, time, w0, h0, w1, h1, alpha, fade, color0, color1 });

@@ -26,6 +26,8 @@ export const renderTime = (world, alpha) => world.time - (1 - alpha) * FIXED_DT;
 const progress = (a, now) => clamp01((now - a.phaseStartedAt) / Math.max(1e-3, a.phaseEndsAt - a.phaseStartedAt));
 const easeOut = (t) => 1 - (1 - t) ** 2;
 const tellOf = (a) => X.tells[a.data.tell] ?? X.tells.none;
+// A swing's twist (radians), toward the side it comes from if the ability has a `side`.
+const twistOf = (a) => (tellOf(a).twist ?? 0) * (a.side ?? 1) * DEG;
 
 function sprite(texture, parent, { blendMode = 'normal', tint = X.color } = {}) {
   const s = new Sprite(texture);
@@ -99,7 +101,7 @@ export class EnemyAttackFx {
       const swell = 1 + tell.swell * ease;
       sx = swell * (1 - tell.squash * ease);
       sy = swell * (1 + tell.squash * 0.5 * ease);
-      turn = (tell.twist ?? 0) * DEG * ease;
+      turn = twistOf(windup) * ease;
       this.drawTell(tell, r, elapsed, t, W.alpha * fade * lerp(0.45, 1, t), 0);
     }
 
@@ -113,7 +115,7 @@ export class EnemyAttackFx {
       glow = Math.max(glow, W.glowAlpha * (1 - k));
     }
     // A swing whips through from its twist, past its facing, and settles back.
-    const twist = last ? (tellOf(last).twist ?? 0) * DEG : 0;
+    const twist = last ? twistOf(last) : 0;
     if (!windup && twist && since >= 0 && since < S.followTime) {
       const k = since / S.followTime;
       turn = k < 0.35 ? lerp(twist, -0.4 * twist, easeOut(k / 0.35)) : -0.4 * twist * (1 - smoothStep01((k - 0.35) / 0.65));

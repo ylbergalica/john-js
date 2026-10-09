@@ -27,6 +27,7 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'goblin', weight: 1, fromFloor: 1 },
       { type: 'striker', weight: 1, fromFloor: 1 },
       { type: 'mauler', weight: 0.6, fromFloor: 2 },
+      { type: 'shade', weight: 0.7, fromFloor: 3 },
     ],
     minEnemiesPerRoom: 3,
     maxEnemiesPerRoom: 6,

@@ -33,6 +33,9 @@ export function sprites() {
     mauler_idle: maulerOutline(),
     mauler_idle_void: voidFill(maulerPath(), VOIDS.mauler),
     star_maul: starMaul(),
+    shade_idle: shadeOutline(),
+    shade_idle_void: voidFill(shadePath(), VOIDS.shade),
+    shade_blade: shadeBlade(),
     tail: tail(),
     dash_ghost: dashGhost(),
     spark: spark(),
@@ -616,6 +619,7 @@ const VOIDS = {
   striker: { core: '#33200f', edge: '#06050c', clouds: [['#d07a26', 0.2], ['#7b44d6', 0.14]], seed: 37 },
   seraph: { core: '#221547', edge: '#06040f', clouds: [['#8a63ff', 0.24], ['#3fa8ff', 0.14]], seed: 41 },
   mauler: { core: '#2b1709', edge: '#070403', clouds: [['#a8501c', 0.24], ['#6b2a10', 0.2]], seed: 43 },
+  shade: { core: '#1d1e22', edge: '#050506', clouds: [['#5a5f6a', 0.2], ['#33363e', 0.22]], seed: 47 },
 };
 // The Mauler's body: a square with heavily rounded corners ([x, y, size, corner radius]).
 const MAULER = { body: [0.14, 0.14, 0.72, 0.27], line: 0.045 };
@@ -625,6 +629,19 @@ const MAULER_PALETTE = { stroke: ['#f2b97e', '#c8682a', '#7e3810'], glow: rgba('
 // ends in a crosswise head `head` (centre along the haft, depth, width) holding a star;
 // `tip` is the head's far edge.
 export const MAUL_ART = { w: 1.12, h: 0.8, grip: 0.07, unit: 216, head: [0.78, 0.34, 0.66], tip: 0.95 };
+// The Shade's body: a circle with jagged spines along its back, [angle°, length past the
+// rim] each (180° is straight back), every spine `spread`° to either side at its base and
+// raked `rake`° toward the back.
+const SHADE = {
+  r: 0.31, line: 0.045, spread: 8, rake: 5,
+  spines: [[117, 0.045], [133, 0.1], [149, 0.065], [165, 0.13], [181, 0.085], [197, 0.12], [212, 0.06], [228, 0.095], [243, 0.04]],
+};
+const SHADE_PALETTE = { stroke: ['#979ca6', '#5e626c', '#33363d'], glow: rgba('#7c8392', 0.55) };
+// The Shade's arm-blades, a separate sprite so they can be swung: one blade drawn along +x
+// from its root, hooking toward -y at the tip (the right arm; the left is mirrored), in
+// world units (`w` × `h`, the root `root` in from the left, `unit` px per unit). `tip` is
+// how far the point reaches, `cue` where along it the parry cue flashes.
+export const BLADE_ART = { w: 1.02, h: 0.36, root: 0.06, unit: 216, tip: 0.92, cue: 0.7 };
 // The Seraph's hull, nose to the right: [x, y] for the top half, mirrored below.
 // Nose, wingtip, trailing edge, engine nozzle (outer, inner), tail notch.
 const SERAPH_HULL = [[0.9, 0.5], [0.15, 0.18], [0.27, 0.3], [0.17, 0.35], [0.2, 0.43], [0.33, 0.5]];
@@ -658,6 +675,19 @@ function seraphPath() {
   const bottom = SERAPH_HULL.slice(1, -1).reverse().map(([x, y]) => [x, 1 - y]);
   const p = new Path2D();
   [...SERAPH_HULL, ...bottom].forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
+  p.closePath();
+  return p;
+}
+
+function shadePath() {
+  const { r, spread, rake, spines } = SHADE;
+  const p = new Path2D();
+  p.arc(0.5, 0.5, r, (spines.at(-1)[0] + spread - 360) * DEG, (spines[0][0] - spread) * DEG);
+  for (const [a, length] of spines) {
+    p.lineTo(...polar(0.5, 0.5, a - spread, r));
+    p.lineTo(...polar(0.5, 0.5, a + rake * Math.sign(180 - a), r + length));
+    p.lineTo(...polar(0.5, 0.5, a + spread, r));
+  }
   p.closePath();
   return p;
 }
@@ -737,6 +767,48 @@ function maulerOutline(S = 256) {
     ctx.moveTo(0.64, 0.3); ctx.quadraticCurveTo(0.73, 0.5, 0.64, 0.7);
     ctx.stroke();
   });
+}
+
+// The spined body with a faint ridge following the spines' roots.
+function shadeOutline(S = 256) {
+  return outline(S, SHADE_PALETTE, (ctx) => {
+    ctx.lineWidth = SHADE.line;
+    ctx.stroke(shadePath());
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 0.018;
+    ctx.beginPath();
+    ctx.arc(0.5, 0.5, SHADE.r * 0.72, 128 * DEG, 232 * DEG);
+    ctx.stroke();
+  });
+}
+
+// One arm-blade: a long, slender, slightly hooked point with no joint, its outer edge
+// bowed and honed bright.
+function shadeBlade() {
+  const { w, h, root, unit, tip } = BLADE_ART;
+  const { c, ctx, px } = surface(Math.round(w * unit), Math.round(h * unit), unit);
+  ctx.translate(root, h / 2);
+  const path = new Path2D();
+  path.moveTo(0, -0.06);
+  path.quadraticCurveTo(tip * 0.55, -0.035, tip, -0.075);
+  path.quadraticCurveTo(tip * 0.6, 0.125, 0, 0.065);
+  path.quadraticCurveTo(-0.05, 0, 0, -0.06);
+  ctx.fillStyle = linear(ctx, 0, 0, tip, 0, [VOIDS.shade.core, '#26282e', VOIDS.shade.edge]);
+  ctx.fill(path);
+  glow(ctx, SHADE_PALETTE.glow, px * 0.03, () => {
+    ctx.strokeStyle = linear(ctx, 0, -0.1, tip, 0.1, SHADE_PALETTE.stroke);
+    ctx.lineWidth = SHADE.line * 0.8;
+    ctx.stroke(path);
+  });
+  // The honed edge.
+  ctx.strokeStyle = rgba('#c9cdd5', 0.6);
+  ctx.lineWidth = 0.014;
+  ctx.beginPath();
+  ctx.moveTo(tip * 0.12, 0.068);
+  ctx.quadraticCurveTo(tip * 0.6, 0.095, tip * 0.97, -0.066);
+  ctx.stroke();
+  sparkle(ctx, tip * 0.18, 0.005, 0.045, '#d8dce4', 0.6);
+  return c;
 }
 
 // The star-maul: a haft with a knob at the grip end and a void-filled head with a fallen

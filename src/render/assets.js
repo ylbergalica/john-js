@@ -2,8 +2,8 @@
 // frame sequences in `anims`, aspect and UI icons in `tex` plus data URLs for the DOM UI,
 // enemy portraits for the run summary, and white silhouettes used for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, MAUL_ART } from './sprites.js';
-import { ENEMY_TYPES, MAUL } from '../data/config.js';
+import { animations, icons, sprites, MAUL_ART, BLADE_ART } from './sprites.js';
+import { BLADES, ENEMY_TYPES, MAUL } from '../data/config.js';
 
 export const tex = {};
 export const anims = {};
@@ -25,7 +25,7 @@ export async function loadAssets() {
 
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
 }
@@ -59,6 +59,7 @@ function enemyPortrait(visual, S = 128) {
   c.width = c.height = S;
   const ctx = c.getContext('2d');
   if (visual.rig === 'maul') return maulerPortrait(c, ctx, visual, S);
+  if (visual.rig === 'blades') return shadePortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -78,6 +79,22 @@ function maulerPortrait(c, ctx, visual, S) {
   ctx.translate(cx + Math.cos(phi) * r * u, cy + Math.sin(phi) * r * u);
   ctx.rotate(rot);
   ctx.drawImage(tex.star_maul.source.resource, -MAUL_ART.grip * u, (-MAUL_ART.h / 2) * u, MAUL_ART.w * u, MAUL_ART.h * u);
+  return c;
+}
+
+// The Shade with its blades at rest, reaching ahead of it: shrunk and shifted back to fit.
+function shadePortrait(c, ctx, visual, S) {
+  const u = S / 2, cx = S / 2 - 0.2 * u, cy = S / 2, half = (visual.size / 2) * u;
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
+  const { phi, r, rot } = BLADES.poses.idle;
+  for (const side of [1, -1]) {
+    ctx.save();
+    ctx.translate(cx + Math.cos(phi * side) * r * u, cy + Math.sin(phi * side) * r * u);
+    ctx.rotate(rot * side);
+    ctx.scale(1, side);
+    ctx.drawImage(tex.shade_blade.source.resource, -BLADE_ART.root * u, (-BLADE_ART.h / 2) * u, BLADE_ART.w * u, BLADE_ART.h * u);
+    ctx.restore();
+  }
   return c;
 }
 

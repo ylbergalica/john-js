@@ -12,8 +12,11 @@ import { createAbility } from './abilities.js';
 import { EnemyAI } from './ai.js';
 import { EnemyAttackFx, renderTime } from './attackView.js';
 import { MaulerRig } from './maulerRig.js';
+import { ShadeRig } from './shadeRig.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
+
+const RIGS = { maul: MaulerRig, blades: ShadeRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -36,7 +39,8 @@ export class Enemy extends Entity {
     }
     this.ai = new EnemyAI(this, this.type.ai);
     this.attackFx = new EnemyAttackFx(this, this.silhouette);
-    this.rig = this.type.visual.rig === 'maul' ? new MaulerRig(this) : null; // a held weapon, posed by the attacks
+    const Rig = RIGS[this.type.visual.rig];
+    this.rig = Rig ? new Rig(this) : null; // held weapons, posed by the attacks
   }
 
   get damage() { return this.type.damage; }

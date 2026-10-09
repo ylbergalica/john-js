@@ -185,6 +185,10 @@ const SOUNDS = {
     noise(v, { freq: 220, to: 900, q: 0.9, dur: 0.26, vol: 0.32, attack: 0.05 });
     tone(v, { type: 'triangle', freq: 120, to: 60, dur: 0.2, vol: 0.12 });
   },
+  slash(v) { // a blade whipping through the air
+    noise(v, { filter: 'highpass', freq: 1800, to: 5200, q: 0.8, dur: 0.14, vol: 0.28, attack: 0.02 });
+    noise(v, { freq: 700, to: 2400, q: 1.2, dur: 0.12, vol: 0.18, attack: 0.015 });
+  },
   throw(v) {
     tone(v, { type: 'square', freq: 520, to: 1100, dur: 0.08, vol: 0.06 });
     noise(v, { freq: 1200, to: 2400, q: 2, dur: 0.1, vol: 0.12 });

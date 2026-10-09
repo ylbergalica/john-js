@@ -58,7 +58,7 @@ export const ABILITIES = {
   // part way through the recovery (BLADES.lungeHold), then fold back as it ends.
   ShadeLunge: {
     type: 'swing', tell: 'lunge', cooldown: 4, range: 4.8, windUpTime: 0.6, lockTime: 0.2, duration: 0.26, recoveryTime: 0.45,
-    damageMultiplier: 1.2, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.3),
+    damageMultiplier: 1.3, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.3),
     hitboxRadius: 0.7, hitboxForward: 0.55, swingTime: 0.08, stepDistance: 3.6, stepTime: 0.24, parryKnockback: 15,
     strikeSound: 'enemyDash', blades: 'lunge',
   },

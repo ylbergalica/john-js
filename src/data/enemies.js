@@ -44,7 +44,7 @@ export const ENEMY_TYPES = {
   // lunges with them in a dash much like the player's. The arms are their own sprites,
   // moved by the attacks (`rig`, see shadeRig.js).
   shade: {
-    name: 'Shade', maxHealth: 8, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
+    name: 'Shade', maxHealth: 9, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0.1, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x9aa1ad, sfxPitch: 1.05,
     visual: { kind: 'sprite', outline: 'shade_idle', void: 'shade_idle_void', size: 1.62, sparkleCount: 22, rig: 'blades' },

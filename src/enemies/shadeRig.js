@@ -1,8 +1,9 @@
 // The Shade's arm-blades: a sprite floating at each side, posed every frame from the
 // attacks' phases (tuning in BLADES). At rest they hang folded, bobbing in and out and
-// swaying with its stride. For each slash one is pulled back along its side and driven
-// forward and across (the other stays folded); for the lunge both are cocked back and
-// thrust ahead, held there after the dash and folded back as it recovers. A smear trails
+// swaying with its stride. They move like machinery: readying an attack, or stunned, an
+// arm slides straight out from the body and judders there. For each slash one slides out
+// and is driven forward and across (the other stays folded); for the lunge both slide out
+// and thrust ahead, held there after the dash and folded back as it recovers. A smear trails
 // each striking blade, and they share the Shade's wind-up tint, hit flash and death pop.
 // Purely cosmetic.
 import { Graphics, Sprite } from 'pixi.js';
@@ -111,7 +112,7 @@ export class ShadeRig {
     return this.from.map((p, i) => mix(p, target(i), k));
   }
 
-  // Into the ready pose, then straining there, drawing back a little further and trembling.
+  // Into the ready pose, then straining there, pushing a little further out and juddering.
   windup(a, now) {
     const t = progress(a, now), lunge = a.data.blades === 'lunge';
     const ready = smoothStep01(clamp01(t / BLADES.readyIn)), k = smoothStep01(clamp01((t - BLADES.readyIn) / (1 - BLADES.readyIn)));
@@ -119,7 +120,7 @@ export class ShadeRig {
     return SIDES.map((side, i) => {
       const drawn = lunge || side === a.side;
       const pose = mix(this.from[i], drawn ? (lunge ? P.lungeReady : P.slashReady) : P.guard, ready);
-      if (drawn) pose.rot += S.rot * k + shake;
+      if (drawn) pose.r += S.out * k + shake;
       return pose;
     });
   }

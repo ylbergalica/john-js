@@ -199,25 +199,26 @@ export const MAUL = {
 // units): the root `r` out from the centre at angle `phi`, the blade leaving it heading
 // `rot` and curving in toward the body, `grow` making it bigger. With rot = phi - π/2 and r
 // at the blade's bend (BLADE_ART.bend) it hugs the body's curve. The left arm mirrors them.
-// Angles in radians. Strikes pierce more than they sweep: the arm is pulled back along its
-// side and driven forward and across, turning little. How long a strike takes comes from
-// the ability (swingTime).
+// Angles in radians. The arms move like machinery, not limbs: readying an attack or
+// stunned, they slide straight out from the body, tilting only slightly inward. Strikes
+// pierce more than they sweep, driven forward and across, turning little. How long a
+// strike takes comes from the ability (swingTime).
 export const BLADES = {
   poses: {
     idle: { phi: 1.8, r: 0.68, rot: 0.23, grow: 0 }, // folded round its side, points ahead
     guard: { phi: 1.9, r: 0.69, rot: 0.33, grow: 0 }, // the arm not striking, kept folded
-    slashReady: { phi: 2, r: 0.64, rot: 0.75, grow: 0.06 }, // pulled back along its side
+    slashReady: { phi: 1.95, r: 0.92, rot: 0.26, grow: 0.06 }, // slid out from its side, tilted slightly in
     slashThrough: { phi: 0.8, r: 0.5, rot: 0.1, grow: 0.15 }, // driven forward and across its front
-    lungeReady: { phi: 2.05, r: 0.66, rot: 0.55, grow: 0.04 }, // both cocked back along its sides
+    lungeReady: { phi: 1.9, r: 0.88, rot: 0.21, grow: 0.04 }, // both slid out from its sides, tilted slightly in
     lungeThrust: { phi: 0.9, r: 0.48, rot: 0.38, grow: 0.12 }, // both thrust ahead, points meeting
-    stunned: { phi: 1.9, r: 0.7, rot: 0.9, grow: 0 }, // drooping
+    stunned: { phi: 1.85, r: 0.95, rot: 0.16, grow: 0 }, // knocked loose, hanging out from its sides
   },
   bow: 0.08, // the root swings this far out mid-slash, arcing it
   lungeHold: 0.5, // fraction of the lunge's recovery its blades stay thrust out; the rest folds them back
   hover: { amount: 0.025, freq: 0.8 }, // idle arms bob in and out, out of step (Hz)
   readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains
-  strain: { rot: 0.1, shake: 0.035, freq: 8 }, // freq: tremble Hz
-  settleTime: 0.3, // back to idle, or into a stunned droop
+  strain: { out: 0.06, shake: 0.018, freq: 14 }, // ready arms push `out` further, juddering `shake` in and out at `freq` Hz
+  settleTime: 0.3, // back to idle, or out into the stunned pose
   gait: { stride: 3, sway: 0.08 }, // stride: gait radians per unit walked
   // A smear behind each striking blade, from `inner` (× its reach) to the point, trailing
   // `life` seconds.

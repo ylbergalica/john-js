@@ -2,7 +2,8 @@
 // attacks' phases (tuning in BLADES). At rest they hang folded, bobbing in and out and
 // swaying with its stride. They move like machinery: readying an attack, or stunned, an
 // arm slides straight out from the body and judders there. For each slash one slides out
-// and is driven forward and across (the other stays folded); for the lunge both slide out
+// and stabs to just past the middle ahead, stopping dead (the other stays folded, and
+// each pulls back before the next); for the lunge both slide out
 // and thrust ahead, held there after the dash and folded back as it recovers. A smear trails
 // each striking blade, and they share the Shade's wind-up tint, hit flash and death pop.
 // Purely cosmetic.
@@ -125,15 +126,13 @@ export class ShadeRig {
     });
   }
 
-  // The striking blades whip out of their wind-up, a slash arcing out as it crosses; the
+  // The striking blades drive out of their wind-up and stop dead on the target pose; the
   // other stays folded.
   strikePoses({ ability, from, sides }, since, now = null) {
     const k = easeOut(clamp01(since / ability.data.swingTime)), lunge = ability.data.blades === 'lunge';
     return SIDES.map((side, i) => {
       if (!sides.includes(side)) return now === null ? this.poses[i] : mix(from[i], P.guard, smoothStep01(clamp01((now - this.motionAt) / BLADES.settleTime)));
-      const pose = mix(from[i], lunge ? P.lungeThrust : P.slashThrough, k);
-      if (!lunge) pose.r += BLADES.bow * Math.sin(Math.PI * k);
-      return pose;
+      return mix(from[i], lunge ? P.lungeThrust : P.slashThrough, k);
     });
   }
 

@@ -107,8 +107,7 @@ export const ATTACK_FX = {
     missiles: { shape: 'none', lean: 0.05, squash: 0, swell: 0.05 },
     swing: { shape: 'arc', arcDeg: 140, lines: 1, reach: 0.5, to: 1.2, lean: 0.06, squash: 0, swell: 0.04, twist: 18 },
     smash: { shape: 'arc', arcDeg: 46, lines: 3, reach: 0.9, to: 1.2, lean: 0.22, squash: 0.08, swell: 0.1 },
-    // Twisting to whichever side the next slash comes from (the ability's `side`).
-    slash: { shape: 'arc', arcDeg: 120, lines: 1, reach: 0.45, to: 1.2, lean: 0.1, squash: 0, swell: 0.03, twist: 10 },
+    slash: { shape: 'arc', arcDeg: 90, lines: 1, reach: 0.45, to: 1.2, lean: 0.1, squash: 0, swell: 0.03 },
     lunge: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.3, squash: 0.12, swell: 0.04 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
   },
@@ -200,20 +199,20 @@ export const MAUL = {
 // `rot` and curving in toward the body, `grow` making it bigger. With rot = phi - π/2 and r
 // at the blade's bend (BLADE_ART.bend) it hugs the body's curve. The left arm mirrors them.
 // Angles in radians. The arms move like machinery, not limbs: readying an attack or
-// stunned, they slide straight out from the body, tilting only slightly inward. Strikes
-// pierce more than they sweep, driven forward and across, turning little. How long a
-// strike takes comes from the ability (swingTime).
+// stunned, they slide straight out from the body, tilting only slightly inward. A slash is
+// a stab from the arm's place at the side to just past the middle ahead, turning a little
+// as it goes, and it stops dead there. How long a strike takes comes from the ability
+// (swingTime).
 export const BLADES = {
   poses: {
     idle: { phi: 1.8, r: 0.68, rot: 0.23, grow: 0 }, // folded round its side, points ahead
     guard: { phi: 1.9, r: 0.69, rot: 0.33, grow: 0 }, // the arm not striking, kept folded
     slashReady: { phi: 1.95, r: 0.92, rot: 0.26, grow: 0.06 }, // slid out from its side, tilted slightly in
-    slashThrough: { phi: 0.8, r: 0.5, rot: 0.1, grow: 0.15 }, // driven forward and across its front
+    slashThrough: { phi: 0.9, r: 0.77, rot: -0.1, grow: 0.1 }, // stabbed ahead, the point just past the middle
     lungeReady: { phi: 1.9, r: 0.88, rot: 0.21, grow: 0.04 }, // both slid out from its sides, tilted slightly in
     lungeThrust: { phi: 0.9, r: 0.48, rot: 0.38, grow: 0.12 }, // both thrust ahead, points meeting
     stunned: { phi: 1.85, r: 0.95, rot: 0.16, grow: 0 }, // knocked loose, hanging out from its sides
   },
-  bow: 0.08, // the root swings this far out mid-slash, arcing it
   lungeHold: 0.5, // fraction of the lunge's recovery its blades stay thrust out; the rest folds them back
   hover: { amount: 0.025, freq: 0.8 }, // idle arms bob in and out, out of step (Hz)
   readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains

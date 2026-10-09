@@ -43,14 +43,14 @@ export const ABILITIES = {
   // Mauler's swing, the Shade the hitbox.
   // Slashes: `strikes` of them, the right arm first and then each side in turn, one every
   // `strikeInterval` seconds. Each steps its `stepDistance` over `stepTime` along its aim,
-  // the arm driven from its side to ahead of the other in `swingTime`, half pierce, half
-  // slash. Between strikes it re-aims, except for the last `lockTime` before the next.
+  // the arm stabbing from its side to just past the middle ahead in `swingTime`, with a
+  // touch of slash. Between strikes it re-aims, except for the last `lockTime` before the next.
   // While winding up it keeps closing in at `advanceSpeed`, stopping `advanceStop` away.
   ShadeSlashes: {
     type: 'slashes', tell: 'slash', cooldown: 3, range: 2.8, windUpTime: 0.55, lockTime: 0.18, duration: 0.16, recoveryTime: 0.35,
     damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
     strikes: 2, strikeInterval: 0.5, advanceSpeed: 2.4, advanceStop: 1.1,
-    hitboxRadius: 0.8, hitboxForward: 0.5, swingTime: 0.11, stepDistance: [1.2, 2.2], stepTime: 0.13, parryKnockback: 15,
+    hitboxRadius: 0.8, hitboxForward: 0.5, swingTime: 0.09, stepDistance: [1.2, 2.2], stepTime: 0.13, parryKnockback: 15,
     strikeSound: 'slash', blades: 'slash',
   },
   // Lunge: both blades thrust ahead as the Shade dashes `stepDistance` in `stepTime`,

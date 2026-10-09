@@ -64,6 +64,26 @@ export const ABILITIES = {
     hitboxRadius: 0.7, hitboxForward: 0.55, swingTime: 0.08, stepDistance: 3.6, stepTime: 0.24, parryKnockback: 15,
     strikeSound: 'enemyDash', blades: 'lunge',
   },
+  // The Seer's mist balls (`look: 'mist'`, see MIST_BALL), formed `spawnDistance` ahead.
+  // Omen: a ball `chargeSize` across forms over the wind-up, then is thrown up out of sight.
+  // It comes down `flightTime` later a little way along the player's path: `leadFraction`
+  // of how far they would get by then at their current velocity (at most `maxLead`, and
+  // never past a wall), the spot marked on the floor meanwhile, and hangs there `boomTime`
+  // as a boom `boomRadius` around that can hurt from the moment it lands (mistShell.js).
+  SeerOmen: {
+    type: 'lob', tell: 'conjure', cooldown: 3.5, range: 16, windUpTime: 1.5, lockTime: 0.3, duration: 0, recoveryTime: 0.4,
+    damageMultiplier: 1.5, parryStunTime: 1.2, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
+    look: 'mist', spawnDistance: 1.2, chargeSize: 1.7,
+    flightTime: 1.5, boomTime: 0.5, boomRadius: 0.85, leadFraction: 0.4, maxLead: 2.8,
+  },
+  // Bolt: the same ball, formed the same way, hurled straight ahead, slower than the
+  // Goblin's throw.
+  SeerBolt: {
+    type: 'throw', tell: 'conjure', cooldown: 3.5, range: 16, windUpTime: 1.5, lockTime: 0.3, duration: 0, recoveryTime: 0.4,
+    damageMultiplier: 1, parryStunTime: 0.8, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
+    look: 'mist', projectileSpeed: 5.5, projectileLifetime: 5, spawnDistance: 1.2,
+    projectileSize: 1.7,
+  },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),

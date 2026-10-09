@@ -8,10 +8,11 @@
 //   zone        an area near the enemy is struck (in front of it, all around, or a beam); a
 //               parry only disarms it: it plays out harmlessly while the enemy is stunned
 //   projectile  something is thrown; a parry breaks the projectile
-import { clamp01, dist, dirTo, fromAngle, lerp } from '../engine/math.js';
+import { clamp01, clampLength, dist, dirTo, fromAngle, lerp } from '../engine/math.js';
 import { ATTACK_FX, FIXED_DT } from '../data/config.js';
 import { EnemyHitbox } from './hitbox.js';
 import { Projectile } from './projectile.js';
+import { MistShell } from './mistShell.js';
 import { DamageCause } from '../game/damage.js';
 import { ZoneView, ChargeView, BeamView } from './attackView.js';
 
@@ -527,7 +528,7 @@ class ThrowAbility extends Ability {
     const e = this.enemy, d = this.data, dir = fromAngle(e.body.rotation);
     this.world.add(new Projectile(this.world, this, e.body.pos.x + dir.x * d.spawnDistance, e.body.pos.y + dir.y * d.spawnDistance, {
       dir, speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
-      size: d.projectileSize,
+      size: d.projectileSize, look: d.look,
     }));
     this.sound('throw');
   }
@@ -540,7 +541,8 @@ class ThrowAbility extends Ability {
 
   cuePoints() { return [{ x: this.data.spawnDistance, y: 0 }]; }
 
-  // A parried projectile punishes its thrower, even mid-way through a later attack.
+  // A parried projectile punishes its thrower, even mid-way through a later attack, which
+  // the stun breaks off if it was still winding up.
   onParry() {
     const e = this.enemy;
     if (this.phase === 'stunned' || e.dead) return;
@@ -549,7 +551,37 @@ class ThrowAbility extends Ability {
     if (e.dead) return;
     e.stunned = true;
     e.isActing = false;
+    for (const a of e.abilities.values()) if (a !== this && a.phase === 'windup') a.phase = 'ready';
     this.setPhase('stunned', this.data.parryStunTime);
+  }
+}
+
+// Projectile: the ball formed over the wind-up is thrown up out of sight, to come down
+// `flightTime` later a little way along the player's path (the Seer's Omen). The ball then is a MistShell of its own, so the thrower is free once it
+// recovers; the shell flashes its own parry cue where it lands.
+class LobAbility extends ThrowAbility {
+  // Nothing can hurt as the wind-up ends, so EnemyAttackFx never cues it.
+  get armDelay() { return this.data.flightTime; }
+
+  release() {
+    const e = this.enemy, d = this.data, from = this.chargePoints(1)[0];
+    this.world.add(new MistShell(this.world, this, from, this.landingSpot(), {
+      flightTime: d.flightTime, boomTime: d.boomTime, radius: d.boomRadius, size: d.chargeSize,
+      damage: e.damage * d.damageMultiplier,
+    }));
+    this.sound('mistThrow');
+  }
+
+  // `leadFraction` of the way to where the player would be after the flight at their
+  // current velocity, at most `maxLead` ahead, and never past a wall in the way.
+  landingSpot() {
+    const p = this.player.body, d = this.data, k = d.flightTime * d.leadFraction;
+    const lead = clampLength({ x: p.vel.x * k, y: p.vel.y * k }, d.maxLead);
+    const len = Math.hypot(lead.x, lead.y);
+    if (len < 1e-3) return { x: p.pos.x, y: p.pos.y };
+    const dx = lead.x / len, dy = lead.y / len, free = this.world.physics.rayLength(p.pos.x, p.pos.y, dx, dy, len + p.radius);
+    const reach = Math.min(len, Math.max(0, free - p.radius));
+    return { x: p.pos.x + dx * reach, y: p.pos.y + dy * reach };
   }
 }
 
@@ -585,7 +617,7 @@ class MissilesAbility extends ThrowAbility {
 
 const TYPES = {
   dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, slashes: SlashesAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
-  slam: SlamAbility, throw: ThrowAbility, missiles: MissilesAbility,
+  slam: SlamAbility, throw: ThrowAbility, lob: LobAbility, missiles: MissilesAbility,
 };
 
 export function createAbility(enemy, data) {

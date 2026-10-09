@@ -5,11 +5,12 @@ import { Entity } from '../game/entity.js';
 import { Body, circleVsCircle, circleVsCapsule } from '../engine/physics.js';
 import { clamp, deltaAngle, fromAngle } from '../engine/math.js';
 import { ATTACK_FX } from '../data/config.js';
-import { ProjectileLook, renderTime } from './attackView.js';
+import { PROJECTILE_LOOKS, renderTime } from './attackView.js';
 
 export class Projectile extends Entity {
   // opts: { dir, speed, lifetime, damage, size, passesWalls = false,
-  //         turnRate = 0 (rad/s), homingDelay = 0, homingTime = Infinity (s after launch) }
+  //         turnRate = 0 (rad/s), homingDelay = 0, homingTime = Infinity (s after launch),
+  //         look = 'orb' (PROJECTILE_LOOKS) }
   constructor(world, sourceAbility, x, y, opts) {
     super(world);
     this.sourceAbility = sourceAbility;
@@ -25,7 +26,7 @@ export class Projectile extends Entity {
     this.expiresAt = world.time + opts.lifetime;
     this.body = world.physics.add(new Body({ x, y, radius: opts.size / 2, solid: false }));
     this.body.rotation = Math.atan2(opts.dir.y, opts.dir.x);
-    this.look = new ProjectileLook(world.layers.projectiles);
+    this.look = new PROJECTILE_LOOKS[opts.look ?? 'orb'](world.layers.projectiles);
     this.look.render(world.time, x, y, this.body.rotation, this.size);
     world.hostileAttacks.add(this);
   }
@@ -62,7 +63,7 @@ export class Projectile extends Entity {
     const b = this.body;
     if (!this.passesWalls && this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) {
       this.world.sound('fizzle', b.pos);
-      this.world.effects.burst(b.pos.x, b.pos.y, this.body.rotation + Math.PI, { ...ATTACK_FX.projectile.fizzle, color: ATTACK_FX.color });
+      this.world.effects.burst(b.pos.x, b.pos.y, this.body.rotation + Math.PI, { ...ATTACK_FX.projectile.fizzle, color: this.look.color });
       this.destroy();
       return;
     }
@@ -77,7 +78,7 @@ export class Projectile extends Entity {
 
   render(alpha) {
     const p = this.body.lerpPos(alpha), now = renderTime(this.world, alpha);
-    const trail = Math.min(ATTACK_FX.projectile.trailLength, Math.max(0, now - this.spawnedAt) * this.speed);
+    const trail = Math.min(this.look.maxTrail, Math.max(0, now - this.spawnedAt) * this.speed);
     this.look.render(now, p.x, p.y, this.body.rotation, this.size, { trailLength: trail });
   }
 

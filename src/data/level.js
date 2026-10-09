@@ -28,6 +28,7 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'striker', weight: 1, fromFloor: 1 },
       { type: 'mauler', weight: 0.6, fromFloor: 2 },
       { type: 'shade', weight: 0.7, fromFloor: 3 },
+      { type: 'seer', weight: 0.7, fromFloor: 2 },
     ],
     minEnemiesPerRoom: 3,
     maxEnemiesPerRoom: 6,

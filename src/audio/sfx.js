@@ -198,6 +198,16 @@ const SOUNDS = {
   fizzle(v) {
     noise(v, { filter: 'highpass', freq: 2000, to: 800, dur: 0.1, vol: 0.12 });
   },
+  // the Seer
+  mistThrow(v) { // a ball of mist flung up out of sight
+    noise(v, { freq: 300, to: 2600, q: 0.8, dur: 0.4, vol: 0.26, attack: 0.03 });
+    tone(v, { type: 'triangle', freq: 180, to: 520, dur: 0.3, vol: 0.08 });
+  },
+  mistBoom(v) { // and coming down
+    tone(v, { freq: 120, to: 38, dur: 0.5, vol: 0.45 });
+    noise(v, { filter: 'lowpass', freq: 1400, to: 120, dur: 0.5, vol: 0.45, attack: 0.01 });
+    noise(v, { freq: 900, to: 300, q: 1.4, dur: 0.35, vol: 0.12, attack: 0.02 });
+  },
   // the Seraph
   boost(v) { // a jet lighting up for the ram
     noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });

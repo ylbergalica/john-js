@@ -36,6 +36,8 @@ export function sprites() {
     shade_idle: shadeOutline(),
     shade_idle_void: voidFill(shadePath(), VOIDS.shade),
     shade_blade: shadeBlade(),
+    seer_idle: seerOutline(),
+    seer_idle_void: voidFill(seerPath(), VOIDS.seer, 'evenodd'),
     tail: tail(),
     dash_ghost: dashGhost(),
     spark: spark(),
@@ -620,6 +622,7 @@ const VOIDS = {
   seraph: { core: '#221547', edge: '#06040f', clouds: [['#8a63ff', 0.24], ['#3fa8ff', 0.14]], seed: 41 },
   mauler: { core: '#2b1709', edge: '#070403', clouds: [['#a8501c', 0.24], ['#6b2a10', 0.2]], seed: 43 },
   shade: { core: '#1d1e22', edge: '#050506', clouds: [['#5a5f6a', 0.2], ['#33363e', 0.22]], seed: 47 },
+  seer: { core: '#0b1645', edge: '#03040f', clouds: [['#2d4fd8', 0.24], ['#16288a', 0.22]], seed: 53 },
 };
 // The Mauler's body: a square with heavily rounded corners ([x, y, size, corner radius]).
 const MAULER = { body: [0.14, 0.14, 0.72, 0.27], line: 0.045 };
@@ -648,6 +651,11 @@ export function bladeAt(along) {
   const R = BLADE_ART.bend, a = along / R;
   return { x: R * Math.sin(a), y: -R * (1 - Math.cos(a)) };
 }
+// The Seer's body: a circle with a half-circle gulf of radius `gulf` cut into its front
+// (centred on the rim), and behind it to either side a round hole of radius `hole` through
+// the body, centred at `holes` (the other mirrored), the three set in a V.
+const SEER = { r: 0.33, line: 0.045, gulf: 0.13, hole: 0.072, holes: [0.565, 0.34] };
+const SEER_PALETTE = { stroke: ['#9fb4ff', '#3c5ee0', '#1b2f8f'], glow: rgba('#2f55ff', 0.7) };
 // The Seraph's hull, nose to the right: [x, y] for the top half, mirrored below.
 // Nose, wingtip, trailing edge, engine nozzle (outer, inner), tail notch.
 const SERAPH_HULL = [[0.9, 0.5], [0.15, 0.18], [0.27, 0.3], [0.17, 0.35], [0.2, 0.43], [0.33, 0.5]];
@@ -693,6 +701,24 @@ function shadePath() {
   p.arc(0.5, 0.5, r, -back[0][0] * DEG, back[0][0] * DEG);
   for (const [a, rad] of [...right.slice(1), ...left]) p.lineTo(...polar(0.5, 0.5, a, rad));
   p.closePath();
+  return p;
+}
+
+// The holes need the even-odd rule to fill.
+function seerPath() {
+  const { r, gulf, hole, holes: [hx, hy] } = SEER;
+  // Where the gulf meets the rim: the angle round the body, and round the gulf's centre.
+  const body = Math.acos(1 - (gulf * gulf) / (2 * r * r));
+  const cut = Math.atan2(-Math.sin(body), Math.cos(body) - 1);
+  const p = new Path2D();
+  p.arc(0.5, 0.5, r, body, TAU - body);
+  p.arc(0.5 + r, 0.5, gulf, cut, -cut, true);
+  p.closePath();
+  for (const y of [hy, 1 - hy]) {
+    p.moveTo(hx + hole, y);
+    p.arc(hx, y, hole, 0, TAU);
+    p.closePath();
+  }
   return p;
 }
 
@@ -781,6 +807,13 @@ function shadeOutline(S = 256) {
   });
 }
 
+function seerOutline(S = 256) {
+  return outline(S, SEER_PALETTE, (ctx) => {
+    ctx.lineWidth = SEER.line;
+    ctx.stroke(seerPath());
+  });
+}
+
 // One arm: a crescent blade, widest a little before the middle, its outer edge stepping
 // out to a single barb that points toward the tip.
 function shadeBlade() {
@@ -848,11 +881,12 @@ function starMaul() {
 }
 
 // The enemy's body: a dark nebula (the twinkling star field is laid over it at runtime).
-function voidFill(path, { core, edge, clouds, seed }, S = 256) {
+// `rule`: the fill rule, 'evenodd' for a body with holes through it.
+function voidFill(path, { core, edge, clouds, seed }, rule = 'nonzero', S = 256) {
   const { c, ctx } = surface(S);
   const rand = seededRandom(seed);
   ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.42, [core, edge], 0.4, 0.38);
-  ctx.fill(path);
+  ctx.fill(path, rule);
   ctx.globalCompositeOperation = 'source-atop';
   for (let i = 0; i < 5; i++) {
     const [color, a] = clouds[i % clouds.length];

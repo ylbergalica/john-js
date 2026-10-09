@@ -8,8 +8,10 @@
 //   BeamView       per laser: the charge gathering at the muzzle, then the beam out to the
 //                  wall, humming while it burns.
 //   ProjectileLook a glowing orb with a comet trail, shared by projectiles and ChargeView.
+//   MistBallLook   the same for the Seer's balls of blue mist.
+//   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite } from 'pixi.js';
-import { ATTACK_FX, FIXED_DT } from '../data/config.js';
+import { ATTACK_FX, FIXED_DT, MIST_BALL as M } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -153,40 +155,13 @@ export class EnemyAttackFx {
     for (const a of this.enemy.abilities.values()) if (!cued || a.cueAt > cued.cueAt) cued = a;
     const k = cued ? (now - cued.cueAt) / C.time : -1;
     const points = visible && k >= 0 && k < 1 ? cued.cuePoints().map((p) => this.toWorld(p)) : [];
-    const fx = this.enemy.world.layers.fx;
-    while (this.cues.length < points.length) {
-      this.cues.push({
-        halo: sprite(tex.mist, fx, { blendMode: 'add', tint: C.haloColor }),
-        ring: sprite(tex.ring, fx, { blendMode: 'add', tint: C.color }),
-        star: sprite(tex.glint, fx, { blendMode: 'add', tint: C.color }),
-        core: sprite(tex.glint, fx, { blendMode: 'add', tint: C.coreColor }),
-      });
-    }
+    while (this.cues.length < points.length) this.cues.push(new CueFlash(this.enemy.world));
     if (points.length && cued.cueAt !== this.sparkedCueAt) {
       this.sparkedCueAt = cued.cueAt;
-      for (const p of points) this.enemy.world.effects.burst(p.x, p.y, 0, C.sparks);
+      for (const cue of this.cues) cue.sparked = false;
     }
-    const s = k < C.rise ? easeOut(k / C.rise) : 1 - smoothStep01((k - C.rise) / (1 - C.rise));
-    const scale = Math.sqrt(this.radius / 0.5), size = scale * s;
-    const R = lerp(C.ring.from, C.ring.to, easeOut(k)) * scale;
-    this.cues.forEach((cue, i) => {
-      const p = points[i], { halo, ring } = cue;
-      for (const sp of Object.values(cue)) sp.visible = !!p;
-      if (!p) return;
-      halo.position.set(p.x, p.y);
-      halo.width = halo.height = C.haloSize * size;
-      halo.alpha = C.haloAlpha * s;
-      ring.position.set(p.x, p.y);
-      ring.width = ring.height = R / RING_RADIUS;
-      ring.alpha = C.ring.alpha * (1 - k);
-      // The star and its core: one shape at two sizes.
-      for (const [sp, part] of [[cue.star, 1], [cue.core, C.core]]) {
-        sp.position.set(p.x, p.y);
-        sp.rotation = C.spin * k;
-        sp.width = C.size * C.stretch * size * part;
-        sp.height = C.size * size * part;
-      }
-    });
+    const scale = Math.sqrt(this.radius / 0.5);
+    this.cues.forEach((cue, i) => cue.render(points[i] ?? null, k, scale));
   }
 
   // Draws a tell in the enemy's frame (+x forward). `t`: wind-up progress, the tell tightening
@@ -269,8 +244,52 @@ export class EnemyAttackFx {
   destroy() {
     this.tell.destroy();
     for (const { sprite: s } of this.afterimages) s.destroy();
-    for (const cue of this.cues) for (const sp of Object.values(cue)) sp.destroy();
+    for (const cue of this.cues) cue.destroy();
   }
+}
+
+// One parry cue star at a world point (see ATTACK_FX.cue), throwing its sparks the first
+// frame it shows (again once `sparked` is reset).
+export class CueFlash {
+  constructor(world) {
+    this.world = world;
+    const fx = world.layers.fx;
+    this.sprites = {
+      halo: sprite(tex.mist, fx, { blendMode: 'add', tint: C.haloColor }),
+      ring: sprite(tex.ring, fx, { blendMode: 'add', tint: C.color }),
+      star: sprite(tex.glint, fx, { blendMode: 'add', tint: C.color }),
+      core: sprite(tex.glint, fx, { blendMode: 'add', tint: C.coreColor }),
+    };
+    this.sparked = false;
+  }
+
+  // `p`: where, or null to hide; `k`: 0 → 1 through the cue's time; `scale`: its size.
+  render(p, k, scale) {
+    const { halo, ring, star, core } = this.sprites, on = !!p && k >= 0 && k < 1;
+    for (const sp of Object.values(this.sprites)) sp.visible = on;
+    if (!on) return;
+    if (!this.sparked) {
+      this.sparked = true;
+      this.world.effects.burst(p.x, p.y, 0, C.sparks);
+    }
+    const s = k < C.rise ? easeOut(k / C.rise) : 1 - smoothStep01((k - C.rise) / (1 - C.rise));
+    const size = scale * s, R = lerp(C.ring.from, C.ring.to, easeOut(k)) * scale;
+    halo.position.set(p.x, p.y);
+    halo.width = halo.height = C.haloSize * size;
+    halo.alpha = C.haloAlpha * s;
+    ring.position.set(p.x, p.y);
+    ring.width = ring.height = R / RING_RADIUS;
+    ring.alpha = C.ring.alpha * (1 - k);
+    // The star and its core: one shape at two sizes.
+    for (const [sp, part] of [[star, 1], [core, C.core]]) {
+      sp.position.set(p.x, p.y);
+      sp.rotation = C.spin * k;
+      sp.width = C.size * C.stretch * size * part;
+      sp.height = C.size * size * part;
+    }
+  }
+
+  destroy() { for (const sp of Object.values(this.sprites)) sp.destroy(); }
 }
 
 
@@ -376,21 +395,22 @@ export class ZoneView {
 }
 
 // A throw: each projectile's orb grows over the wind-up exactly where it will be released
-// (the ability's chargePoints).
+// (the ability's chargePoints), to `chargeSize` if given, else the projectile's size.
 export class ChargeView {
   constructor(ability) {
     this.ability = ability;
+    this.Look = PROJECTILE_LOOKS[ability.data.look ?? 'orb'];
     this.looks = []; // one per charge point, created as needed
   }
 
   strike() {}
 
   render(now, alpha) {
-    const a = this.ability;
+    const a = this.ability, d = a.data;
     const points = a.phase === 'windup' && a.player ? a.chargePoints(alpha) : [];
-    while (this.looks.length < points.length) this.looks.push(new ProjectileLook(a.world.layers.projectiles, { trail: false }));
+    while (this.looks.length < points.length) this.looks.push(new this.Look(a.world.layers.projectiles, { trail: false }));
     const t = progress(a, now);
-    const size = a.data.projectileSize * lerp(X.projectile.chargeFrom, 1, t);
+    const size = (d.chargeSize ?? d.projectileSize) * lerp(X.projectile.chargeFrom, 1, t);
     const glow = clamp01((now - a.phaseStartedAt) / FADE_IN) * lerp(0.4, 1, t);
     this.looks.forEach((look, i) => {
       const pt = points[i];
@@ -478,7 +498,11 @@ export class BeamView {
 }
 
 // A hostile orb: a pulsing glow around a white-hot core, with a comet trail behind it.
+// `color`: what it bursts into when it breaks; `maxTrail`: how long its trail grows.
 export class ProjectileLook {
+  get color() { return X.color; }
+  get maxTrail() { return X.projectile.trailLength; }
+
   constructor(parent, { trail = true } = {}) {
     this.container = new Container();
     this.glow = sprite(tex.mist, this.container, { blendMode: 'add' });
@@ -506,3 +530,53 @@ export class ProjectileLook {
 
   destroy() { this.container.destroy({ children: true }); }
 }
+
+// A Seer's ball of mist (MIST_BALL): a dark heart wrapped in glowing blue mist that swirls
+// around it, with a faint glimmer at the centre and, once hurled, a trail. Drawn like
+// ProjectileLook; `alpha` fades the whole ball.
+export class MistBallLook {
+  get color() { return M.color; }
+  get maxTrail() { return M.trail; }
+
+  constructor(parent, { trail = true } = {}) {
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: M.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: M.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: M.deep });
+    this.puffs = Array.from({ length: M.puffs.count }, (_, i) => sprite(tex.mist, this.container, { blendMode: 'add', tint: i % 2 ? M.bright : M.color }));
+    this.heart = sprite(tex.mist, this.container, { blendMode: 'add', tint: M.bright });
+    for (const s of this.container.children) s.visible = true;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0, alpha = 1 } = {}) {
+    const P = M.puffs, pulse = 0.5 + 0.5 * Math.sin(now * M.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.container.alpha = alpha;
+    this.halo.width = this.halo.height = size * M.halo.size * lerp(0.92, 1.08, pulse);
+    this.halo.alpha = M.halo.alpha * glow;
+    this.core.width = this.core.height = size * M.core.size * ORB_PAD;
+    this.core.alpha = M.core.alpha;
+    // Every other puff circles the other way, each swelling and fading out of step.
+    this.puffs.forEach((s, i) => {
+      const a = now * P.spin * (i % 2 ? -1 : 1) + (TAU * i) / P.count, wobble = 0.5 + 0.5 * Math.sin(now * 2.3 + i * 1.7);
+      s.position.set(Math.cos(a) * P.orbit * size, Math.sin(a) * P.orbit * size);
+      s.rotation = a;
+      s.width = s.height = size * P.size * lerp(0.85, 1.15, wobble);
+      s.alpha = P.alpha * glow * lerp(0.6, 1, wobble);
+    });
+    this.heart.width = this.heart.height = size * M.heart.size * lerp(0.8, 1.2, pulse);
+    this.heart.alpha = M.heart.alpha * glow;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * M.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+// Projectile looks by an ability's `look`.
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook };

@@ -25,7 +25,7 @@ export async function loadAssets() {
 
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
 }

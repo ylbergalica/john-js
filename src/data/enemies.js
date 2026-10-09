@@ -51,6 +51,18 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.5, moveSpeed: 3.2, orbitSpeed: 2.6, repositionSpeed: 2.6, maxTurnSpeed: 4.5,
       attacks: [{ ability: 'ShadeSlashes', weight: 0.6 }, { ability: 'ShadeLunge', weight: 0.4 }] },
   },
+  // A dark blue caster, a half-circle gulf cut into its front and a round hole through it
+  // to either side behind. It sees far, keeps its distance and conjures balls of mist bigger
+  // than itself: one it throws up out of sight to come down where the player is heading,
+  // the other it hurls straight at them.
+  seer: {
+    name: 'Seer', maxHealth: 9, damage: 1.3, radius: 0.47, mass: 3, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3d63ff, sfxPitch: 0.9,
+    visual: { kind: 'sprite', outline: 'seer_idle', void: 'seer_idle_void', size: 1.45, sparkleCount: 20 },
+    ai: { ...AI_DEFAULTS, aggroRange: 22, orbitRadius: 6.5, moveSpeed: 2.6, orbitSpeed: 2.4, repositionSpeed: 2.4, maxTurnSpeed: 3.5,
+      attacks: [{ ability: 'SeerOmen', weight: 0.5 }, { ability: 'SeerBolt', weight: 0.5 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 500, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

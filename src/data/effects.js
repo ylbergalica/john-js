@@ -110,6 +110,7 @@ export const ATTACK_FX = {
     slash: { shape: 'none', lean: 0.1, squash: 0, swell: 0.03 },
     lunge: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.3, squash: 0.12, swell: 0.04 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
+    conjure: { shape: 'none', lean: 0.1, squash: 0, swell: 0.06 },
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -156,6 +157,33 @@ export const ATTACK_FX = {
   },
   // A charge crashing into a wall.
   crash: { count: 14, speed: 9, lifetime: 0.4, size: 0.4, coneDeg: 70 },
+};
+
+// The Seer's mist balls (MistBallLook in src/enemies/attackView.js): a dark blue heart in
+// swirling blue mist, glowing so it reads on the dark floor. Sizes × the ball's size,
+// except `trail` (world units). It forms over a wind-up like any thrown orb and, hurled,
+// flies with a trail. The Omen's ball (src/enemies/mistShell.js) instead dissolves upward
+// as it is thrown (`launch`: it grows by `grow` and fades over `time`), and while it is
+// gone its landing spot is marked on the floor (`marker`): a ring the size of the boom,
+// filling from the centre out to meet the ring as it lands,
+// pulsing faster (`pulse`, Hz at the start and end). It lands with a pop (`boom`), holds
+// at the size it was thrown while it hurts, then puffs away over `fadeTime`.
+export const MIST_BALL = {
+  color: 0x2f55ff, deep: 0x0a1446, bright: 0x9db4ff,
+  halo: { size: 2.4, alpha: 0.6 },
+  puffs: { count: 5, size: 0.8, orbit: 0.2, spin: 1.4, alpha: 0.55 },
+  core: { size: 0.78, alpha: 0.85 },
+  heart: { size: 0.3, alpha: 0.75 },
+  pulseSpeed: 3,
+  trail: 1.4, trailWidth: 0.9,
+  fizzle: { count: 12, speed: 4, lifetime: 0.35, size: 0.28, coneDeg: 180 },
+  launch: { time: 0.25, grow: 0.6, sparks: { count: 12, speed: 5, lifetime: 0.35, size: 0.28, coneDeg: 180 } },
+  marker: { lineWidth: 0.06, ringAlpha: 0.75, fillAlpha: 0.3, pulse: [2, 8] },
+  boom: {
+    pop: 0.3, popTime: 0.12, fadeTime: 0.3, fadeGrow: 0.35, burnAlpha: 0.25, flicker: 0.06,
+    sparks: { count: 26, speed: 8, lifetime: 0.4, size: 0.4, coneDeg: 180 },
+    shake: { duration: 0.18, strength: 0.18, frequency: 22 },
+  },
 };
 
 // The Mauler's star-maul (src/enemies/maulerRig.js). Poses place it in the Mauler's frame

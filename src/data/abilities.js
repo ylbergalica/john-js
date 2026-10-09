@@ -46,11 +46,13 @@ export const ABILITIES = {
   // the arm stabbing from its side to just past the middle ahead in `swingTime`, with a
   // touch of slash. Between strikes it re-aims, except for the last `lockTime` before the next.
   // While winding up it keeps closing in at `advanceSpeed`, stopping `advanceStop` away.
+  // Each stab's arm stays locked out a while (BLADES.stab); the recovery lasts until the
+  // last one is back (swingTime + hold + fold, less `duration`).
   ShadeSlashes: {
-    type: 'slashes', tell: 'slash', cooldown: 3, range: 2.8, windUpTime: 0.55, lockTime: 0.18, duration: 0.16, recoveryTime: 0.35,
+    type: 'slashes', tell: 'slash', cooldown: 3, range: 3, windUpTime: 0.55, lockTime: 0.18, duration: 0.16, recoveryTime: 0.58,
     damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
     strikes: 2, strikeInterval: 0.5, advanceSpeed: 2.4, advanceStop: 1.1,
-    hitboxRadius: 0.8, hitboxForward: 0.5, swingTime: 0.09, stepDistance: [1.2, 2.2], stepTime: 0.13, parryKnockback: 15,
+    hitboxRadius: 0.85, hitboxForward: 0.7, swingTime: 0.09, stepDistance: [1.2, 2.2], stepTime: 0.13, parryKnockback: 15,
     strikeSound: 'slash', blades: 'slash',
   },
   // Lunge: both blades thrust ahead as the Shade dashes `stepDistance` in `stepTime`,

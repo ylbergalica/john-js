@@ -2,8 +2,9 @@
 // attacks' phases (tuning in BLADES). At rest they hang folded, bobbing in and out and
 // swaying with its stride. They move like machinery: readying an attack, or stunned, an
 // arm slides straight out from the body and judders there. For each slash one slides out
-// and stabs to just past the middle ahead, stopping dead (the other stays folded, and
-// each pulls back before the next); for the lunge both slide out
+// and stabs to just past the middle ahead, then locks there, fixed in the world, while the
+// other readies and stabs, its step carrying the body up to it, before snapping back to
+// rest (the last one locks too, then resets); for the lunge both slide out
 // and thrust ahead, held there after the dash and folded back as it recovers. A smear trails
 // each striking blade, and they share the Shade's wind-up tint, hit flash and death pop.
 // Purely cosmetic.
@@ -46,6 +47,10 @@ export class ShadeRig {
     this.motionAt = 0;
     this.strike = null; // the latest strike: { ability, from, sides }
     this.gait = 0; // radians through the stride cycle
+    // Per blade, an arm locked where its stab landed: { x, y, rot, grow } in the world, held
+    // until `until`, then folding back from where it was released (`released`).
+    this.locked = [null, null];
+    this.stabAt = -Infinity; // the strike whose stab last locked an arm
   }
 
   bladeSprite(texture, parent) {
@@ -77,6 +82,7 @@ export class ShadeRig {
     else if (ability) this.poses = this.strikePoses(this.strike, now - ability.strikeAt, now);
     else if (folding) this.poses = this.foldBack(folding, now);
     else this.poses = this.settle(now, (i) => this.idle(now, walk, SIDES[i]));
+    this.lock(now);
     this.place();
 
     const t = e.attackFx.tint;
@@ -141,6 +147,44 @@ export class ShadeRig {
   foldBack(a, now) {
     const k = smoothStep01(clamp01((progress(a, now) - BLADES.lungeHold) / (1 - BLADES.lungeHold)));
     return this.from.map((p, i) => mix(p, this.idle(now, 0, SIDES[i]), k));
+  }
+
+  // A stab that has landed locks its arm where it is in the world for `stab.hold`, the
+  // body moving on beneath it, then the arm snaps back over `stab.fold` to wherever it
+  // would be by then. A stun lets go at once.
+  lock(now) {
+    const S = BLADES.stab, a = this.strike?.ability;
+    if (this.enemy.stunned) this.locked = [null, null];
+    else if (a?.data.blades === 'slash' && a.strikeAt !== this.stabAt && now - a.strikeAt >= a.data.swingTime) {
+      this.stabAt = a.strikeAt;
+      for (const side of this.strike.sides) {
+        const i = SIDES.indexOf(side);
+        this.locked[i] = { ...this.toWorld(this.poses[i], side), until: a.strikeAt + a.data.swingTime + S.hold, released: null };
+      }
+    }
+    this.locked.forEach((l, i) => {
+      if (!l) return;
+      const held = this.fromWorld(l, SIDES[i]);
+      if (now < l.until) { this.poses[i] = held; return; }
+      l.released ??= held;
+      const k = (now - l.until) / S.fold;
+      if (k >= 1) this.locked[i] = null;
+      else this.poses[i] = mix(l.released, this.poses[i], smoothStep01(k));
+    });
+  }
+
+  // A blade's pose in the Shade's frame → its root and heading in the world, through the
+  // view as last placed; and back.
+  toWorld(pose, side) {
+    const v = this.enemy.view, root = this.enemy.attackFx.toWorld({ x: Math.cos(pose.phi * side) * pose.r, y: Math.sin(pose.phi * side) * pose.r });
+    return { x: root.x, y: root.y, rot: v.rotation + pose.rot * side, grow: pose.grow };
+  }
+
+  fromWorld({ x, y, rot, grow }, side) {
+    const v = this.enemy.view, c = Math.cos(-v.rotation), s = Math.sin(-v.rotation);
+    const dx = x - v.position.x, dy = y - v.position.y;
+    const lx = (c * dx - s * dy) / v.scale.x, ly = (s * dx + c * dy) / v.scale.y, turn = rot - v.rotation;
+    return { phi: Math.atan2(ly, lx) * side, r: Math.hypot(lx, ly), rot: Math.atan2(Math.sin(turn), Math.cos(turn)) * side, grow };
   }
 
   place() {

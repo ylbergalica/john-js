@@ -200,19 +200,22 @@ export const MAUL = {
 // at the blade's bend (BLADE_ART.bend) it hugs the body's curve. The left arm mirrors them.
 // Angles in radians. The arms move like machinery, not limbs: readying an attack or
 // stunned, they slide straight out from the body, tilting only slightly inward. A slash is
-// a stab from the arm's place at the side to just past the middle ahead, turning a little
-// as it goes, and it stops dead there. How long a strike takes comes from the ability
-// (swingTime).
+// a stab from the arm's place at the side to well out past the middle ahead, turning a
+// little as it goes; the arm then locks there (`stab`). How long a strike takes comes from
+// the ability (swingTime).
 export const BLADES = {
   poses: {
     idle: { phi: 1.8, r: 0.68, rot: 0.23, grow: 0 }, // folded round its side, points ahead
     guard: { phi: 1.9, r: 0.69, rot: 0.33, grow: 0 }, // the arm not striking, kept folded
     slashReady: { phi: 1.95, r: 0.92, rot: 0.26, grow: 0.06 }, // slid out from its side, tilted slightly in
-    slashThrough: { phi: 0.9, r: 0.77, rot: -0.1, grow: 0.1 }, // stabbed ahead, the point just past the middle
+    slashThrough: { phi: 0.64, r: 1.05, rot: -0.1, grow: 0.15 }, // stabbed far ahead, the point past the middle
     lungeReady: { phi: 1.9, r: 0.88, rot: 0.21, grow: 0.04 }, // both slid out from its sides, tilted slightly in
     lungeThrust: { phi: 0.9, r: 0.48, rot: 0.38, grow: 0.12 }, // both thrust ahead, points meeting
     stunned: { phi: 1.85, r: 0.95, rot: 0.16, grow: 0 }, // knocked loose, hanging out from its sides
   },
+  // A landed stab's arm stays locked in place in the world for `hold` seconds, then snaps
+  // back to rest over `fold`. ShadeSlashes' recovery is timed to end as the last one does.
+  stab: { hold: 0.5, fold: 0.15 },
   lungeHold: 0.5, // fraction of the lunge's recovery its blades stay thrust out; the rest folds them back
   hover: { amount: 0.025, freq: 0.8 }, // idle arms bob in and out, out of step (Hz)
   readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains

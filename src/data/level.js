@@ -21,11 +21,13 @@ export const BASE_LEVEL_CONFIG = {
   edgeRoughness: 0.3,
   roomBusyness: 0.5,
   wallSizeRange: { x: 4, y: 7 },
-  // `fromFloor`: the first floor an enemy (or guardian) type can spawn on.
+  // `fromFloor` / `toFloor`: the first and last floor an enemy (or guardian) type can spawn
+  // on (both optional). `weight` is a number, or { min, max } to rise linearly from min on
+  // fromFloor to max on toFloor (stays at min without a toFloor).
   enemySpawn: {
     enemies: [
-      { type: 'goblin', weight: 1, fromFloor: 1 },
-      { type: 'striker', weight: 1, fromFloor: 1 },
+      { type: 'goblin', weight: { min: 1, max: 1.4 }, fromFloor: 1, toFloor: 20 },
+      { type: 'striker', weight: { min: 1, max: 1.4 }, fromFloor: 1, toFloor: 30 },
       { type: 'mauler', weight: 0.6, fromFloor: 2 },
       { type: 'shade', weight: 0.7, fromFloor: 3 },
       { type: 'seer', weight: 0.7, fromFloor: 2 },

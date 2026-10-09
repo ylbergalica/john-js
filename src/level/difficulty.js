@@ -4,10 +4,9 @@ export function scaleConfig(base, floor) {
   const F = Math.floor;
   const es = s.enemySpawn;
 
-  // Types are introduced floor by floor.
-  const introduced = (e) => (e.fromFloor ?? 1) <= floor;
-  es.enemies = es.enemies.filter(introduced);
-  s.chasers = s.chasers.filter(introduced);
+  // Types come and go floor by floor, their weight resolved for this floor.
+  es.enemies = spawnableOn(es.enemies, floor);
+  s.chasers = spawnableOn(s.chasers, floor);
 
   const enemyBonus = F(floor * 0.4);
   es.minEnemiesPerRoom = Math.min(es.minEnemiesPerRoom + enemyBonus, 10);
@@ -41,4 +40,18 @@ export function scaleConfig(base, floor) {
   s.extraCorridorChance = Math.max(0.2, s.extraCorridorChance - late);
   s.corridorObstacleChance = Math.min(s.corridorObstacleChance + late, 0.7);
   return s;
+}
+
+// Keeps the entries within [fromFloor, toFloor] and turns a { min, max } weight into a
+// number, rising linearly from min on fromFloor to max on toFloor (min if open-ended).
+function spawnableOn(entries, floor) {
+  return entries
+    .filter((e) => (e.fromFloor ?? 1) <= floor && floor <= (e.toFloor ?? Infinity))
+    .map((e) => {
+      if (typeof e.weight === 'number') return e;
+      const from = e.fromFloor ?? 1;
+      const span = (e.toFloor ?? Infinity) - from;
+      const t = span > 0 && span < Infinity ? (floor - from) / span : 0;
+      return { ...e, weight: e.weight.min + (e.weight.max - e.weight.min) * t };
+    });
 }

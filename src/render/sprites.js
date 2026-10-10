@@ -902,14 +902,14 @@ function voidFill(path, { core, edge, clouds, seed }, rule = 'nonzero', S = 256)
 
 // ---------------------------------------------------------------- player & pickups
 
-// Tail followers: white ring around a black core with a hint of indigo, like the body.
+// Tail followers: white ring around a black core, like the body.
 function tail(S = 128) {
   const { c, ctx, px } = surface(S);
   ctx.beginPath();
   ctx.arc(0.5, 0.5, 0.45, 0, TAU);
-  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.45, ['#16163a', '#05050d', '#000000'], 0.4, 0.38);
+  ctx.fillStyle = '#000000';
   ctx.fill();
-  glow(ctx, rgba('#c8d2ff', 0.85), px * 0.04, () => {
+  glow(ctx, rgba('#ffffff', 0.85), px * 0.04, () => {
     ctx.lineWidth = 0.06;
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();

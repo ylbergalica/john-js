@@ -8,6 +8,7 @@ import { Hud } from '../ui/hud.js';
 import { RunSummary } from '../ui/runSummary.js';
 import { DevOverlay } from '../ui/devOverlay.js';
 import { DevMenu } from '../ui/devMenu.js';
+import { devFlags } from './devFlags.js';
 import { SpawnMenu } from '../ui/spawnMenu.js';
 import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
@@ -54,6 +55,7 @@ export class GameScene {
     if (this.summary) {
       this.summary.update(dt);
     } else if (!this.frozen) {
+      if (DEV) dt *= devFlags.gameSpeed;
       this.accumulator += dt;
       let steps = 0;
       while (this.accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {

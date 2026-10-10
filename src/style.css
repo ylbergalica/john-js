@@ -250,6 +250,8 @@ kbd {
 .tool kbd { min-width: 18px; padding: 1px 4px 0; }
 .tool .check { width: 12px; height: 12px; flex: none; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 3px; transition: background 0.1s, box-shadow 0.1s; }
 .tool.on .check { background: #ffd76a; border-color: #ffd76a; box-shadow: 0 0 6px rgba(255, 215, 106, 0.7); }
+.tool-slider input[type=range] { display: block; width: calc(100% - 16px); margin: 2px 8px 4px; accent-color: #ffd76a; cursor: pointer; }
+.tool .speed-value { font-family: Consolas, 'Courier New', monospace; font-size: 12px; color: #ffd76a; }
 /* Spawn menu: enemy portraits, mobs in a row of four, guardians larger and gold-framed. */
 .spawn-grid { display: grid; gap: 6px; padding: 2px 4px; }
 .spawn-grid.mobs { grid-template-columns: repeat(4, 1fr); }

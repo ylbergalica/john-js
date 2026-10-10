@@ -35,11 +35,21 @@ export class DevMenu {
         h('span', { class: 'check' }), h('span', { class: 'grow', text: s.label }), s.key ? keycap(s.key.slice(3)) : null);
       return { s, b };
     });
+    // Game speed: 0–1×, 0 freezes the world. Clicking the label snaps it back to 1×.
+    this.speedValue = h('span', { class: 'speed-value' });
+    this.speedSlider = h('input', { type: 'range', min: 0, max: 1, step: 0.05,
+      oninput: () => this.setSpeed(Number(this.speedSlider.value)) });
+    const speed = h('div', { class: 'tool-slider' },
+      h('button', { class: 'tool', title: 'Reset to 1×', onclick: () => this.setSpeed(1) },
+        h('span', { class: 'grow', text: 'Game speed' }), this.speedValue),
+      this.speedSlider);
     this.el = h('div', { class: 'tool-menu dev interactive hidden' },
       h('div', { class: 'tool-head' }, h('span', { text: 'Dev tools' }), keycap('`')),
       h('div', { class: 'tool-group' }, actions),
       h('div', { class: 'tool-rule' }),
       h('div', { class: 'tool-group' }, this.switches.map(({ b }) => b)),
+      h('div', { class: 'tool-rule' }),
+      speed,
     );
     this.badge = h('div', { class: 'tool-hint dev-badge' });
     corner.prepend(this.badge, this.el);
@@ -68,9 +78,19 @@ export class DevMenu {
     this.sync();
   }
 
+  setSpeed(speed) {
+    setDevFlag('gameSpeed', speed);
+    this.sync();
+  }
+
   sync() {
     for (const { s, b } of this.switches) b.classList.toggle('on', devFlags[s.flag]);
+    const speed = devFlags.gameSpeed;
+    const speedText = speed === 0 ? 'frozen' : `${speed}×`;
+    this.speedSlider.value = speed;
+    this.speedValue.textContent = speedText;
     const on = SWITCHES.filter((s) => s.badge && devFlags[s.flag]).map((s) => s.badge);
+    if (speed !== 1) on.push(speed === 0 ? 'frozen' : `speed ${speedText}`);
     this.badge.textContent = on.length ? `dev: ${on.join(' · ')}` : '';
     this.badge.classList.toggle('hidden', !on.length);
   }

@@ -60,7 +60,7 @@ export class Enemy extends Entity {
       this.view.addChild(this.voidSprite, this.stars.container, this.outline);
       this.silhouette = { texture: tex[`${v.outline}_white`], width: v.size, height: v.size };
     } else {
-      const hex = new Sprite(tex.hexFlat);
+      const hex = this.hex = new Sprite(tex.hexFlat);
       hex.anchor.set(0.5);
       hex.width = v.width; hex.height = v.height;
       hex.tint = v.color;
@@ -166,9 +166,14 @@ export class Enemy extends Entity {
 
   // Hit flash: swap to white silhouettes (no filter pass).
   setFlash(on) {
-    if (on === this.flashing || !this.voidSprite) return;
+    if (on === this.flashing) return;
     this.flashing = on;
     const v = this.type.visual;
+    if (this.hex) {
+      this.hex.texture = on ? tex.hexFlat_white : tex.hexFlat;
+      this.hex.tint = on ? 0xffffff : v.color;
+      return;
+    }
     this.voidSprite.texture = tex[on ? `${v.void}_white` : v.void];
     this.outline.texture = tex[on ? `${v.outline}_white` : v.outline];
     this.stars.container.visible = !on;

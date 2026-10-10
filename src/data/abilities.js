@@ -101,7 +101,7 @@ export const ABILITIES = {
     hitboxSize: 2.2, forwardOffset: 1.6, stepForce: 550,
   },
   WardenSlam: {
-    type: 'slam', tell: 'slam', cooldown: 3, range: 4, windUpTime: 1, duration: 1, recoveryTime: 1,
+    type: 'slam', tell: 'slam', cooldown: 3, range: 4, windUpTime: 1, lockTime: 0.2, duration: 1, recoveryTime: 1,
     damageMultiplier: 1.2, parryStunTime: 0.5, ...clearPath({ x: 2.5, y: 2 }, 0.2),
     // Slam box: `range` long, `slamWidth` wide, both scaled by the Warden's 2x size.
     slamWidth: 2, sizeScale: 2,

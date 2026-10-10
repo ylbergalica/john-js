@@ -69,7 +69,7 @@ export const ENEMY_TYPES = {
     minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff, sfxPitch: 0.55,
     navFootprint: 3, // tiles; the Warden needs 3-wide passages
     visual: { kind: 'hexagon', width: 2, height: 0.890625 * 2, color: 0xffffff },
-    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 4, attackEngageRange: 3.5, moveSpeed: 2, orbitSpeed: 1, repositionSpeed: 1,
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 4, attackEngageRange: 3.5, moveSpeed: 2, orbitSpeed: 1, repositionSpeed: 1, maxTurnSpeed: 2.5,
       attacks: [
         { ability: 'WardenDash', weight: 0.25 },
         { ability: 'WardenSlam', weight: 0.2 },

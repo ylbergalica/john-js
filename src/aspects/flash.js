@@ -35,17 +35,12 @@ export class FlashAspect extends Aspect {
   // bursts out where they land. Borrows the death effects' flares and glints.
   blinkFx(from, to) {
     const F = this.data.fx, fx = this.world.deathFx, { color, hot } = F;
-    const ring = (at, R) => {
-      const d0 = R.from / RING_RADIUS, d1 = R.to / RING_RADIUS;
-      fx.flare(tex.ring, at.x, at.y, 0, { time: R.time, w0: d0, h0: d0, w1: d1, h1: d1, alpha: R.alpha, color0: hot, color1: color });
-    };
-
-    const D = F.depart;
+    const D = F.depart, R = D.ring, r0 = R.from / RING_RADIUS, r1 = R.to / RING_RADIUS;
     fx.flare(tex.mist, from.x, from.y, 0, {
       time: D.flash.time, w0: D.flash.size, h0: D.flash.size, w1: D.flash.size * D.flash.shrink, h1: D.flash.size * D.flash.shrink,
       alpha: D.flash.alpha, color0: hot, color1: color,
     });
-    ring(from, D.ring);
+    fx.flare(tex.ring, from.x, from.y, 0, { time: R.time, w0: r0, h0: r0, w1: r1, h1: r1, alpha: R.alpha, color0: hot, color1: color });
     fx.flare(tex.glint, from.x, from.y, 0, { time: D.star.time, w0: D.star.size, h0: D.star.size, w1: 0, h1: 0, color0: hot, color1: color });
     fx.scatter(fx.stars, D.glints, from.x, from.y, 0.3, hot, { fade: color });
 
@@ -62,7 +57,6 @@ export class FlashAspect extends Aspect {
       time: A.flash.time, w0: A.flash.size, h0: A.flash.size, w1: A.flash.size * A.flash.grow, h1: A.flash.size * A.flash.grow,
       alpha: A.flash.alpha, color0: hot, color1: color,
     });
-    ring(to, A.ring);
     fx.flare(tex.glint, to.x, to.y, 0, { time: A.star.time, w0: A.star.size, h0: A.star.size, w1: A.star.size * 0.2, h1: A.star.size * 0.2, fade: 1.5, color0: hot, color1: color });
     this.world.effects.burst(to.x, to.y, 0, { ...A.sparks, color });
     fx.scatter(fx.stars, A.glints, to.x, to.y, 0.3, hot, { fade: color });

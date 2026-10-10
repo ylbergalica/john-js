@@ -314,14 +314,14 @@ const SOUNDS = {
   },
 
   // aspects
-  // Flash: a bright zip away, then a crisp pop where you land, ringing with a sparkly hiss.
+  // Flash: an airy fwip swelling in, a bright crack as you vanish, and a quick glassy
+  // shimmer tumbling down where you land.
   flash(v) {
-    noise(v, { filter: 'highpass', freq: 2500, to: 7000, dur: 0.08, vol: 0.2, attack: 0.005 });
-    tone(v, { type: 'triangle', freq: 600, to: 2400, dur: 0.07, vol: 0.1 });
-    tone(v, { freq: 240, to: 110, at: 0.05, dur: 0.12, vol: 0.16 });
-    noise(v, { freq: 3200, to: 1200, q: 1.5, at: 0.05, dur: 0.2, vol: 0.16 });
-    tone(v, { freq: 1760, at: 0.05, dur: 0.4, vol: 0.09 });
-    tone(v, { type: 'triangle', freq: 2637, at: 0.06, dur: 0.28, vol: 0.05 });
+    noise(v, { freq: 900, to: 6500, q: 1.4, dur: 0.1, vol: 0.2, attack: 0.08 });
+    noise(v, { filter: 'highpass', freq: 5000, at: 0.08, dur: 0.035, vol: 0.28 });
+    tone(v, { type: 'square', freq: 3200, to: 1400, at: 0.08, dur: 0.03, vol: 0.03 });
+    arp(v, [4186, 3520, 2794, 2349], 0.022, { at: 0.09, dur: 0.22, vol: 0.045 });
+    tone(v, { type: 'triangle', freq: 1175, to: 1245, at: 0.09, dur: 0.3, vol: 0.05, attack: 0.01 });
   },
   blink(v) {
     tone(v, { freq: 2000, to: 300, dur: 0.14, vol: 0.14 });

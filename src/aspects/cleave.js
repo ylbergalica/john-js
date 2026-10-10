@@ -32,6 +32,7 @@ export class CleaveAspect extends Aspect {
     dir = norm(dir);
     const damage = this.data.damage * this.world.adrenaline.damageMultiplier;
     const o = this.data.spawnForwardOffset;
+    this.used();
     this.world.sound('cleave');
     this.world.add(new CleaveSlash(this, origin.x + dir.x * o, origin.y + dir.y * o, dir, damage));
     this.readyAt = this.now + Math.max(0, this.data.cooldown);

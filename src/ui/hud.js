@@ -3,7 +3,7 @@
 // Reads world state each frame and only touches the DOM on change.
 import { h, DomWriter } from './dom.js';
 import { HUD, GAME } from '../data/config.js';
-import { lerpColor } from '../engine/math.js';
+import { lerpColor, randRange } from '../engine/math.js';
 import { iconUrls } from '../render/assets.js';
 import { RunMode } from '../game/session.js';
 import { keycap, replay, mistFx } from './common.js';
@@ -24,6 +24,25 @@ function adrenalineFx() {
 function astralFx() {
   const fx = mistFx('astral-fx', { puffs: 14, embers: 18, y: [0.7, 0.95], size: [18, 30], dur: [0.9, 1.5], emberDur: [0.7, 1.2] });
   fx.prepend(h('span', { class: 'astral-halo' }));
+  return fx;
+}
+
+// Starlight rekindling an aspect icon when it's back (CSS plays it on the icon's ready class):
+// a light sweeps across the box as its rim lights up, a glint flares at its corner, and a
+// spray of star motes is thrown up off its top edge, fanning outward, to hang and fade.
+const READY_MOTES = 16;
+
+function readyFx() {
+  const mote = () => {
+    const x = randRange(0, 1);
+    const el = h('span', { class: 'rf-mote' });
+    el.style.cssText = `--x:${x.toFixed(2)};--s:${randRange(6, 12).toFixed(1)}px;--dx:${((x - 0.5) * 70 + randRange(-14, 14)).toFixed(1)}px;--dy:${randRange(-85, -40).toFixed(1)}px;--t:${randRange(0.9, 1.3).toFixed(2)}s;--d:${randRange(0, 0.12).toFixed(2)}s`;
+    return el;
+  };
+  const fx = h('div', { class: 'ready-fx' },
+    h('span', { class: 'rf-sheen' }), h('span', { class: 'rf-rim' }), h('span', { class: 'rf-glint' }),
+    Array.from({ length: READY_MOTES }, mote));
+  fx.style.setProperty('--glint', `url(${iconUrls.glint})`);
   return fx;
 }
 
@@ -195,7 +214,9 @@ export class Hud {
     this.lastHealth = player?.health ?? 0;
   }
 
-  // Icon per equipped aspect with a radial cooldown overlay; flashes when it comes back.
+  // Icon per equipped aspect with a radial cooldown overlay, dimmed while it can't fire. It
+  // rekindles with starlight when it comes back (readyFx), and pops with a ring bursting off
+  // it each time it fires.
   updateAspectIcons(player) {
     const aspects = player ? player.aspects.aspects : [];
     if (aspects !== this.iconsFor) {
@@ -205,20 +226,25 @@ export class Hud {
         const el = h('div', { class: 'aspect-icon' },
           h('img', { src: iconUrls[aspect.data.icon], alt: aspect.data.displayName }),
           overlay,
+          readyFx(),
           aspect.data.activatable ? keycap(String(aspect.slot + 1)) : null,
         );
-        return { el, overlay, cooling: false };
+        return { el, overlay, cooling: false, procs: aspect.procs };
       });
       this.icons.replaceChildren(...this.iconSlots.map((s) => s.el));
     }
     aspects.forEach((aspect, i) => {
       const slot = this.iconSlots[i];
       const pct = Math.round(Math.min(1, Math.max(0, aspect.cooldownFraction)) * 200) / 2;
-      const cooling = pct > 0;
+      const cooling = pct > 0 || !aspect.available;
       if (cooling !== slot.cooling) {
         slot.cooling = cooling;
         slot.el.classList.toggle('cooling', cooling);
         if (!cooling) replay(slot.el, 'ready');
+      }
+      if (aspect.procs !== slot.procs) {
+        slot.procs = aspect.procs;
+        replay(slot.el, 'used');
       }
       this.dom.set(slot.overlay, 'background', cooling ? `conic-gradient(${HUD.cooldownOverlay} ${pct}%, transparent ${pct}%)` : 'none');
     });

@@ -3,6 +3,7 @@ export class Aspect {
   constructor(player, data) {
     this.player = player;
     this.data = data;
+    this.procs = 0; // times it has fired (the HUD pops its icon on each)
   }
 
   get world() { return this.player.world; }
@@ -10,6 +11,14 @@ export class Aspect {
 
   // 0 = ready, 1 = full cooldown (drives the HUD overlay).
   get cooldownFraction() { return 0; }
+  // Whether it can fire right now: the HUD dims its icon while not, and flashes it when it comes back.
+  get available() { return this.cooldownFraction <= 0; }
+
+  // It fired: pops its HUD icon, and counts toward its summary stat if that's uses.
+  used() {
+    this.procs++;
+    this.world.session.aspectUsed(this.data.id);
+  }
 
   step(_dt) {}
   afterPhysics() {}

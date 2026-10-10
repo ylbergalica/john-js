@@ -21,6 +21,7 @@ export async function loadAssets() {
   }
 
   iconUrls.mist = tex.mist.source.resource.toDataURL(); // the HUD's adrenaline mist, same puff as the Exalted haze
+  iconUrls.glint = tex.glint.source.resource.toDataURL(); // the HUD's ready sparkle, same star as the blinks
   for (const [key, type] of Object.entries(ENEMY_TYPES)) enemyIconUrls[key] = enemyPortrait(type.visual).toDataURL();
 
   // White silhouettes swapped in while something flashes (replaces a per-object filter),

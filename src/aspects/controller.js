@@ -34,7 +34,7 @@ export class AspectController {
 
   activate(aspect) {
     const ok = aspect.tryActivate();
-    if (ok) this.player.world.session.aspectUsed(aspect.data.id);
+    if (ok) aspect.used();
     return ok;
   }
 

@@ -21,6 +21,8 @@ export class AnchorAspect extends Aspect {
   }
 
   get shrinking() { return this.teleport?.phase === 'shrink'; }
+  // Out of reach while the anchor is in flight or the player is shrinking toward it.
+  get available() { return !this.shrinking && this.state !== 'flying'; }
 
   tryActivate() {
     if (this.shrinking) return false;

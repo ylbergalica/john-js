@@ -4,7 +4,7 @@
 import { Emitter } from '../engine/events.js';
 import { Adrenaline } from './adrenaline.js';
 import { profile } from '../meta/profile.js';
-import { COINS } from '../data/config.js';
+import { AspectStat, COINS } from '../data/config.js';
 
 export const RunMode = { Run: 'run', Playground: 'playground' };
 
@@ -24,13 +24,14 @@ export class RunSession {
     this.ended = false; // set once coins are banked; later kills (e.g. while dying) don't count
     this.stats = {
       kills: {}, // by enemy type key
-      aspectUses: {}, // by aspect id, activatable aspects only
+      aspectCounts: {}, // by aspect id: uses or hits, per its AspectStat
       floorsCleared: 0,
       coins: { enemies: 0, guardians: 0, floors: 0, achievements: 0 }, // earned, by source
       coinsBanked: 0,
       timeSurvived: 0,
     };
     this.events.enemyKilled.on((e) => this.enemyKilled(e));
+    this.events.enemyDamaged.on((_e, _damage, cause) => this.countAspect(cause, AspectStat.Hits));
   }
 
   get scalesDifficulty() { return this.mode === RunMode.Run; }
@@ -57,10 +58,13 @@ export class RunSession {
   // A COINS yield on the current floor.
   coinsFor({ base, perFloor }) { return base + perFloor * (this.floor - 1); }
 
-  aspectUsed(id) {
-    if (this.ended) return;
-    const uses = this.stats.aspectUses;
-    uses[id] = (uses[id] ?? 0) + 1;
+  aspectUsed(id) { this.countAspect(id, AspectStat.Uses); }
+
+  // Counts toward the aspect `id`'s summary stat if it's the kind that aspect counts.
+  countAspect(id, stat) {
+    if (this.ended || profile.getAspect(id)?.stat !== stat) return;
+    const counts = this.stats.aspectCounts;
+    counts[id] = (counts[id] ?? 0) + 1;
   }
 
   addCoins(n, source) {

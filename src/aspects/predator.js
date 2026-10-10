@@ -21,6 +21,7 @@ export class PredatorAspect extends Aspect {
     player.body.teleport(dest.x, dest.y);
     player.body.stop();
     this.blinkFx(from, dest);
+    this.world.session.aspectUsed(this.data.id);
     this.world.sound('blink', null, { pitch: 1.4, volume: 0.6 });
   }
 

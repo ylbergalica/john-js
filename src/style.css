@@ -450,6 +450,9 @@ kbd {
 .rs-tile img { width: 36px; height: 36px; object-fit: contain; }
 .rs-stat { min-width: 64px; align-items: flex-start; }
 .rs-stat + .rs-aspect { margin-left: 4px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,0.12); }
+.rs-tile[data-tip] { position: relative; }
+.rs-tile[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); padding: 5px 9px; white-space: nowrap; font-size: 12px; letter-spacing: 1px; color: #ddd; background: rgba(8, 8, 10, 0.97); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 6px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6); pointer-events: none; z-index: 1; animation: fade 0.15s ease-out both; }
+.rs-stat + .rs-aspect[data-tip]:hover::after { left: calc(50% + 8px); } /* centred over the icon, past the divider's padding */
 .rs-num { font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; display: inline-block; }
 .rs-count { font-size: 14px; font-variant-numeric: tabular-nums; display: inline-block; }
 .rs-caption { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }

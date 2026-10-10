@@ -7,11 +7,15 @@ export const TIERS = [
   { tier: AspectTier.Mythic, name: 'Mythic', price: 15000, color: 'var(--mythic)' },
 ];
 export const MAX_EQUIPPED_ASPECTS = 3;
+// What the run summary counts for an aspect: times it was used (activated, or for a passive,
+// triggered), or every hit it landed — each enemy struck, every time it's struck.
+// `label` is shown when hovering it there.
+export const AspectStat = { Uses: { label: 'Times used' }, Hits: { label: 'Hits landed' } };
 
 // `id` values are save keys; never rename them.
 export const ASPECTS = [
   {
-    id: 'anchor', displayName: 'Anchor', tier: AspectTier.Gift, icon: 'anchor_icon', activatable: true,
+    id: 'anchor', displayName: 'Anchor', tier: AspectTier.Gift, icon: 'anchor_icon', activatable: true, stat: AspectStat.Uses,
     quote: "Now you see me, now you don't.",
     description: 'Throw an anchor which you can teleport to at any time.',
     throwImpulse: 25, settleSpeedThreshold: 0.2, settleGraceTime: 0.25, retrievalRadius: 0.45,
@@ -40,7 +44,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'assassin', displayName: 'Predator', tier: AspectTier.Gift, icon: 'predator_icon', activatable: false,
+    id: 'assassin', displayName: 'Predator', tier: AspectTier.Gift, icon: 'predator_icon', activatable: false, stat: AspectStat.Uses,
     quote: "You miss 100% of the shots you don't take.",
     description: 'Attacks aimed at an enemy blink you into ideal melee range.',
     targetAcquireDistance: 10, aimDotThreshold: 0.5, minimumBlinkDistance: 0.2,
@@ -63,7 +67,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'crescent', displayName: 'Cleave', tier: AspectTier.Gift, icon: 'cleave_icon', activatable: false,
+    id: 'crescent', displayName: 'Cleave', tier: AspectTier.Gift, icon: 'cleave_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'Every strike leaves a wake.',
     description: 'Connecting a hit sends a cleaving slash flying forward.',
     damage: 1, speed: 25, travelDistance: 6, spawnForwardOffset: 0.5, enemyKnockbackForce: 9, cooldown: 0,
@@ -77,7 +81,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true,
+    id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true, stat: AspectStat.Uses,
     quote: 'F for flash.',
     description: 'Blink a short distance. Every parry or kill reduces the active cooldown.',
     maxBlinkDistance: 6, baseCooldown: 5, cooldownReductionPerTrigger: 1,
@@ -101,7 +105,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'rift', displayName: 'Rift', tier: AspectTier.Gift, icon: 'rift_icon', activatable: false,
+    id: 'rift', displayName: 'Rift', tier: AspectTier.Gift, icon: 'rift_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'Compact violent solutions.',
     description: 'Connecting a parry unfolds damaging rift-blades on each side.',
     activeTime: 1, damage: 1, enemyKnockbackForce: 5, minDamage: 0.2,

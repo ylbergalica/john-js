@@ -1,4 +1,4 @@
-// End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect uses),
+// End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect stats),
 // slain enemies, slain guardians and achievements, then the total coins earned.
 // Everything is revealed step by step with counting numbers; any key or click skips
 // to the end. Tiles wrap, so long runs with many enemy types stay compact.
@@ -40,8 +40,7 @@ export class RunSummary {
     const guardians = panel('rs-guardians');
     const achievements = panel('rs-achievements');
     this.coinTotal = h('span', { class: 'rs-coin-total', text: '+0' });
-    const coins = h('div', { class: 'rs-coins rs-pending' },
-      h('div', { class: 'eyebrow', text: 'Coins earned' }), h('div', { class: 'rs-coin-line' }, coinIcon(), this.coinTotal));
+    const coins = h('div', { class: 'rs-coins rs-pending' }, h('div', { class: 'rs-coin-line' }, coinIcon(), this.coinTotal));
     this.el = h('div', { class: 'run-summary interactive' },
       h('div', { class: 'rs-card' },
         this.title,
@@ -56,15 +55,13 @@ export class RunSummary {
     // ── timeline ──
     this.beat(0.15, 0.9, { start: () => { this.title.classList.add('in'); this.sound('summary'); } });
 
-    // Run: floor, time, Exalted, then each equipped aspect (uses if it's activated).
+    // Run: floor, time, Exalted, then each equipped aspect's uses or hits (its AspectStat).
     this.showPanel(0.1, run.el);
     this.tiles(run.body, [
       this.statTile('Floor', floor),
       this.statTile('Time', Math.floor(stats.timeSurvived), formatTime),
       this.statTile('Exalted', adrenaline.uses, times),
-      ...profile.equippedAspects().map((a) => (a.activatable
-        ? this.iconTile(iconUrls[a.icon], stats.aspectUses[a.id] ?? 0, 'rs-aspect')
-        : this.iconTile(iconUrls[a.icon], null, 'rs-aspect', 'passive'))),
+      ...profile.equippedAspects().map((a) => this.iconTile(iconUrls[a.icon], stats.aspectCounts[a.id] ?? 0, 'rs-aspect', a.stat.label)),
     ]);
 
     // Slain, most killed first, guardians apart from the rest.
@@ -125,11 +122,11 @@ export class RunSummary {
     return { el, dur: countDuration(value, 0.8), run: this.counter(num, 0, value, format, 'tally') };
   }
 
-  // An icon over a ×count (or a caption when there's nothing to count).
-  iconTile(src, count, cls, caption = null) {
-    const num = h('span', { class: count == null ? 'rs-caption' : 'rs-count', text: count == null ? caption : times(0) });
+  // An icon over a ×count, with an optional hover label saying what's counted.
+  iconTile(src, count, cls, tip = null) {
+    const num = h('span', { class: 'rs-count', text: times(0) });
     const el = h('div', { class: `rs-tile ${cls} rs-pending` }, h('img', { src, alt: '' }), num);
-    if (count == null) return { el, dur: 0 };
+    if (tip) el.dataset.tip = tip;
     return { el, dur: countDuration(count, 0.8), run: this.counter(num, 0, count, times, 'tally') };
   }
 

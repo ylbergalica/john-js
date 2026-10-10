@@ -24,6 +24,7 @@ export class Enemy extends Entity {
     this.typeKey = typeKey;
     this.type = ENEMY_TYPES[typeKey];
     this.body = world.physics.add(new Body({ x, y, radius: this.type.radius, mass: this.type.mass, damping: this.type.linearDamping }));
+    this.body.rotation = this.body.prevRotation = Math.random() * TAU; // spawn facing anywhere
     this.health = this.type.maxHealth;
     this.isActing = false; // committed to an ability (wind-up through recovery)
     this.stunned = false;

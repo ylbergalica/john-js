@@ -44,11 +44,11 @@ export const ASPECTS = [
     quote: "You miss 100% of the shots you don't take.",
     description: 'Attacks aimed at an enemy blink you into ideal melee range.',
     targetAcquireDistance: 10, aimDotThreshold: 0.5, minimumBlinkDistance: 0.2,
-    // The blink's look (src/aspects/predator.js), kept small: a green afterimage of you
+    // The blink's look (src/aspects/predator.js), kept small: a light-blue afterimage of you
     // puffs away where you left, and a ring snaps shut on the spot you land. Sizes in
     // world units, times in seconds, [min, max] picks at random.
     fx: {
-      color: 0x3fdc5a, hot: 0xc8ff9a,
+      color: 0x5cc8ff, hot: 0xd6f2ff,
       depart: {
         flash: { size: 1.3, shrink: 0.3, time: 0.25, alpha: 0.7 },
         ghost: { size: 1, grow: 1.5, time: 0.3, alpha: 0.8 }, // the body's ring, × the player's diameter

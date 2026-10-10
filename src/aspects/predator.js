@@ -25,7 +25,7 @@ export class PredatorAspect extends Aspect {
     this.world.sound('blink', null, { pitch: 1.4, volume: 0.6 });
   }
 
-  // A green afterimage of the player puffs away where they left, and a ring snaps shut on
+  // A light-blue afterimage of the player puffs away where they left, and a ring snaps shut on
   // the spot they land. Borrows the death effects' flares and glints.
   blinkFx(from, to) {
     const F = this.data.fx, fx = this.world.deathFx, { color, hot } = F;

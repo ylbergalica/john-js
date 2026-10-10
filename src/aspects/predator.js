@@ -1,9 +1,8 @@
 // Predator: an attack aimed at an enemy first blinks the player into melee range.
 import { Aspect } from './aspect.js';
-import { dot, norm } from '../engine/math.js';
+import { dot, norm, randRange } from '../engine/math.js';
 import { PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
 
 export class PredatorAspect extends Aspect {
   beforeAttack() {
@@ -25,24 +24,23 @@ export class PredatorAspect extends Aspect {
     this.world.sound('blink', null, { pitch: 1.4, volume: 0.6 });
   }
 
-  // A light-blue afterimage of the player puffs away where they left, and a ring snaps shut on
-  // the spot they land. Borrows the death effects' flares and glints.
+  // Where the player left, a few glints and a little mist blown back the way they came; where
+  // they land, a faint puff and a star. Borrows the death effects' flares, glints and mist.
   blinkFx(from, to) {
     const F = this.data.fx, fx = this.world.deathFx, { color, hot } = F;
-    const D = F.depart;
-    fx.flare(tex.mist, from.x, from.y, 0, {
-      time: D.flash.time, w0: D.flash.size, h0: D.flash.size, w1: D.flash.size * D.flash.shrink, h1: D.flash.size * D.flash.shrink,
-      alpha: D.flash.alpha, color0: hot, color1: color,
-    });
-    const g = D.ghost.size * PLAYER.radius * 2;
-    fx.flare(tex.dash_ghost, from.x, from.y, 0, {
-      time: D.ghost.time, w0: g, h0: g, w1: g * D.ghost.grow, h1: g * D.ghost.grow, alpha: D.ghost.alpha, color0: hot, color1: color,
-    });
+    const D = F.depart, M = D.mist;
     fx.scatter(fx.stars, D.glints, from.x, from.y, 0.2, hot, { fade: color });
+    const back = Math.atan2(from.y - to.y, from.x - to.x), r = PLAYER.radius * 0.4;
+    const mx = from.x + Math.cos(back) * r, my = from.y + Math.sin(back) * r; // just behind where the body was
+    for (let i = 0; i < M.count; i++) {
+      const a = back + (randRange(-M.spreadDeg, M.spreadDeg) * Math.PI) / 180, speed = randRange(...M.speed);
+      fx.mist.spawn({
+        x: mx, y: my, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+        size: randRange(...M.size), life: randRange(...M.life), alpha: M.alpha, grow: M.grow, color: hot, fade: M.fade,
+      });
+    }
 
     const A = F.arrive;
-    const r0 = A.ring.from / RING_RADIUS, r1 = A.ring.to / RING_RADIUS; // sprite width for that band radius
-    fx.flare(tex.ring, to.x, to.y, 0, { time: A.ring.time, w0: r0, h0: r0, w1: r1, h1: r1, alpha: A.ring.alpha, color0: color, color1: hot });
     fx.flare(tex.mist, to.x, to.y, 0, {
       time: A.flash.time, w0: A.flash.size, h0: A.flash.size, w1: A.flash.size * A.flash.grow, h1: A.flash.size * A.flash.grow,
       alpha: A.flash.alpha, color0: hot, color1: color,

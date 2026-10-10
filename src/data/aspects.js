@@ -80,7 +80,7 @@ export const ASPECTS = [
     id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true,
     quote: 'F for flash.',
     description: 'Blink a short distance. Every parry or kill reduces the active cooldown.',
-    maxBlinkDistance: 6, baseCooldown: 10, cooldownReductionPerTrigger: 1,
+    maxBlinkDistance: 6, baseCooldown: 5, cooldownReductionPerTrigger: 1,
     // The blink's look (src/aspects/flash.js): light folds in where you leave, a streak
     // of it joins the two spots, and it bursts out where you land. Sizes in world units,
     // times in seconds, [min, max] picks at random.

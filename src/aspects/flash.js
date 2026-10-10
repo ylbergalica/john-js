@@ -3,7 +3,6 @@ import { Aspect } from './aspect.js';
 import { clamp01, clampLength } from '../engine/math.js';
 import { TeleportResolver } from '../level/teleport.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
 
 export class FlashAspect extends Aspect {
   constructor(player, data) {
@@ -35,12 +34,11 @@ export class FlashAspect extends Aspect {
   // bursts out where they land. Borrows the death effects' flares and glints.
   blinkFx(from, to) {
     const F = this.data.fx, fx = this.world.deathFx, { color, hot } = F;
-    const D = F.depart, R = D.ring, r0 = R.from / RING_RADIUS, r1 = R.to / RING_RADIUS;
+    const D = F.depart;
     fx.flare(tex.mist, from.x, from.y, 0, {
       time: D.flash.time, w0: D.flash.size, h0: D.flash.size, w1: D.flash.size * D.flash.shrink, h1: D.flash.size * D.flash.shrink,
       alpha: D.flash.alpha, color0: hot, color1: color,
     });
-    fx.flare(tex.ring, from.x, from.y, 0, { time: R.time, w0: r0, h0: r0, w1: r1, h1: r1, alpha: R.alpha, color0: hot, color1: color });
     fx.flare(tex.glint, from.x, from.y, 0, { time: D.star.time, w0: D.star.size, h0: D.star.size, w1: 0, h1: 0, color0: hot, color1: color });
     fx.scatter(fx.stars, D.glints, from.x, from.y, 0.3, hot, { fade: color });
 

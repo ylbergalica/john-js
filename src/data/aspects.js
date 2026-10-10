@@ -44,7 +44,6 @@ export const ASPECTS = [
       color: 0xffb81f, hot: 0xffe27a,
       depart: {
         flash: { size: 2.6, shrink: 0.3, time: 0.22, alpha: 0.9 },
-        ring: { from: 2.4, to: 0.3, time: 0.2, alpha: 0.85 },
         star: { size: 2, time: 0.2 },
         glints: { count: 7, speed: [1, 3], size: [0.14, 0.26], life: [0.3, 0.55] },
       },

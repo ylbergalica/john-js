@@ -458,6 +458,12 @@ const SOUNDS = {
     arp(v, [659, 988, 1319], 0.05, { type: 'triangle', at: 0.1, dur: 0.4, vol: 0.07 });
     for (let i = 0; i < 4; i++) noise(v, { filter: 'highpass', freq: 3000 + Math.random() * 2000, at: 0.05 + Math.random() * 0.25, dur: 0.02, vol: 0.06 });
   },
+  hasteGain(v) { // an electric zap snapping upward and a quick bright run
+    tone(v, { type: 'square', freq: 400, to: 1600, dur: 0.12, vol: 0.05 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 6000, dur: 0.15, vol: 0.12 });
+    for (let i = 0; i < 3; i++) noise(v, { filter: 'highpass', freq: 4000 + Math.random() * 2000, at: 0.02 + Math.random() * 0.12, dur: 0.012, vol: 0.08 });
+    arp(v, [1319, 1760, 2349], 0.035, { type: 'triangle', at: 0.06, dur: 0.25, vol: 0.06 });
+  },
   wardBreak(v) { // the ward stops a hit: a thump, and it shatters
     tone(v, { freq: 140, to: 60, dur: 0.15, vol: 0.25 });
     noise(v, { filter: 'highpass', freq: 3000, to: 1500, dur: 0.25, vol: 0.35 });

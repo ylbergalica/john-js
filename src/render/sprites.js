@@ -74,6 +74,7 @@ export function icons() {
     buff_swift: swiftGlyph(),
     buff_ward: wardGlyph(),
     buff_fury: furyGlyph(),
+    buff_haste: hasteGlyph(),
     ...Object.fromEntries(Object.entries(GEM_CUTS).map(([tier, cut]) => [`gem_${tier}`, gemIcon(cut)])),
   };
 }
@@ -1649,6 +1650,26 @@ function wardGlyph(S = 128) {
     ctx.stroke(p);
   });
   sparkle(ctx, 0.5, 0.48, 0.17, '#ffffff');
+  return c;
+}
+
+// Haste: a bolt of lightning, white-hot at its heart.
+function hasteGlyph(S = 128) {
+  const { c, ctx, px } = surface(S);
+  const col = '#ffe95a';
+  const p = new Path2D();
+  [[0.6, 0.06], [0.24, 0.54], [0.47, 0.54], [0.36, 0.94], [0.78, 0.4], [0.54, 0.4], [0.7, 0.06]]
+    .forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
+  p.closePath();
+  glow(ctx, rgba('#ffd21f', 0.95), px * 0.07, () => {
+    ctx.fillStyle = linear(ctx, 0.5, 0.06, 0.5, 0.94, ['#fffbe0', col, '#e0a010']);
+    ctx.fill(p);
+  });
+  ctx.strokeStyle = rgba('#ffffff', 0.85);
+  ctx.lineWidth = 0.02;
+  ctx.beginPath();
+  ctx.moveTo(0.6, 0.14); ctx.lineTo(0.38, 0.5); ctx.lineTo(0.5, 0.5); ctx.lineTo(0.42, 0.8);
+  ctx.stroke();
   return c;
 }
 

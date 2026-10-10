@@ -152,14 +152,16 @@ export class Player extends Entity {
     const now = this.now;
     if (now < this.attackReadyAt || this.attacking || this.parrying || this.teleporting) return false;
     this.aspects.beforeAttack();
-    this.attackReadyAt = now + A.cooldown;
+    this.attackReadyAt = now + A.cooldown * this.buffs.cooldownMultiplier;
     this.attacking = true;
     this.attackEndsAt = now + A.attackDuration;
     this.attackContacts.clear();
     this.view.playSwing();
     this.world.sound('swing');
     const p = this.attackPoint;
-    this.world.effects.burst(p.x, p.y, Math.atan2(this.facing.y, this.facing.x), { ...PARTICLES.swing, color: this.view.tint });
+    const angle = Math.atan2(this.facing.y, this.facing.x);
+    this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.tint });
+    this.buffs.view.swung(p, angle);
     return true;
   }
 
@@ -177,7 +179,7 @@ export class Player extends Entity {
     const hitPoint = enemy.closestPoint(src);
     enemy.takeDamage(this.attackDamage, hitPoint, src, DamageCause.Attack);
     this.view.playHitImpact(hitPoint);
-    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit);
+    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
     if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src);
     this.applyRecoil(A.playerKnockbackForce);
     this.aspects.onHitEnemy(enemy, hitPoint);
@@ -191,7 +193,7 @@ export class Player extends Entity {
     const hitPoint = prop.closestPoint(src);
     prop.takeDamage(this.attackDamage, hitPoint, src);
     this.view.playHitImpact(hitPoint);
-    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit);
+    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
     this.applyRecoil(A.playerKnockbackForce);
   }
 

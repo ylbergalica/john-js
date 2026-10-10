@@ -1,7 +1,7 @@
 // How the player's buffs show (BUFF_FX): a flare of the buff's colour as it's taken, a
 // ward's bubble around the body (bursting into shards when it stops a hit), wisps and motes
-// streaming off a swift body, embers and crackles off a furious one, and a puff of motes
-// as a buff wears off.
+// streaming off a swift body, embers and crackles off a furious one, lightning off a
+// hasted one (and its swings), and a puff of motes as a buff wears off.
 import { Container, Sprite } from 'pixi.js';
 import { BUFF_FX, BUFFS, PLAYER } from '../data/config.js';
 import { clamp01, lerp, randRange, TAU } from '../engine/math.js';
@@ -37,6 +37,7 @@ export class BuffView {
     this.embers = new Plume(L.player, tex.spark, { drag: 1.6, lift: BUFF_FX.fury.embers.lift });
     this.swiftDebt = 0;
     this.furyDebt = 0;
+    this.hasteDebt = 0;
     this.nextCrackle = 0;
     this.t = 0;
   }
@@ -83,6 +84,23 @@ export class BuffView {
     if (!show || dt <= 0) return;
     if (b.has('swift')) this.renderSwift(pos, dt);
     if (b.has('fury')) this.renderFury(pos, dt);
+    if (b.has('haste')) this.renderHaste(pos, dt);
+  }
+
+  // A swing at `point` heading `angle`: hasted, lightning snaps along it.
+  swung(point, angle) {
+    if (!this.buffs.has('haste')) return;
+    this.world.effects.burst(point.x, point.y, angle, { ...BUFF_FX.haste.swing, color: BUFFS.haste.color });
+  }
+
+  // Little arcs of lightning jump off the body's edge, skating along it.
+  renderHaste(pos, dt) {
+    const H = BUFF_FX.haste, color = BUFFS.haste.color, r = PLAYER.radius;
+    this.hasteDebt += dt * H.rate;
+    for (; this.hasteDebt >= 1; this.hasteDebt--) {
+      const a = Math.random() * TAU;
+      this.world.effects.burst(pos.x + Math.cos(a) * r, pos.y + Math.sin(a) * r, a + (Math.random() < 0.5 ? 1 : -1) * Math.PI / 2, { ...H.arcs, color });
+    }
   }
 
   // The bubble pops into place, its rim breathing and glints circling it.

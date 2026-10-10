@@ -177,6 +177,7 @@ export const LOOT = {
     { drop: 'swift', weight: 1 },
     { drop: 'ward', weight: 1 },
     { drop: 'fury', weight: 1 },
+    { drop: 'haste', weight: 1 },
   ],
   rich: [
     { drop: 'adrenaline', weight: 2, count: [4, 6] },
@@ -184,6 +185,7 @@ export const LOOT = {
     { drop: 'swift', weight: 2 },
     { drop: 'ward', weight: 2 },
     { drop: 'fury', weight: 2 },
+    { drop: 'haste', weight: 2 },
   ],
 };
 
@@ -192,10 +194,11 @@ export const LOOT = {
 // clusters and the corridors `corridor.clusters` between them, each of `clusterSize`
 // props, all of one type, or (`mixed` of the time) each of its own: the first in a corner
 // `cornerBias` of the time (else along a wall), the rest lined up in the nooks beside it
-// (or huddled within `spread` units of it if there are none). In rooms, `pile.chance` of clusters are instead a tight pile of
-// `pile.size`, each pressed against another, none more than `pile.reach` units from the
-// first. A nook needs `open` tiles of floor out from its walls, so props never narrow the
-// way. Never within `clearOfStart` units of the start or the exit.
+// (or huddled within `spread` units of it if there are none). In rooms, `pile.chance` of
+// clusters are instead a tight pile of `pile.size`, each pressed against another, none
+// more than `pile.reach` units from the first. A nook needs `open` tiles of floor out from
+// its walls, so props never narrow the way. Never within `clearOfStart` units of the start
+// or the exit.
 export const PROP_SPAWN = {
   room: { clusters: [1, 1], clusterSize: [2, 3], cornerBias: 0.85, mixed: 0.4, pile: { chance: 0.5, size: [3, 5], reach: 1.6 } },
   corridor: { clusters: [1, 3], clusterSize: [1, 2], cornerBias: 0.6, mixed: 0.4, pile: null },
@@ -212,12 +215,14 @@ export const PROP_SPAWN = {
 };
 
 // Small boons dropped by props (src/player/buffs.js). `time`: seconds it lasts (picking
-// another up starts it over). swift: × move speed; fury: × attack damage; ward: blocks the
-// next hit outright, however long that takes, with a moment of invulnerability after.
+// another up starts it over). swift: × move speed; fury: × attack damage; haste: × the
+// wait between attacks (lower is faster); ward: blocks the next hit outright, however long
+// that takes, with a moment of invulnerability after.
 // While one holds the player shows it (`color`), and the HUD lists it with what's left.
 export const BUFFS = {
   swift: { time: 10, speed: 1.3, color: 0x7fe8ff },
   fury: { time: 10, damage: 1.5, color: 0xff5fc8 },
+  haste: { time: 10, cooldown: 0.6, color: 0xffe95a },
   ward: { color: 0xc8d4ff },
 };
 
@@ -228,6 +233,8 @@ export const BUFFS = {
 //   swift: wisps peeling off the body as it moves (`rate` per second at full speed) and
 //     motes left in its wake.
 //   fury: embers rising off the body (`rate` per second) and now and then a crackle of sparks.
+//   haste: little arcs of lightning jumping off the body's edge (`rate` per second), and a
+//     snap of it along each swing.
 export const BUFF_FX = {
   gain: { flash: 2.6, ring: 3, time: 0.45, sparks: { count: 18, speed: 8, lifetime: 0.4, size: 0.32, coneDeg: 180 } },
   end: { count: 8, speed: [0.5, 1.5], size: [0.12, 0.22], life: [0.5, 0.9] },
@@ -251,5 +258,9 @@ export const BUFF_FX = {
     rate: 18, rim: [0.85, 1.15], // embers start around the body's edge (× its radius)
     embers: { size: [0.1, 0.18], life: [0.45, 0.8], speed: [0.6, 1.6], lift: 1.6, fade: 0x4a0030 },
     crackleEvery: [0.5, 1.1], crackle: { count: 4, speed: 5, lifetime: 0.2, size: 0.24, coneDeg: 180 },
+  },
+  haste: {
+    rate: 14, arcs: { count: 2, speed: 5, lifetime: 0.18, size: 0.32, coneDeg: 50 },
+    swing: { count: 10, speed: 9, lifetime: 0.2, size: 0.3, coneDeg: 35 },
   },
 };

@@ -19,6 +19,7 @@ export class Buffs {
   get now() { return this.player.now; }
   get speedMultiplier() { return this.has('swift') ? BUFFS.swift.speed : 1; }
   get damageMultiplier() { return this.has('fury') ? BUFFS.fury.damage : 1; }
+  get cooldownMultiplier() { return this.has('haste') ? BUFFS.haste.cooldown : 1; }
 
   has(kind) { return kind === 'ward' ? this.ward : this.now < this.until[kind]; }
 

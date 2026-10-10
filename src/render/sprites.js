@@ -567,7 +567,8 @@ function ribbon(W = 128, H = 16) {
 
 // Rift blades in units of the texture width (128 px), relative to the texture
 // centre: the upper blade, mirrored for the lower one. Round-topped with a straight
-// front edge and three scalloped bites along the back.
+// front edge and three scalloped bites along the back. Pure white; the aspect sheds
+// motes off them while they're out (src/aspects/rift.js).
 function riftBladePath() {
   const p = new Path2D();
   p.moveTo(-0.18, -0.18);
@@ -582,11 +583,9 @@ function riftBladePath() {
   return p;
 }
 const RIFT_PIVOT = [-0.15, -0.3];
-const RIFT_TEETH = [[-0.32, -1.84], [-0.31, -1.34], [-0.30, -0.84], [-0.26, -0.33]];
 
 function riftFrames(mode, W = 128, H = 640) {
   const path = riftBladePath();
-  const rand = seededRandom(mode === 'open' ? 909 : 707);
   const count = mode === 'open' ? 10 : 8;
   const frames = [];
   for (let i = 0; i < count; i++) {
@@ -606,25 +605,10 @@ function riftFrames(mode, W = 128, H = 640) {
       ctx.rotate(fold);
       ctx.scale(scale, scale);
       ctx.translate(-RIFT_PIVOT[0], -RIFT_PIVOT[1]);
-      glow(ctx, rgba('#b57cff', 0.95), px * lerp(0.1, 0.16, burst), () => {
-        ctx.fillStyle = '#ece2ff';
+      glow(ctx, rgba('#ffffff', 0.75), px * lerp(0.1, 0.16, burst), () => {
+        ctx.fillStyle = '#ffffff';
         ctx.fill(path);
       });
-      ctx.fillStyle = linear(ctx, -0.3, 0, 0.27, 0, ['#d9c8ff', '#ffffff', '#ffffff']);
-      ctx.fill(path);
-      // A faint seam of the void running down the blade.
-      ctx.strokeStyle = rgba('#7a4fd6', 0.35);
-      ctx.lineWidth = 0.035;
-      ctx.beginPath();
-      ctx.moveTo(-0.02, -0.32);
-      ctx.quadraticCurveTo(0.06, -1.1, -0.12, -1.66);
-      ctx.stroke();
-      if (k > 0.5) {
-        for (const [tx, ty] of RIFT_TEETH) {
-          const tw = rand();
-          sparkle(ctx, tx - 0.06 - burst * 0.12 * tw, ty + 0.03, lerp(0.06, 0.1, tw) * (0.6 + burst), '#ffffff', lerp(0.4, 1, tw) * k, tw);
-        }
-      }
       ctx.restore();
     }
     frames.push(c);
@@ -1222,13 +1206,13 @@ function riftIcon(S = 256) {
   const main = new Path2D();
   main.moveTo(0.1, 0.86);
   main.bezierCurveTo(0.12, 0.42, 0.5, 0.12, 0.9, 0.1);
-  main.bezierCurveTo(0.62, 0.26, 0.4, 0.56, 0.3, 0.86);
-  main.quadraticCurveTo(0.2, 0.92, 0.1, 0.86);
+  main.bezierCurveTo(0.6, 0.32, 0.44, 0.58, 0.36, 0.84);
+  main.quadraticCurveTo(0.22, 0.95, 0.1, 0.86);
   const hook = new Path2D();
-  hook.moveTo(0.36, 0.92);
-  hook.bezierCurveTo(0.66, 0.88, 0.86, 0.62, 0.9, 0.3);
-  hook.bezierCurveTo(0.86, 0.58, 0.66, 0.78, 0.44, 0.84);
-  hook.quadraticCurveTo(0.37, 0.87, 0.36, 0.92);
+  hook.moveTo(0.4, 0.94);
+  hook.bezierCurveTo(0.72, 0.92, 0.92, 0.66, 0.9, 0.3);
+  hook.bezierCurveTo(0.82, 0.58, 0.66, 0.74, 0.46, 0.8);
+  hook.quadraticCurveTo(0.38, 0.86, 0.4, 0.94);
   glow(ctx, rgba('#b57cff', 0.95), px * 0.07, () => {
     ctx.fillStyle = '#ece2ff';
     ctx.fill(main);

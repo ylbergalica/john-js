@@ -82,5 +82,9 @@ export const ASPECTS = [
     description: 'Connecting a parry unfolds damaging rift-blades on each side.',
     activeTime: 1, damage: 1, enemyKnockbackForce: 5, minDamage: 0.2,
     hitboxDepth: 0.6074743 * 0.8, hitboxWidth: 4.5242996 * 0.8, spriteW: 1 * 0.8, spriteH: 5 * 0.8,
+    // Motes shed off the blades while they're out, in the player's tint (src/aspects/rift.js): `rate` a
+    // second, drifting `outward` from the player and `back` from its facing, world units
+    // and seconds, [min, max] picks at random.
+    motes: { rate: 40, size: [0.2, 0.4], life: [0.35, 0.7], outward: [0.3, 1.4], back: [0.4, 1.6], jitter: 0.4 },
   },
 ];

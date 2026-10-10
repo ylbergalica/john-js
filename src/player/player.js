@@ -1,4 +1,4 @@
-// Player logic: movement, aiming, melee attack, dash, parry and health.
+// Player logic: movement, aiming, melee attack, dash, parry, health and death.
 // All timing uses timestamps on the world's simulation clock.
 import { Entity } from '../game/entity.js';
 import { Body, ContactSet, circleVsCapsule } from '../engine/physics.js';
@@ -6,6 +6,7 @@ import { norm, isZero } from '../engine/math.js';
 import { PLAYER, PARTICLES, ADRENALINE } from '../data/config.js';
 import { InputBuffer } from './inputBuffer.js';
 import { PlayerView } from './playerView.js';
+import { PlayerDeath } from './death.js';
 import { AspectController } from '../aspects/controller.js';
 import { devFlags } from '../game/devFlags.js';
 import { DamageCause } from '../game/damage.js';
@@ -49,6 +50,7 @@ export class Player extends Entity {
     this.health = this.maxHealth;
     this.invincibleUntil = 0;
     this.lastHitAt = -Infinity;
+    this.death = null; // PlayerDeath once killed: out of the fight while it plays, then hidden
 
     this.view = new PlayerView(this);
     this.aspects = new AspectController(this);
@@ -66,6 +68,7 @@ export class Player extends Entity {
 
   // ── step ─────────────────────────────────────────────────────────
   step(dt) {
+    if (this.death) { this.steer(0, 0, 0.2); this.death.step(dt); return; }
     const input = this.world.input, now = this.now;
     this.body.collideWalls = !devFlags.noclip;
     this.movement = input.moveVector();
@@ -118,7 +121,7 @@ export class Player extends Entity {
       this.attackContacts.update(hits, (e) => this.onAttackHit(e));
     }
     if (this.parrying) this.parryOverlapping();
-    this.aspects.afterPhysics();
+    if (!this.death) this.aspects.afterPhysics();
     this.view.recordTrail();
   }
 
@@ -264,7 +267,7 @@ export class Player extends Entity {
 
   // ── health ───────────────────────────────────────────────────────
   takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {
-    if (this.dead || this.now < this.invincibleUntil) return;
+    if (this.dead || this.death || this.now < this.invincibleUntil) return;
     const final = devFlags.fullResistance ? 0 : damage * this.world.adrenaline.damageTakenMultiplier;
     this.health -= final;
     if (final > 0) {
@@ -291,9 +294,12 @@ export class Player extends Entity {
   }
 
   die() {
-    this.world.sound('death');
-    this.destroy();
-    this.world.playerDied();
+    if (this.death) return;
+    this.endAttack();
+    if (this.parrying) { this.parrying = false; this.view.hideParry(); }
+    this.dashing = false;
+    this.death = new PlayerDeath(this);
+    this.world.playerDied(this.death.duration);
   }
 
   // ── lifecycle ────────────────────────────────────────────────────
@@ -307,5 +313,6 @@ export class Player extends Entity {
     this.aspects.dispose();
     this.world.physics.remove(this.body);
     this.view.destroy();
+    this.death?.destroy();
   }
 }

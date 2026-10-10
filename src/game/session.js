@@ -21,7 +21,7 @@ export class RunSession {
     };
     this.adrenaline = new Adrenaline(this.events);
     this.pendingCoins = 0;
-    this.ended = false; // set once coins are banked; later kills (e.g. while dying) don't count
+    this.ended = false; // set once coins are banked; later kills (after the dying player's body bursts) don't count
     this.stats = {
       kills: {}, // by enemy type key
       aspectCounts: {}, // by aspect id: uses or hits, per its AspectStat

@@ -1,6 +1,7 @@
 // Player visuals: the wobbling blob body, trailing tail followers, swing and parry
 // sprites, the hurt flash/blink (derived from the time of the last hit), the dash's stretch,
-// afterimages and trails (DashView), and the Exalted state's fire and wings (ExaltedView).
+// afterimages and trails (DashView), the Exalted state's fire and wings (ExaltedView), and
+// the body trembling, buckling and caving in as the player dies (PlayerDeath.posed).
 import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, lerpColor, smoothDamp, isZero, TAU } from '../engine/math.js';
@@ -23,13 +24,14 @@ export class PlayerView {
     this.trail = Array.from({ length: TRAIL_STRIDE * T.followerCount + 1 }, () => ({ x, y }));
     this.followers = Array.from({ length: T.followerCount }, (_, i) => {
       const sprite = new Sprite(tex.tail);
+      const size = Math.max(0.1, T.firstFollowerScale - T.scaleStep * i);
       sprite.anchor.set(0.5);
-      sprite.width = sprite.height = Math.max(0.1, T.firstFollowerScale - T.scaleStep * i);
+      sprite.width = sprite.height = size;
       sprite.alpha = Math.max(0, Math.min(1, T.firstFollowerAlpha - T.alphaStep * i));
       sprite.position.set(x, y);
       sprite.zIndex = T.followerCount - i; // nearer followers draw over farther ones
       layers.playerBack.addChild(sprite);
-      return { sprite, vx: { v: 0 }, vy: { v: 0 }, smoothTime: T.baseSmoothTime + T.smoothTimeStep * i };
+      return { sprite, size, x, y, vx: { v: 0 }, vy: { v: 0 }, smoothTime: T.baseSmoothTime + T.smoothTimeStep * i };
     });
 
     this.body = new Container();
@@ -129,18 +131,23 @@ export class PlayerView {
   }
 
   render(alpha, dt) {
-    const player = this.player;
-    this.waveTime += dt * B.waveSpeed;
+    const player = this.player, death = player.death;
+    const pose = death?.posed(player.now - (1 - alpha) * FIXED_DT); // dying: trembling, writhing, caving in
+    const writhe = pose?.writhe ?? 0;
+    this.waveTime += dt * B.waveSpeed * (1 + writhe * 40);
     this.breathingTime += dt;
-    this.blob.update(this.waveTime, this.breathingTime);
+    this.blob.update(this.waveTime, this.breathingTime, writhe);
 
     const p = player.body.lerpPos(alpha);
-    this.body.position.set(p.x, p.y);
+    this.body.position.set(p.x + (pose?.x ?? 0), p.y + (pose?.y ?? 0));
+    this.exalted.throes = pose?.throes ?? 0;
     this.exalted.render(p, dt);
+    death?.render(dt);
     this.dash.render(p, dt, this.exalted.glow);
-    this.dash.shape(this.body, PLAYER.scale * player.sizeScale);
+    this.dash.shape(this.body, PLAYER.scale * player.sizeScale * (pose?.scale ?? 1));
     this.tint = lerpColor(0xffffff, EXALTED_FX.tint, this.exalted.glow);
-    this.blob.outline.tint = lerpColor(B.outlineColor, EXALTED_FX.tint, this.exalted.glow);
+    const outline = lerpColor(B.outlineColor, EXALTED_FX.tint, this.exalted.glow);
+    this.blob.outline.tint = death ? death.outline(outline) : outline;
     for (const a of this.swings) a.sprite.tint = this.tint;
     this.parryAnim.sprite.tint = this.tint;
 
@@ -151,21 +158,26 @@ export class PlayerView {
     for (const a of this.swings) a.update(dt);
     this.parryAnim.update(dt);
 
+    // Dying, the followers are drawn into the body and shrink with it as it caves in.
+    const pull = pose?.pull ?? 0, shrink = (pose?.scale ?? 1) * (1 - 0.5 * pull);
     this.followers.forEach((fl, i) => {
       const target = this.trail[Math.min(this.trail.length - 1, (i + 1) * TRAIL_STRIDE)];
-      fl.sprite.x = smoothDamp(fl.sprite.x, target.x, fl.vx, fl.smoothTime, dt);
-      fl.sprite.y = smoothDamp(fl.sprite.y, target.y, fl.vy, fl.smoothTime, dt);
+      fl.x = smoothDamp(fl.x, target.x, fl.vx, fl.smoothTime, dt);
+      fl.y = smoothDamp(fl.y, target.y, fl.vy, fl.smoothTime, dt);
+      fl.sprite.position.set(lerp(fl.x, this.body.x, pull), lerp(fl.y, this.body.y, pull));
+      fl.sprite.width = fl.sprite.height = fl.size * shrink;
     });
 
     // Hurt feedback: solid white flash, then blink until invincibility ends.
     const since = player.now - player.lastHitAt;
     const flashing = since < HF.flashDuration;
-    const blinking = !flashing && since < PLAYER.health.invincibilityDuration;
+    const blinking = !flashing && !death && since < PLAYER.health.invincibilityDuration;
     const visible = !player.hidden && (!blinking || Math.floor((since - HF.flashDuration) / Math.max(0.01, HF.blinkInterval)) % 2 === 1);
-    this.setFlash(flashing || player.alight);
+    this.setFlash(flashing || player.alight || !!pose?.white);
     this.body.visible = visible;
-    // The tail's ring warms with the outline, but the hurt flash stays white.
-    const tailTint = this.flashing ? 0xffffff : this.tint;
+    // The tail's ring warms with the outline (and, dying, flushes and heats with it), but
+    // the hurt flash stays white.
+    const tailTint = this.flashing ? 0xffffff : death ? this.blob.outline.tint : this.tint;
     this.tailSource.tint = tailTint;
     for (const fl of this.followers) { fl.sprite.visible = visible; fl.sprite.tint = tailTint; }
   }
@@ -215,7 +227,8 @@ class BlobMesh {
     this.outline.tint = B.outlineColor;
   }
 
-  update(waveTime, breathingTime) {
+  // `writhe`: extra, lumpier wobble (world units), the outline buckling as the player dies.
+  update(waveTime, breathingTime, writhe = 0) {
     const maxA = Math.max(0, B.waveAmplitude);
     const minA = Math.min(Math.max(B.breathingCycleLowerBound, 0), maxA);
     const amp = B.breathingCycleDuration > 0
@@ -227,7 +240,8 @@ class BlobMesh {
     for (let i = 0; i < n; i++) {
       const a = (TAU * i) / n;
       const c = Math.cos(a), s = Math.sin(a);
-      const r = B.radius + amp * Math.sin(B.waveCount * a + waveTime);
+      let r = B.radius + amp * Math.sin(B.waveCount * a + waveTime);
+      if (writhe) r += writhe * (0.6 * Math.sin(4 * a + waveTime * 3.1) + 0.4 * Math.sin(7 * a - waveTime * 4.3));
       const ri = Math.max(0.0001, r - thickness);
       ov[i * 2] = c * r; ov[i * 2 + 1] = s * r;
       ov[(n + i) * 2] = c * ri; ov[(n + i) * 2 + 1] = s * ri;

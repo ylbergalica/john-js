@@ -75,7 +75,8 @@ export class World {
     this.respawnAt = Infinity; // playground: when the dead player comes back at the start
   }
 
-  get livePlayer() { return this.player && !this.player.dead ? this.player : null; }
+  // The player while still in the fight: null once killed, through their death too.
+  get livePlayer() { return this.player && !this.player.dead && !this.player.death ? this.player : null; }
   // The player as enemy attacks see them: null while intangible, so attacks pass through.
   get hittablePlayer() { const p = this.livePlayer; return p && !p.intangible ? p : null; }
   get isGameOver() { return this.gameOverAt !== Infinity; }
@@ -323,26 +324,33 @@ export class World {
     this.exitTrailAt = this.time + EXIT_TRAIL.delay;
   }
 
-  // Death ends a run (banking its coins); the playground just puts the player back at the
-  // start after a moment.
-  playerDied() {
+  // Death ends a run once the player's death has played out (`after` seconds); the
+  // playground just puts the player back at the start after a moment.
+  playerDied(after = 0) {
     if (this.session.mode === RunMode.Playground) {
-      this.respawnAt = this.time + GAME.playgroundRespawnDelay;
+      this.respawnAt = this.time + after + GAME.playgroundRespawnDelay;
       return;
     }
-    this.session.bankCoins();
-    this.gameOver();
+    this.gameOver(after);
+  }
+
+  // The dying player's body has burst. Its blast's kills still count, so only now does the
+  // run bank its coins and stop earning.
+  playerBurst() {
+    if (this.session.mode === RunMode.Run) this.session.bankCoins();
   }
 
   respawnPlayer() {
     this.respawnAt = Infinity;
+    this.player?.destroy();
+    this.camera.zoom = 1;
     const { x, y } = this.level.start;
     this.player = this.add(new Player(this, x, y));
   }
 
-  gameOver() {
+  gameOver(after = 0) {
     if (this.isGameOver) return;
-    this.gameOverAt = this.time + GAME.returnDelay;
+    this.gameOverAt = this.time + after + GAME.returnDelay;
     this.session.stats.timeSurvived = this.time;
   }
 
@@ -445,7 +453,7 @@ export class World {
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].step(dt);
     this.physics.step(dt);
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].afterPhysics();
-    this.adrenaline.step(dt);
+    if (!this.player?.death) this.adrenaline.step(dt); // a dying player's meter is theirs to empty (PlayerDeath)
     this.stepFloorHeal(dt);
     if (this.time >= this.respawnAt) this.respawnPlayer();
     if (this.time >= this.exitTrailAt) {
@@ -468,8 +476,10 @@ export class World {
     if (this.warp) this.updateWarp(dt);
     if (this.intro) this.updateIntro(dt, alpha);
     if (this.warpIn) this.updateWarpIn(dt);
+    const p = this.player && !this.player.dead ? this.player : null; // dying too: the camera stays on them
+    if (p?.death && !this.intro && !this.warp) cam.zoom = p.death.zoom(this.time);
     cam.resize(screenW, screenH);
-    cam.update(dt, this.intro || this.warp ? null : this.livePlayer?.body.lerpPos(alpha));
+    cam.update(dt, this.intro || this.warp ? null : p?.body.lerpPos(alpha));
     const view = cam.viewRect(2);
     for (const e of this.entities) if (!e.dead) e.render(alpha, dt, view);
     this.effects.update(dt);

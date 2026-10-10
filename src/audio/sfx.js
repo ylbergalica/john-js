@@ -3,6 +3,8 @@
 // played. Browsers start audio suspended, so the context is created/resumed on the
 // first key or mouse press (`sfx.unlock`). Looping beds (`sfx.loop`) run until stopped.
 
+import { PLAYER_DEATH } from '../data/config.js';
+
 const MUTE_KEY = 'john.muted';
 const MASTER_VOLUME = 0.5;
 const MAX_VOICES = 32;
@@ -31,7 +33,7 @@ function ensureContext() {
   master = ctx.createGain();
   master.gain.value = muted ? 0 : MASTER_VOLUME;
   master.connect(comp).connect(ctx.destination);
-  noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate); // longer than any one noise layer
   const d = noiseBuffer.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   return ctx;
@@ -144,10 +146,107 @@ const SOUNDS = {
     tone(v, { type: 'sawtooth', freq: 180, to: 55, dur: 0.25, vol: 0.25 });
     noise(v, { filter: 'lowpass', freq: 1400, to: 200, dur: 0.22, vol: 0.5 });
   },
+  // The player's death (src/player/death.js). The body gives out: a hard crack, a choked cry
+  // falling away, and a sucking rush swelling as it caves in, cut off as deathBurst lands
+  // (PLAYER_DEATH.collapse.time later).
   death(v) {
-    tone(v, { type: 'sawtooth', freq: 320, to: 40, dur: 1.3, vol: 0.25 });
-    tone(v, { type: 'sine', freq: 160, to: 30, dur: 1.4, vol: 0.3 });
-    noise(v, { filter: 'lowpass', freq: 2000, to: 80, dur: 1.1, vol: 0.45 });
+    const dur = PLAYER_DEATH.collapse.time;
+    tone(v, { type: 'square', freq: 150, to: 50, dur: 0.18, vol: 0.18 });
+    noise(v, { filter: 'lowpass', freq: 3200, to: 300, dur: 0.22, vol: 0.5 });
+    tone(v, { type: 'sawtooth', freq: 310, to: 95, dur, vol: 0.1, attack: 0.03, hold: dur * 0.4 });
+    tone(v, { type: 'triangle', freq: 466, to: 140, dur, vol: 0.05, attack: 0.03, hold: dur * 0.4 });
+    noise(v, { freq: 200, to: 2600, q: 1.2, dur: dur + 0.02, vol: 0.22, attack: dur * 0.85, hold: dur - 0.03 });
+    tone(v, { freq: 55, to: 150, dur: dur + 0.02, vol: 0.2, attack: dur * 0.75, hold: dur - 0.03 });
+  },
+  // ...and bursts: a deep boom, a glassy shatter, a slowly falling minor chime and a long
+  // breath dying away.
+  deathBurst(v) {
+    tone(v, { freq: 70, to: 26, dur: 1.8, vol: 0.5 });
+    noise(v, { filter: 'lowpass', freq: 2600, to: 60, dur: 1.6, vol: 0.45 });
+    noise(v, { filter: 'highpass', freq: 4200, to: 2200, dur: 0.5, vol: 0.18 });
+    arp(v, [2489, 2093, 1568, 1245, 1047, 784], 0.1, { type: 'triangle', dur: 0.9, vol: 0.05 });
+    noise(v, { freq: 1100, to: 280, q: 0.6, at: 0.2, dur: 1.9, vol: 0.08, attack: 0.4 });
+  },
+  // Adrenaline wrung out of the dying player (PLAYER_DEATH.purge.time long): a heart
+  // pounding faster and faster under a strangled groan straining upward, until it gives out.
+  adrenalinePurge(v) {
+    const dur = PLAYER_DEATH.purge.time;
+    for (let t = 0, gap = 0.55; t < dur - 0.08; t += gap, gap = Math.max(0.12, gap * 0.82)) {
+      tone(v, { freq: 78, to: 38, at: t, dur: 0.17, vol: 0.45, attack: 0.005 });
+      tone(v, { freq: 72, to: 36, at: t + gap * 0.32, dur: 0.14, vol: 0.28, attack: 0.005 });
+    }
+    const throat = ctx.createGain();
+    throat.gain.value = 0.5;
+    lfo(v, throat.gain, { rate: 9, depth: 0.35, dur });
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.Q.value = 4;
+    muffle.frequency.setValueAtTime(380, v.t);
+    muffle.frequency.exponentialRampToValueAtTime(1500, v.t + dur);
+    throat.connect(muffle).connect(v.out);
+    for (const freq of [128, 129.6]) tone(v, { type: 'sawtooth', freq, to: freq * 1.9, dur, vol: 0.1, attack: 0.25, hold: dur - 0.12, out: throat });
+    noise(v, { freq: 600, to: 1900, q: 2, dur, vol: 0.14, attack: 0.4, hold: dur - 0.12, out: throat });
+  },
+  // A gout of adrenaline forced out: a wet, hissing gush over a soft thump.
+  adrenalineSpurt(v) {
+    noise(v, { freq: 1800, to: 450, q: 1.1, dur: 0.22, vol: 0.28, attack: 0.008 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 1500, dur: 0.12, vol: 0.07 });
+    tone(v, { freq: 110, to: 50, dur: 0.12, vol: 0.25 });
+  },
+  // Dying Exalted (PLAYER_DEATH.exalted.time long): the demon's roar climbing into a tearing
+  // scream, driven hard, over fire swelling and a sub rising, all cut off as the body bursts.
+  exaltedDeath(v) {
+    const dur = PLAYER_DEATH.exalted.time + 0.02;
+    const throat = ctx.createGain();
+    throat.gain.value = 0.6;
+    lfo(v, throat.gain, { rate: 23, depth: 0.4, dur, type: 'triangle' });
+    const grit = ctx.createWaveShaper();
+    grit.curve = drive();
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.Q.value = 2;
+    muffle.frequency.setValueAtTime(300, v.t);
+    muffle.frequency.exponentialRampToValueAtTime(2600, v.t + dur);
+    const trim = ctx.createGain();
+    trim.gain.value = 0.55;
+    throat.connect(grit).connect(muffle).connect(trim).connect(v.out);
+    for (const [freq, to] of [[70, 150], [71.2, 153], [105, 228]]) {
+      const osc = tone(v, { type: 'sawtooth', freq, to, dur, vol: 0.2, attack: 0.1, hold: dur - 0.04, out: throat });
+      lfo(v, osc.frequency, { rate: 6, depth: freq * 0.04, dur });
+    }
+    noise(v, { freq: 300, to: 1800, q: 0.9, dur, vol: 0.5, attack: 0.2, hold: dur - 0.04, out: throat });
+    noise(v, { filter: 'lowpass', freq: 200, to: 3200, dur, vol: 0.3, attack: dur * 0.8, hold: dur - 0.03 });
+    tone(v, { freq: 38, to: 95, dur, vol: 0.35, attack: 0.6, hold: dur - 0.03 });
+  },
+  // A jet of hellfire bursting out of the body: a short roaring whoosh and a few crackles.
+  fireJet(v) {
+    noise(v, { filter: 'lowpass', freq: 400, to: 2400, dur: 0.28, vol: 0.3, attack: 0.03 });
+    noise(v, { freq: 900, to: 300, q: 0.8, dur: 0.3, vol: 0.14, attack: 0.02 });
+    for (let i = 0; i < 3; i++) noise(v, { filter: 'highpass', freq: 3000 + Math.random() * 2000, at: 0.03 + Math.random() * 0.2, dur: 0.02, vol: 0.07 });
+  },
+  // ...and the burst: an explosion of hellfire over a sub drop, a dying growl falling away
+  // beneath it and embers crackling as it clears.
+  exaltedDeathBurst(v) {
+    const growlTime = 2.4;
+    tone(v, { freq: 55, to: 18, dur: 2.8, vol: 0.6 });
+    noise(v, { filter: 'lowpass', freq: 4000, to: 50, dur: 1.9, vol: 0.6 });
+    noise(v, { freq: 900, to: 150, q: 0.7, dur: 1.5, vol: 0.3 });
+    const growl = ctx.createGain();
+    growl.gain.value = 0.6;
+    lfo(v, growl.gain, { rate: 17, depth: 0.4, dur: growlTime, type: 'triangle' });
+    const grit = ctx.createWaveShaper();
+    grit.curve = drive();
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.frequency.setValueAtTime(900, v.t);
+    muffle.frequency.exponentialRampToValueAtTime(150, v.t + growlTime);
+    const trim = ctx.createGain();
+    trim.gain.value = 0.5;
+    growl.connect(grit).connect(muffle).connect(trim).connect(v.out);
+    for (const freq of [92, 93.5]) tone(v, { type: 'sawtooth', freq, to: 28, dur: growlTime, vol: 0.2, attack: 0.02, out: growl });
+    for (let i = 0; i < 20; i++) {
+      noise(v, { filter: 'highpass', freq: 2500 + Math.random() * 3000, at: 0.2 + Math.random() * 2.6, dur: 0.02 + Math.random() * 0.03, vol: 0.04 + Math.random() * 0.08 });
+    }
   },
 
   // enemies

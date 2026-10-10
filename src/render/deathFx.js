@@ -39,6 +39,15 @@ export class DeathFx {
       time: D.pop.time, w0: sil.width, h0: sil.height, w1: sil.width * D.pop.scale, h1: sil.height * D.pop.scale,
       color0: 0xffffff, color1: color, fade: 1.5,
     });
+    this.explode(x, y, r, color, D);
+    w.effects.burst(x + dir.x * r, y + dir.y * r, blowAngle, { ...D.blow, color: D.blow.color ?? color });
+  }
+
+  // Everything in a death after the pop, at (x, y) for a body of radius `r` (D as
+  // DEATH_FX.enemy): light flashes, rings race out, rays burst, sparks spray, stars spill,
+  // mist and embers drift, the camera shakes and the screen ripples. Also the player's.
+  explode(x, y, r, color, D) {
+    const w = this.world;
     const fl = D.flash, fs = fl.size * r;
     this.flare(tex.mist, x, y, 0, { time: fl.time, w0: fs, h0: fs, w1: fs * fl.grow, h1: fs * fl.grow, alpha: fl.alpha, color0: 0xffffff, color1: color });
     for (const ring of D.rings) {
@@ -59,7 +68,6 @@ export class DeathFx {
     }
 
     for (const s of D.sparks) w.effects.burst(x, y, 0, { ...s, color: s.color ?? color });
-    w.effects.burst(x + dir.x * r, y + dir.y * r, blowAngle, { ...D.blow, color: D.blow.color ?? color });
     this.scatter(this.stars, D.stars, x, y, r * 0.5, color, { fade: color, color: D.stars.color });
     this.scatter(this.mist, D.mist, x, y, r * 0.4, color, { alpha: D.mist.alpha, grow: D.mist.grow, fade: 0x000000 });
     if (D.embers) this.scatter(this.embers, D.embers, x, y, r * 0.5, color, { fade: lerpColor(color, 0x000000, 0.6), orient: true, sway: 3 });
@@ -70,7 +78,7 @@ export class DeathFx {
     if (D.ripple) {
       const k = D.ripple.glow;
       const tint = [((color >> 16) & 255) / 255 * k, ((color >> 8) & 255) / 255 * k, (color & 255) / 255 * k];
-      w.ripple.play(body.pos, { ...D.ripple, tint });
+      w.ripple.play({ x, y }, { ...D.ripple, tint });
     }
   }
 

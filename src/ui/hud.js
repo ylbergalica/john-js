@@ -127,6 +127,7 @@ export class Hud {
     d.set(this.adrenaline, '.exalted', a.isExalted);
     d.set(this.adrenalineWrap, '.ready', a.canActivate);
     d.set(this.adrenalineWrap, '.exalted', a.isExalted);
+    d.set(this.adrenalineWrap, '.purging', !!world.player?.death?.purging); // wrung out of the dying player
     if (a.canActivate && !this.adrenalineReady) { // just became available (adrenalineFull plays with this)
       replay(this.adrenalineWrap, 'surge');
       replay(this.readyThrob, 'on');

@@ -139,9 +139,11 @@ export class GameScene {
     this.toolCorner.classList.remove('hidden');
   }
 
-  // Quitting forfeits the run's unbanked coins (dying banks them).
+  // Quitting forfeits the run's unbanked coins (dying banks them, so quitting while the
+  // player is dying banks them too).
   quitToMenu() {
-    this.session.forfeitCoins();
+    if (this.world.player?.death) this.session.bankCoins();
+    else this.session.forfeitCoins();
     this.onExit();
   }
 

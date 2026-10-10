@@ -47,6 +47,14 @@ export class Adrenaline {
     return true;
   }
 
+  // Dying Exalted: the state goes with the body, without its usual sigh.
+  burnOut() {
+    if (!this.isExalted) return;
+    this.exaltedRemaining = 0;
+    this.current = 0;
+    this.max = this.nextMax;
+  }
+
   step(dt) {
     if (!this.isExalted) return;
     this.exaltedRemaining = Math.max(0, this.exaltedRemaining - dt);

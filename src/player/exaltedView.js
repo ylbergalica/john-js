@@ -4,13 +4,13 @@
 // and a smoke ring, and the burning sound loops for as long as the state lasts.
 // Driven from PlayerView.render, so it watches the adrenaline state for edges itself.
 import { Container, MeshSimple, Sprite } from 'pixi.js';
-import { EXALTED_FX as X } from '../data/config.js';
+import { EXALTED_FX as X, PLAYER_DEATH } from '../data/config.js';
 import { clamp01, lerp, randRange, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
 import { sfx } from '../audio/sfx.js';
 
-const W = X.wings, DEG = Math.PI / 180;
+const W = X.wings, THROES = PLAYER_DEATH.exalted.throes, DEG = Math.PI / 180;
 
 // The right wing in world units around the player's centre (mirrored for the left): an arm
 // from the shoulder up to the wrist, a horn above it, fingers fanning out and drooping from
@@ -80,6 +80,7 @@ export class ExaltedView {
     this.openedAt = -Infinity;
     this.exalted = false;
     this.burning = null; // sfx loop handle
+    this.throes = 0; // 0…1 dying Exalted: the fire roars up (PLAYER_DEATH.exalted.throes); set by PlayerView
     // Carried over from the previous floor: no fanfare, no wings.
     if (this.world.adrenaline.isExalted) this.enter(null);
   }
@@ -114,7 +115,7 @@ export class ExaltedView {
     if (k > 0) {
       const H = X.halo;
       this.halo.position.set(p.x, p.y);
-      this.halo.width = this.halo.height = H.size * scale * (1 + 0.08 * Math.sin(this.time * H.pulseSpeed));
+      this.halo.width = this.halo.height = H.size * scale * (1 + 0.08 * Math.sin(this.time * H.pulseSpeed)) * (1 + THROES.halo * this.throes);
       this.halo.alpha = H.alpha * this.glow * (1 - H.pulse + H.pulse * Math.sin(this.time * H.pulseSpeed));
       this.emitAura(p, k, dt, scale, vel);
     }
@@ -143,6 +144,9 @@ export class ExaltedView {
       });
     }
   }
+
+  // Dying Exalted: the wings tear open once more.
+  flareWings() { this.openedAt = this.time; }
 
   exit(p) {
     this.exalted = false;
@@ -263,21 +267,22 @@ export class ExaltedView {
   // inherit some of the player's velocity and get left behind as a trail.
   emitAura(p, k, dt, scale, vel) {
     const B = X.body, E = X.embers, H = X.haze;
-    for (let n = spawnCount(B.rate * k, dt); n > 0; n--) {
+    const t = this.throes;
+    for (let n = spawnCount(B.rate * k * (1 + THROES.flames * t), dt); n > 0; n--) {
       const ang = Math.random() * TAU, c = Math.cos(ang), s = Math.sin(ang), r = B.radius * randRange(0.6, 1) * scale;
       this.flames.spawn({
         x: p.x + c * r, y: p.y + s * r * 0.8, vx: c * 0.6 + vel.x * 0.3, vy: s * 0.3 - pick(B.speed) + vel.y * 0.3,
         size: pick(B.size) * scale, grow: 0.4, life: pick(B.life), color: B.color, fade: B.fade, alpha: 0.85, sway: 4, orient: true,
       });
     }
-    for (let n = spawnCount(E.rate * k, dt); n > 0; n--) {
+    for (let n = spawnCount(E.rate * k * (1 + THROES.embers * t), dt); n > 0; n--) {
       this.embers.spawn({
         x: p.x + randRange(-0.5, 0.5) * scale, y: p.y + randRange(-0.4, 0.3) * scale,
         vx: randRange(-0.8, 0.8), vy: -pick(E.speed), size: pick(E.size), grow: 0.5, life: pick(E.life),
         color: E.color, fade: E.fade, sway: 5, orient: true,
       });
     }
-    for (let n = spawnCount(H.rate * k, dt); n > 0; n--) {
+    for (let n = spawnCount(H.rate * k * (1 + THROES.haze * t), dt); n > 0; n--) {
       const ang = Math.random() * TAU, r = Math.random() * 0.4;
       this.haze.spawn({
         x: p.x + Math.cos(ang) * r, y: p.y + Math.sin(ang) * r, vx: randRange(-0.25, 0.25), vy: randRange(-0.25, 0.25),

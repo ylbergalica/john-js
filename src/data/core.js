@@ -9,7 +9,9 @@ export const CAMERA = { orthoSize: 10, followDamping: 1 };
 // `silentRange`; panned by horizontal offset, reaching `maxPan` at the screen edge.
 export const AUDIO = { fullVolumeRange: 8, silentRange: 24, maxPan: 0.6 };
 
-export const GAME = { returnDelay: 3, floorIntroDuration: 3, playgroundRespawnDelay: 1 };
+// returnDelay / playgroundRespawnDelay: seconds after the player's death has played out
+// (PLAYER_DEATH) until the run summary / the player is back.
+export const GAME = { returnDelay: 1, floorIntroDuration: 3, playgroundRespawnDelay: 0.5 };
 
 // The first floors of a run open on their guardian, with the world frozen: the camera
 // fades in on it and slowly pushes in (`zoom`) for `hold` seconds, then glides to the

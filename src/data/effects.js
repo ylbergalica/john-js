@@ -120,7 +120,7 @@ export const ATTACK_FX = {
   // parry pressed on seeing it is open as the attack lands. Sizes grow with the enemy
   // (× √(body radius / 0.5)).
   cue: {
-    lead: 0.25, time: 0.24, rise: 0.2, spin: 0.7,
+    lead: 0.4, time: 0.24, rise: 0.2, spin: 0.7,
     size: 1.3, stretch: 1.6, color: 0xffa020, core: 0.4, coreColor: 0xffffff,
     haloSize: 2.6, haloAlpha: 0.9, haloColor: 0xff9a1f,
     ring: { from: 0.2, to: 0.9, alpha: 0.9 },

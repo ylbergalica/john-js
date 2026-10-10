@@ -61,7 +61,7 @@ export const ENEMY_TYPES = {
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3d63ff, sfxPitch: 0.9,
     visual: { kind: 'sprite', outline: 'seer_idle', void: 'seer_idle_void', size: 1.45, sparkleCount: 20 },
     ai: { ...AI_DEFAULTS, aggroRange: 22, orbitRadius: 6.5, moveSpeed: 2.6, orbitSpeed: 2.4, repositionSpeed: 2.4, maxTurnSpeed: 3.5,
-      attacks: [{ ability: 'SeerOmen', weight: 0.5 }, { ability: 'SeerBolt', weight: 0.5 }] },
+      attacks: [{ ability: 'SeerOmen', weight: 0.6 }, { ability: 'SeerBolt', weight: 0.4 }] },
   },
   warden: {
     name: 'Warden', maxHealth: 500, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,

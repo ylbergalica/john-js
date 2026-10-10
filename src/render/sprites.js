@@ -1117,29 +1117,41 @@ function flashIcon(S = 256) {
   });
   ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.36, [rgba('#ffe14a', 0.6), rgba('#ffc400', 0.2), rgba('#ffc400', 0)]);
   ctx.fillRect(0, 0, 1, 1);
-  // A fainter, shorter star turned 45° behind the main one.
+  const rand = seededRandom(212);
   ctx.save();
-  ctx.translate(0.5, 0.5); ctx.rotate(45 * DEG);
-  glow(ctx, rgba('#ffcc33', 0.8), px * 0.04, () => {
-    ctx.fillStyle = rgba('#ffe27a', 0.75);
-    ctx.fill(starPath(0, 0, 0.24, 0.12));
-  });
-  ctx.restore();
-  // The sparkle itself: long slim arms, a little taller than wide, white-hot at the heart.
+  ctx.translate(0.5, 0.5); ctx.rotate(-14 * DEG);
+  // A fainter, shorter star turned 45° behind the main one, smeared soft.
   ctx.save();
-  ctx.translate(0.5, 0.5); ctx.scale(0.9, 1.1);
-  const star = starPath(0, 0, 0.4, 0.09);
-  glow(ctx, rgba('#ffd84a', 0.95), px * 0.09, () => {
-    ctx.fillStyle = radial(ctx, 0, 0, 0.4, ['#ffffff', '#fff1a6', '#ffcf26', '#e89a00']);
-    ctx.fill(star);
-  });
-  glow(ctx, rgba('#ffffff', 0.9), px * 0.03, () => {
-    ctx.fillStyle = '#ffffff';
-    ctx.fill(starPath(0, 0, 0.16, 0.14));
-  });
+  ctx.rotate(40 * DEG);
+  ctx.filter = `blur(${px * 0.012}px)`;
+  ctx.fillStyle = rgba('#ffd65a', 0.6);
+  ctx.fill(roughStar([0.2, 0.26, 0.18, 0.24], 0.13, rand));
   ctx.restore();
-  sparkle(ctx, 0.75, 0.26, 0.07, '#fff6cf', 1, 0);
-  sparkle(ctx, 0.26, 0.76, 0.05, '#fff6cf', 0.9, 0);
+  // The sparkle itself: uneven arms, a few smudged ghosts of it around a softened body,
+  // white-hot at the heart.
+  const arms = [0.36, 0.44, 0.33, 0.42];
+  ctx.save();
+  ctx.filter = `blur(${px * 0.018}px)`;
+  for (let i = 0; i < 4; i++) {
+    ctx.save();
+    ctx.translate(lerp(-0.015, 0.015, rand()), lerp(-0.015, 0.015, rand()));
+    ctx.rotate(lerp(-6, 6, rand()) * DEG);
+    ctx.fillStyle = rgba('#ffc42a', 0.35);
+    ctx.fill(roughStar(arms.map((a) => a * lerp(0.92, 1.08, rand())), 0.1, rand));
+    ctx.restore();
+  }
+  ctx.restore();
+  glow(ctx, rgba('#ffcf3a', 0.95), px * 0.1, () => {
+    ctx.filter = `blur(${px * 0.004}px)`;
+    ctx.fillStyle = radial(ctx, 0, 0, 0.42, ['#ffffff', '#fff1a6', '#ffcf26', '#e89a00']);
+    ctx.fill(roughStar(arms, 0.08, rand));
+  });
+  ctx.filter = `blur(${px * 0.01}px)`;
+  ctx.fillStyle = radial(ctx, 0, 0, 0.14, ['#ffffff', rgba('#ffffff', 0.85), rgba('#fff6cf', 0)]);
+  ctx.fill(roughStar([0.14, 0.17, 0.13, 0.16], 0.2, rand));
+  ctx.restore();
+  sparkle(ctx, 0.76, 0.27, 0.065, '#fff6cf', 0.95, 0.2);
+  sparkle(ctx, 0.25, 0.74, 0.045, '#fff6cf', 0.8, -0.3);
   return c;
 }
 
@@ -1322,6 +1334,25 @@ function starPath(x, y, r, pinch = 0.14) {
   p.quadraticCurveTo(x - k, y + k, x - r, y);
   p.quadraticCurveTo(x - k, y - k, x, y - r);
   p.quadraticCurveTo(x + k, y - k, x + r, y);
+  return p;
+}
+
+// A hand-drawn-looking four-point star at the origin: `arms` are the right, down, left and
+// up arm lengths, and each tip and waist is nudged a little at random.
+function roughStar(arms, pinch, rand) {
+  const p = new Path2D();
+  const r = Math.max(...arms), k = r * pinch;
+  const tips = arms.map((a, i) => {
+    const ang = (i * 90 + lerp(-3, 3, rand())) * DEG;
+    return [Math.cos(ang) * a, Math.sin(ang) * a];
+  });
+  const waist = [[k, k], [-k, k], [-k, -k], [k, -k]];
+  p.moveTo(...tips[0]);
+  for (let i = 0; i < 4; i++) {
+    const [wx, wy] = waist[i], j = lerp(0.7, 1.3, rand());
+    p.quadraticCurveTo(wx * j, wy * j, ...tips[(i + 1) % 4]);
+  }
+  p.closePath();
   return p;
 }
 

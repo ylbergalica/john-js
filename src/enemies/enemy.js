@@ -2,9 +2,9 @@
 // the ability state machines.
 import { Container, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
-import { Body } from '../engine/physics.js';
-import { randInt, randInsideUnitCircle, norm, fromAngle } from '../engine/math.js';
-import { ENEMY_TYPES, ABILITIES, PARTICLES, PICKUPS } from '../data/config.js';
+import { Body, swapRemove } from '../engine/physics.js';
+import { clamp01, lerp, lerpColor, randInt, randInsideUnitCircle, norm, fromAngle, TAU } from '../engine/math.js';
+import { ENEMY_TYPES, ABILITIES, DEATH_FX, PARTICLES, PICKUPS } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
@@ -31,6 +31,8 @@ export class Enemy extends Entity {
     this.flashing = false;
     this.lastHitDir = null; // direction of the latest hit, so the death bursts along the killing blow
     this.summoned = false; // spawned from the spawn menu (World.summonEnemy)
+    this.dying = null; // { at, nextSparkAt } while a slain guardian goes critical (see die)
+    this.dyingWhite = false; // blinking white while dying
 
     this.buildView();
     this.abilities = new Map();
@@ -71,6 +73,7 @@ export class Enemy extends Entity {
   }
 
   step(dt) {
+    if (this.dying) { this.stepDying(); return; }
     for (const a of this.abilities.values()) a.step(dt);
     if (this.player) this.ai.step(dt);
   }
@@ -87,7 +90,7 @@ export class Enemy extends Entity {
 
   // `cause`: what dealt the hit (a DamageCause or an aspect id).
   takeDamage(damage, hitPoint = null, source = null, cause = null) {
-    if (this.dead) return;
+    if (this.dead || this.dying) return;
     source ??= this.player ? { ...this.player.body.pos } : { ...this.body.pos };
     hitPoint ??= { ...this.body.pos };
     if (damage > 0) this.onHurt(hitPoint, source);
@@ -114,7 +117,7 @@ export class Enemy extends Entity {
   }
 
   applyKnockback(force, source = null) {
-    if (force <= 0 || this.dead) return;
+    if (force <= 0 || this.dead || this.dying) return;
     const eff = force * (1 - this.type.knockbackResistance);
     if (eff <= 0) return;
     const b = this.body;
@@ -131,12 +134,44 @@ export class Enemy extends Entity {
     this.ai.suppressMovementFor(this.type.knockbackMovementPause);
   }
 
+  // A guardian doesn't burst at once: it stops dead and goes critical first (see
+  // DEATH_FX.guardian.dying), out of the fight and the enemy list, and bursts after.
   die(cause = null) {
+    if (this.type.isChaser) this.startDying();
+    else this.burst();
+    this.world.events.enemyKilled.emit(this, cause);
+  }
+
+  startDying() {
+    const { world, body } = this;
+    this.ai.onDeath();
+    for (const a of this.abilities.values()) a.dispose();
+    this.abilities.clear();
+    this.isActing = this.stunned = false;
+    swapRemove(world.enemies, this);
+    this.dying = { at: world.time, nextSparkAt: world.time };
+    world.sound('bossDying', body.pos);
+  }
+
+  stepDying() {
+    const D = DEATH_FX.guardian.dying, w = this.world, b = this.body;
+    b.stop();
+    const k = clamp01((w.time - this.dying.at) / D.time);
+    if (k >= 1) { this.burst(); return; }
+    if (w.time >= this.dying.nextSparkAt) {
+      this.dying.nextSparkAt = w.time + lerp(D.sparkEvery[0], D.sparkEvery[1], k);
+      const a = Math.random() * TAU;
+      w.effects.burst(b.pos.x + Math.cos(a) * b.radius, b.pos.y + Math.sin(a) * b.radius, a, { ...D.sparks, color: this.type.hitColor });
+    }
+  }
+
+  burst() {
     const { world, body, type } = this;
     this.ai.onDeath();
     world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
     this.rig?.onDeath();
     world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
+    if (type.isChaser) world.shove(body.pos, DEATH_FX.guardian.push, this);
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
     for (let i = 0; i < drops; i++) {
       const o = randInsideUnitCircle();
@@ -145,7 +180,26 @@ export class Enemy extends Entity {
     }
     if (type.isChaser) world.add(new ChaserCore(world, body.pos.x, body.pos.y));
     this.destroy();
-    world.events.enemyKilled.emit(this, cause);
+  }
+
+  // Going critical: trembling, swelling, glowing and blinking white ever faster.
+  renderDying(now, p) {
+    const D = DEATH_FX.guardian.dying, fx = this.attackFx, r = this.body.radius, color = this.type.hitColor;
+    const e = Math.max(0, now - this.dying.at), k = clamp01(e / D.time), kk = k * k;
+    const j = randInsideUnitCircle(), shake = lerp(D.tremble[0], D.tremble[1], kk) * r;
+    this.view.position.set(p.x + j.x * shake, p.y + j.y * shake);
+    this.view.scale.set(1 + D.swell * kk);
+    // Blink phase: the integral of a linearly rising rate.
+    const [b0, b1] = D.blink, phase = b0 * e + ((b1 - b0) * e * e) / (2 * D.time);
+    this.dyingWhite = phase % 1 < D.blinkOn || k > 1 - D.whiteOut / D.time;
+    const G = D.glow;
+    fx.glow.visible = true;
+    fx.glow.tint = color;
+    fx.glow.alpha = lerp(G.alpha[0], G.alpha[1], k) * (this.dyingWhite ? 1 : 0.75);
+    fx.glow.width = fx.glow.height = G.size * r * 2 * (1 + G.grow * kk);
+    fx.tint.visible = true;
+    fx.tint.tint = lerpColor(color, 0xffffff, k);
+    fx.tint.alpha = D.heat * k;
   }
 
   render(alpha, dt, view) {
@@ -157,10 +211,11 @@ export class Enemy extends Entity {
     this.view.position.set(p.x, p.y);
     this.view.rotation = rot;
     this.attackFx.render(now, p, rot, visible);
+    if (this.dying) this.renderDying(now, p);
     this.rig?.render(now, dt);
     this.attackFx.renderCue(now, visible);
     if (!visible) return;
-    this.setFlash(this.world.time < this.flashUntil);
+    this.setFlash(this.dying ? this.dyingWhite : this.world.time < this.flashUntil);
     if (!this.flashing) this.stars?.update(this.world.time);
   }
 

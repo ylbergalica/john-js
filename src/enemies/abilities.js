@@ -221,7 +221,7 @@ class HitboxAbility extends Ability {
     const k = this.awayFromPlayer();
     e.body.addImpulse(k.x * this.parryKnockback, k.y * this.parryKnockback);
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
-    if (e.dead) return;
+    if (e.dead || e.dying) return;
     e.stunned = true;
     if (zone) this.parriedStunEndsAt = this.world.time + this.data.parryStunTime;
     else this.setPhase('stunned', this.data.parryStunTime);
@@ -548,7 +548,7 @@ class ThrowAbility extends Ability {
     if (this.phase === 'stunned' || e.dead) return;
     e.body.stop();
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
-    if (e.dead) return;
+    if (e.dead || e.dying) return;
     e.stunned = true;
     e.isActing = false;
     for (const a of e.abilities.values()) if (a !== this && a.phase === 'windup') a.phase = 'ready';

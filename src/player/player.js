@@ -21,6 +21,7 @@ export class Player extends Entity {
     this.sizeScale = 1; // shrunk by the Anchor teleport
     this.teleporting = false; // set by aspects; locks out other actions
     this.intangible = false; // set by aspects; enemy attacks pass through
+    this.shoved = null; // { vx, vy, at, time }: a push fading out on top of walking (see shove)
 
     this.attacking = false;
     this.attackEndsAt = 0;
@@ -91,8 +92,21 @@ export class Player extends Entity {
       this.steer(0, 0, 1);
     } else if (!this.dashing) {
       const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier * (devFlags.noclip ? 3 : 1);
-      this.steer(this.movement.x * speed, this.movement.y * speed, PLAYER.movementResponsiveness);
+      const push = this.shoveVelocity(now);
+      this.steer(this.movement.x * speed + push.x, this.movement.y * speed + push.y, PLAYER.movementResponsiveness);
     }
+  }
+
+  // Pushed at (vx, vy), easing off over `time`; walking still steers on top of it.
+  shove(vx, vy, time) {
+    this.shoved = { vx, vy, at: this.now, time };
+  }
+
+  shoveVelocity(now) {
+    const s = this.shoved;
+    const k = s ? 1 - (now - s.at) / s.time : 0;
+    if (k <= 0) { this.shoved = null; return { x: 0, y: 0 }; }
+    return { x: s.vx * k * k, y: s.vy * k * k };
   }
 
   afterPhysics() {

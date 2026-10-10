@@ -264,10 +264,31 @@ export class World {
     return null;
   }
 
-  // Removes every enemy without killing it (no drops, no death effects).
+  // Removes every enemy without killing it (no drops, no death effects), dying guardians too.
   clearEnemies() {
-    for (const e of this.enemies) e.destroy();
+    for (const e of this.entities) if (e instanceof Enemy) e.destroy();
     this.enemies.length = 0;
+  }
+
+  // Shoves the player and enemies within `radius` of `pos` straight away from it, harder the
+  // closer they are (see DEATH_FX.guardian.push). No damage.
+  shove(pos, { radius, speed, stagger, playerTime }, except = null) {
+    const away = (body) => {
+      const dx = body.pos.x - pos.x, dy = body.pos.y - pos.y, d = Math.hypot(dx, dy);
+      if (d >= radius) return null;
+      const v = speed * (1 - (d / radius) ** 2);
+      return d > 1e-6 ? { x: (dx / d) * v, y: (dy / d) * v } : { x: v, y: 0 };
+    };
+    for (const e of this.enemies) {
+      if (e === except || e.dead) continue;
+      const v = away(e.body);
+      if (!v) continue;
+      const k = 1 - e.type.knockbackResistance;
+      e.body.vel.x += v.x * k; e.body.vel.y += v.y * k;
+      e.ai.suppressMovementFor(stagger);
+    }
+    const p = this.livePlayer, v = p && away(p.body);
+    if (v) p.shove(v.x, v.y, playerTime);
   }
 
   // ── shared services ──────────────────────────────────────────────

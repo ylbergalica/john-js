@@ -53,6 +53,22 @@ export const DEATH_FX = {
     // As the Exalted ripple (strength/width: fractions of screen height); its light is the
     // guardian's colour × `glow`, and the scene it has passed is multiplied by `grade`.
     ripple: { duration: 1.3, strength: 0.06, width: 0.1, glow: 0.6, grade: [0.75, 0.75, 0.85] },
+    // Struck down, a guardian first stops dead for `time` seconds before it bursts: it
+    // trembles harder and harder (× body radius, at the start and end), swells, glows and
+    // heats up in its colour, blinks white faster and faster (blinks a second, at the start
+    // and end; solid white for the last `whiteOut`), and light leaks out of it in sparks
+    // (every `sparkEvery` seconds, at the start and end).
+    dying: {
+      time: 1.8,
+      tremble: [0.015, 0.08], swell: 0.14,
+      glow: { size: 2.6, grow: 0.6, alpha: [0.15, 0.85] }, heat: 0.55,
+      blink: [2.5, 14], blinkOn: 0.35, whiteOut: 0.12,
+      sparkEvery: [0.2, 0.035], sparks: { count: 3, speed: 7, lifetime: 0.4, size: 0.45, coneDeg: 22 },
+    },
+    // Its burst shoves the player and enemies within `radius` straight away, harder the
+    // closer they are (up to `speed`, units/s). No damage. Enemies lose control of their
+    // movement for `stagger` seconds; the player's push fades out over `playerTime`.
+    push: { radius: 8, speed: 18, stagger: 0.35, playerTime: 0.45 },
   },
 };
 

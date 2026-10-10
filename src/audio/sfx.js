@@ -167,6 +167,19 @@ const SOUNDS = {
     noise(v, { filter: 'lowpass', freq: 3000, to: 60, dur: 1.5, vol: 0.5 });
     arp(v, [523, 784, 1047, 1568], 0.09, { type: 'triangle', at: 0.25, dur: 0.6, vol: 0.08 });
   },
+  // A slain guardian going critical, about as long as DEATH_FX.guardian.dying: a low throb
+  // and a whine climbing under a hiss, ticking faster, cut off by bossKill as it bursts.
+  bossDying(v) {
+    tone(v, { freq: 90, to: 140, dur: 1.85, vol: 0.3, attack: 0.05, hold: 1.75 });
+    tone(v, { type: 'sawtooth', freq: 220, to: 1320, dur: 1.85, vol: 0.06, attack: 1.4, hold: 1.78 });
+    tone(v, { type: 'triangle', freq: 660, to: 2640, dur: 1.85, vol: 0.05, attack: 1.5, hold: 1.78 });
+    noise(v, { freq: 500, to: 5000, q: 1.5, dur: 1.85, vol: 0.12, attack: 1.6, hold: 1.78 });
+    // Ticks quickening like the blinks (DEATH_FX.guardian.dying.blink).
+    for (let i = 0, t = 0; t < 1.75; i++) {
+      t = (-2.5 + Math.sqrt(2.5 * 2.5 + 2 * (11.5 / 1.8) * i)) / (11.5 / 1.8);
+      if (t < 1.75) tone(v, { type: 'square', freq: 1400 + t * 500, at: t, dur: 0.04, vol: 0.025 + t * 0.02 });
+    }
+  },
   windup(v) {
     tone(v, { type: 'triangle', freq: 300, to: 620, dur: 0.14, vol: 0.09, attack: 0.03 });
   },

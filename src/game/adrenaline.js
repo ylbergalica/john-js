@@ -20,8 +20,8 @@ export class Adrenaline {
   get damageMultiplier() { return this.isExalted ? A.damageMultiplier : 1; }
   get speedMultiplier() { return this.isExalted ? A.speedMultiplier : 1; }
   get damageTakenMultiplier() { return this.isExalted ? 1 - A.damageResistance : 1; }
-  // Points still to gather before the next activation; an Exalted state counts as spent.
-  get shortfall() { return this.isExalted ? this.nextMax : this.max - this.current; }
+  // The size of the meter to fill next; an Exalted state counts as spent.
+  get capacity() { return this.isExalted ? this.nextMax : this.max; }
   get nextMax() { return A.baseMaxAdrenaline + this.uses * A.toleranceIncreasePerUse; }
 
   add(amount) {

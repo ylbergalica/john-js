@@ -27,22 +27,26 @@ export const BASE_LEVEL_CONFIG = {
   // toFloor (stays at max without one).
   enemySpawn: {
     enemies: [
-      { type: 'goblin', weight: { min: 0.4, max: 1.2 }, fromFloor: 1, peakFloor: 3, toFloor: 20 },
-      { type: 'striker', weight: { min: 0.4, max: 1.2 }, fromFloor: 1, peakFloor: 6, toFloor: 30 },
-      { type: 'mauler', weight: { min: 0.3, max: 1 }, fromFloor: 2, peakFloor: 10 },
-      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 3, peakFloor: 12 },
-      { type: 'seer', weight: { min: 0.3, max: 1 }, fromFloor: 2, peakFloor: 10 },
+      { type: 'goblin', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 2, toFloor: 5 },
+      { type: 'striker', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 2, toFloor: 5 },
+      { type: 'mauler', weight: { min: 0.5, max: 1 }, fromFloor: 2, peakFloor: 4 },
+      { type: 'shade', weight: { min: 0.4, max: 1 }, fromFloor: 4, peakFloor: 6 },
+      { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 5, peakFloor: 7 },
     ],
-    minEnemiesPerRoom: 3,
+    // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
+    // in a room) until the floor's expected adrenaline drops reach adrenalineSurplus times a
+    // full meter (slack for orbs missed or enemies skipped). Per-type drops are in enemies.js.
+    minEnemiesPerRoom: 2,
     maxEnemiesPerRoom: 6,
     skipFirstRoom: true,
     skipLastRoom: true,
-    // Extra enemies are added until the floor's expected adrenaline drops reach this
-    // multiple of what the meter still needs (slack for orbs missed or enemies skipped).
     adrenalineSurplus: 1.5,
   },
   chaserCount: 1,
-  chasers: [{ type: 'warden', weight: 1, fromFloor: 1 }, { type: 'seraph', weight: 1, fromFloor: 1 }],
+  chasers: [
+    { type: 'warden', weight: 1, fromFloor: 1 }, 
+    { type: 'seraph', weight: 1, fromFloor: 1 }
+  ],
 };
 
 export const WALL_VISUAL = {

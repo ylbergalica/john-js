@@ -100,14 +100,22 @@ export class World {
       const t = ENEMY_TYPES[key];
       return ((t.minAdrenalineDrops + t.maxAdrenalineDrops) / 2) * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
     };
+    // Every room gets its minimum, then enemies go into random rooms (up to each room's cap)
+    // until the floor's expected drops fill a whole meter times the surplus, so enemies that
+    // drop more adrenaline mean fewer enemies.
+    const counts = new Map();
+    const spawnCounted = (i) => { counts.set(i, (counts.get(i) ?? 0) + 1); return spawnIn(rooms[i]); };
     let supply = 0;
     for (let i = first; i < last; i++) {
-      const count = randInt(es.minEnemiesPerRoom, es.maxEnemiesPerRoom + 1);
-      for (let n = 0; n < count; n++) supply += spawnIn(rooms[i]);
+      for (let n = 0; n < es.minEnemiesPerRoom; n++) supply += spawnCounted(i);
     }
-    // Low rolls get topped up so the floor holds enough adrenaline to meet the guardian Exalted.
-    const demand = this.adrenaline.shortfall * es.adrenalineSurplus;
-    for (let tries = 0; last > first && supply < demand && tries < 100; tries++) supply += spawnIn(rooms[randInt(first, last)]);
+    const budget = this.adrenaline.capacity * es.adrenalineSurplus;
+    for (let tries = 0; supply < budget && tries < 200; tries++) {
+      const open = [];
+      for (let i = first; i < last; i++) if ((counts.get(i) ?? 0) < es.maxEnemiesPerRoom) open.push(i);
+      if (!open.length) break;
+      supply += spawnCounted(open[randInt(0, open.length)]);
+    }
 
     // Cores gate the exit; require exactly as many as chasers actually spawned.
     let chasers = 0;

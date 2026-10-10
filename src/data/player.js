@@ -36,8 +36,7 @@ export const PLAYER = {
     // at comboMax); each level adds bonus damage and grows the shake, sound and sparks.
     comboWindow: 3,
     comboMax: 5,
-    comboDamageStep: 1, // flat bonus damage per level
-    comboDamageFraction: 0.3, // plus this fraction of the parried attack's base damage per level
+    comboDamageFraction: 0.3, // bonus damage per level, as a fraction of the parried attack's base damage
     comboShakeStep: 0.45, // extra shake strength per level, as a fraction of the base
     comboPitchStep: 2 ** (1 / 12), // one semitone higher per level
     comboVolumeStep: 0.08,

@@ -242,8 +242,8 @@ export class Player extends Entity {
   }
 
   // Extra damage a parry of an attack worth `base` deals for the current streak (0 on the
-  // first parry): per level, a flat step plus a fraction of the base.
-  parryBonusDamage(base) { return Math.max(0, this.parryStreak - 1) * (P.comboDamageStep + P.comboDamageFraction * base); }
+  // first parry): a fraction of the base per level.
+  parryBonusDamage(base) { return Math.max(0, this.parryStreak - 1) * P.comboDamageFraction * base; }
 
   // ── health ───────────────────────────────────────────────────────
   takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {

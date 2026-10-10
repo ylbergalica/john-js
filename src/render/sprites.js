@@ -1117,41 +1117,61 @@ function flashIcon(S = 256) {
   });
   ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.36, [rgba('#ffe14a', 0.6), rgba('#ffc400', 0.2), rgba('#ffc400', 0)]);
   ctx.fillRect(0, 0, 1, 1);
+  // A burst of light rather than a star: two hazy four-arm flares crossed at an odd angle,
+  // faint rays scattering between them and a bloom swallowing the middle. Everything is
+  // blurred and fades out along its length, so no edge reads crisp.
   const rand = seededRandom(212);
+  const fadeOut = (r, a) => radial(ctx, 0, 0, r, [rgba('#ffffff', a), rgba('#ffe680', a), rgba('#ffc42a', 0.85 * a), rgba('#f59a00', 0.5 * a), rgba('#f59a00', 0)]);
   ctx.save();
   ctx.translate(0.5, 0.5); ctx.rotate(-14 * DEG);
-  // A fainter, shorter star turned 45° behind the main one, smeared soft.
+  // The duplicate behind, turned 38° and a little shorter.
   ctx.save();
-  ctx.rotate(40 * DEG);
-  ctx.filter = `blur(${px * 0.012}px)`;
-  ctx.fillStyle = rgba('#ffd65a', 0.6);
-  ctx.fill(roughStar([0.2, 0.26, 0.18, 0.24], 0.13, rand));
+  ctx.rotate(38 * DEG);
+  ctx.filter = `blur(${px * 0.016}px)`;
+  ctx.fillStyle = fadeOut(0.38, 0.9);
+  ctx.fill(roughStar([0.33, 0.38, 0.29, 0.36], 0.07, rand));
   ctx.restore();
-  // The sparkle itself: uneven arms, a few smudged ghosts of it around a softened body,
-  // white-hot at the heart.
-  const arms = [0.36, 0.44, 0.33, 0.42];
+  // Faint rays: long thin slivers fading to nothing.
   ctx.save();
-  ctx.filter = `blur(${px * 0.018}px)`;
-  for (let i = 0; i < 4; i++) {
+  ctx.filter = `blur(${px * 0.008}px)`;
+  for (let i = 0; i < 7; i++) {
+    const len = lerp(0.24, 0.42, rand()), w = lerp(0.008, 0.016, rand());
     ctx.save();
-    ctx.translate(lerp(-0.015, 0.015, rand()), lerp(-0.015, 0.015, rand()));
-    ctx.rotate(lerp(-6, 6, rand()) * DEG);
-    ctx.fillStyle = rgba('#ffc42a', 0.35);
-    ctx.fill(roughStar(arms.map((a) => a * lerp(0.92, 1.08, rand())), 0.1, rand));
+    ctx.rotate(((i + rand() * 0.6) / 7) * TAU);
+    ctx.fillStyle = linear(ctx, 0, 0, len, 0, [rgba('#fff1a6', 0.55), rgba('#ffc42a', 0)]);
+    ctx.beginPath();
+    ctx.moveTo(0, -w); ctx.lineTo(len, 0); ctx.lineTo(0, w); ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
   ctx.restore();
-  glow(ctx, rgba('#ffcf3a', 0.95), px * 0.1, () => {
-    ctx.filter = `blur(${px * 0.004}px)`;
-    ctx.fillStyle = radial(ctx, 0, 0, 0.42, ['#ffffff', '#fff1a6', '#ffcf26', '#e89a00']);
-    ctx.fill(roughStar(arms, 0.08, rand));
-  });
-  ctx.filter = `blur(${px * 0.01}px)`;
-  ctx.fillStyle = radial(ctx, 0, 0, 0.14, ['#ffffff', rgba('#ffffff', 0.85), rgba('#fff6cf', 0)]);
-  ctx.fill(roughStar([0.14, 0.17, 0.13, 0.16], 0.2, rand));
+  // The main flare, smeared by a few offset ghosts of itself.
+  const arms = [0.4, 0.47, 0.36, 0.45];
+  ctx.save();
+  ctx.filter = `blur(${px * 0.022}px)`;
+  for (let i = 0; i < 3; i++) {
+    ctx.save();
+    ctx.translate(lerp(-0.02, 0.02, rand()), lerp(-0.02, 0.02, rand()));
+    ctx.rotate(lerp(-7, 7, rand()) * DEG);
+    ctx.fillStyle = fadeOut(0.45, 0.4);
+    ctx.fill(roughStar(arms.map((a) => a * lerp(0.9, 1.08, rand())), 0.09, rand));
+    ctx.restore();
+  }
   ctx.restore();
-  sparkle(ctx, 0.76, 0.27, 0.065, '#fff6cf', 0.95, 0.2);
-  sparkle(ctx, 0.25, 0.74, 0.045, '#fff6cf', 0.8, -0.3);
+  glow(ctx, rgba('#ffcf3a', 0.9), px * 0.08, () => {
+    ctx.filter = `blur(${px * 0.012}px)`;
+    ctx.fillStyle = fadeOut(0.47, 1);
+    ctx.fill(roughStar(arms, 0.06, rand));
+  });
+  // Bloom: a wide soft haze and a white-hot heart.
+  ctx.filter = `blur(${px * 0.01}px)`;
+  ctx.fillStyle = radial(ctx, 0, 0, 0.2, [rgba('#fff6cf', 0.45), rgba('#ffd65a', 0.15), rgba('#ffc42a', 0)]);
+  ctx.fillRect(-0.25, -0.25, 0.5, 0.5);
+  ctx.fillStyle = radial(ctx, 0, 0, 0.09, ['#ffffff', rgba('#ffffff', 0.8), rgba('#ffffff', 0)]);
+  ctx.fillRect(-0.1, -0.1, 0.2, 0.2);
+  ctx.restore();
+  sparkle(ctx, 0.77, 0.28, 0.055, '#fff6cf', 0.8, 0.2);
+  sparkle(ctx, 0.25, 0.74, 0.04, '#fff6cf', 0.65, -0.3);
   return c;
 }
 

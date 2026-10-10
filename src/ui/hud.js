@@ -197,12 +197,12 @@ export class Hud {
     const aspects = player ? player.aspects.aspects : [];
     if (aspects !== this.iconsFor) {
       this.iconsFor = aspects;
-      this.iconSlots = aspects.map((aspect, i) => {
+      this.iconSlots = aspects.map((aspect) => {
         const overlay = h('div', { class: 'cd' });
         const el = h('div', { class: 'aspect-icon' },
           h('img', { src: iconUrls[aspect.data.icon], alt: aspect.data.displayName }),
           overlay,
-          aspect.data.activatable ? keycap(String(i + 1)) : null,
+          aspect.data.activatable ? keycap(String(aspect.slot + 1)) : null,
         );
         return { el, overlay, cooling: false };
       });

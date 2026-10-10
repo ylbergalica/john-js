@@ -297,10 +297,10 @@ kbd {
 .main-buttons button { font-size: 16px; padding: 13px 0; }
 .loadout { margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .loadout-slots { display: flex; gap: 10px; }
-.loadout-slot { width: 52px; height: 52px; padding: 0; overflow: hidden; border-color: color-mix(in srgb, var(--tier, #fff) 55%, transparent); box-shadow: 0 0 12px color-mix(in srgb, var(--tier, #fff) 20%, transparent); }
+.loadout-slot { width: 52px; height: 52px; overflow: hidden; background: rgba(255, 255, 255, 0.02); border: 1px solid color-mix(in srgb, var(--tier, #fff) 55%, transparent); border-radius: 6px; box-shadow: 0 0 12px color-mix(in srgb, var(--tier, #fff) 20%, transparent); transition: background 0.1s, border-color 0.1s, box-shadow 0.2s; }
 .loadout-slot img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .loadout-slot.empty { border: 1px dashed rgba(255, 255, 255, 0.2); box-shadow: none; background: none; }
-.loadout-slot:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); border-color: var(--tier, #fff); box-shadow: 0 0 18px color-mix(in srgb, var(--tier, #fff) 45%, transparent); }
+.loadout-slot:hover:not(.empty) { background: rgba(255, 255, 255, 0.08); border-color: var(--tier, #fff); box-shadow: 0 0 18px color-mix(in srgb, var(--tier, #fff) 45%, transparent); }
 
 .coin-pill { align-self: center; display: flex; align-items: center; padding: 7px 18px 7px 14px; font-size: 20px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 209, 64, 0.28); box-shadow: 0 0 18px rgba(255, 209, 64, 0.08); }
 .menu > .coin-pill { margin-top: 40px; }
@@ -335,6 +335,16 @@ kbd {
 .slot.empty { background: rgba(255, 255, 255, 0.02); border: 2px dashed rgba(255, 255, 255, 0.16); box-shadow: none; }
 .slot:disabled { opacity: 1; }
 .slot:hover:not(:disabled) { background: #0a0a0a; border-color: var(--tier); transform: scale(1.06); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tier) 22%, transparent), 0 0 40px color-mix(in srgb, var(--tier) 55%, transparent); }
+/* Dragging an aspect: the picked-up one dims, its icon follows the pointer, and the drop lights up. */
+.slot:not(.empty), .collection-tile { cursor: grab; }
+.dragging, .dragging * { cursor: grabbing !important; user-select: none; }
+.drag-source { opacity: 0.3; }
+.drag-ghost { position: fixed; z-index: 11; width: 84px; height: 84px; translate: -50% -50%; rotate: -4deg; scale: 1.08; pointer-events: none; border-radius: 12px; background: #0a0a0a; border: 2px solid var(--tier); box-shadow: 0 0 30px color-mix(in srgb, var(--tier) 55%, transparent), 0 16px 34px rgba(0, 0, 0, 0.7); animation: lift 0.18s var(--spring) both; }
+@keyframes lift { from { scale: 0.8; rotate: 0deg; } }
+.drag-ghost img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+.slot.drop-target, .slot.drop-target:hover:not(:disabled) { border: 2px solid #fff; transform: scale(1.1); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22), 0 0 40px rgba(255, 255, 255, 0.4); }
+.collection-side { border-radius: 12px; transition: background 0.15s, box-shadow 0.15s; }
+.collection-side.drop-target { background: rgba(255, 255, 255, 0.03); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.03), 0 0 0 11px rgba(255, 255, 255, 0.16); }
 
 .aspect-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 14px; padding: 10px; margin: -10px; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
 /* Collection: icon tiles framed in their tier colour; equipped ones get a heavier ring and a check. */

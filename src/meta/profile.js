@@ -8,6 +8,7 @@ import { save } from './save.js';
 const byId = new Map(ASPECTS.map((a) => [a.id, a]));
 const tierInfo = (tier) => TIERS.find((t) => t.tier === tier) ?? TIERS[TIERS.length - 1];
 const lockedInTier = (tier) => ASPECTS.filter((a) => a.tier === tier && !profile.isUnlocked(a.id));
+const slots = () => save.data.equippedAspectIds; // one per loadout slot, null where empty
 
 export const profile = {
   get coins() { return save.data.totalCoins; },
@@ -20,9 +21,11 @@ export const profile = {
 
   getAspect: (id) => byId.get(id) ?? null,
   isUnlocked: (id) => save.data.unlockedAspectIds.includes(id),
-  isEquipped: (id) => save.data.equippedAspectIds.includes(id),
-  canEquipMore: () => save.data.equippedAspectIds.length < MAX_EQUIPPED_ASPECTS,
-  equippedAspects: () => save.data.equippedAspectIds.map((id) => byId.get(id)).filter(Boolean),
+  isEquipped: (id) => slots().includes(id),
+  canEquipMore: () => profile.loadout().includes(null),
+  // Aspect per loadout slot (null where empty); slot i is key i + 1 in a run.
+  loadout: () => slots().map((id) => byId.get(id) ?? null),
+  equippedAspects: () => profile.loadout().filter(Boolean),
 
   priceForTier: (tier) => tierInfo(tier).price,
   hasLockedInTier: (tier) => lockedInTier(tier).length > 0,
@@ -41,21 +44,28 @@ export const profile = {
     return { ok: true, aspect };
   },
 
-  equip(id) {
+  // Puts an aspect in a slot, by default the first empty one. An aspect already equipped
+  // swaps places with whatever is in that slot; a new one replaces it.
+  equip(id, slot) {
     if (!profile.isUnlocked(id)) return false;
-    const eq = save.data.equippedAspectIds;
-    if (eq.includes(id)) return true;
-    if (eq.length >= MAX_EQUIPPED_ASPECTS) return false;
-    eq.push(id);
+    const eq = slots();
+    const from = eq.indexOf(id);
+    if (slot === undefined) {
+      if (from >= 0) return true;
+      slot = profile.loadout().indexOf(null);
+    }
+    if (!(slot >= 0 && slot < MAX_EQUIPPED_ASPECTS)) return false;
+    if (from >= 0) eq[from] = eq[slot];
+    eq[slot] = id;
     save.write();
     return true;
   },
 
   unequip(id) {
-    const eq = save.data.equippedAspectIds;
+    const eq = slots();
     const i = eq.indexOf(id);
     if (i < 0) return false;
-    eq.splice(i, 1);
+    eq[i] = null;
     save.write();
     return true;
   },
@@ -74,7 +84,7 @@ export const profile = {
   floorsWithAspect: (id) => save.data.aspectFloors[id] ?? 0,
   recordFloorCleared() {
     const floors = save.data.aspectFloors;
-    for (const id of save.data.equippedAspectIds) floors[id] = (floors[id] ?? 0) + 1;
+    for (const id of slots()) if (id) floors[id] = (floors[id] ?? 0) + 1;
     save.write();
   },
 

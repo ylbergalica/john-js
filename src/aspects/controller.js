@@ -8,7 +8,8 @@ import { createAspect } from './index.js';
 export class AspectController {
   constructor(player) {
     this.player = player;
-    this.aspects = profile.equippedAspects().map((data) => createAspect(player, data));
+    // Each remembers its loadout slot: slot i fires on key i + 1, even with gaps before it.
+    this.aspects = profile.loadout().flatMap((data, slot) => (data ? [Object.assign(createAspect(player, data), { slot })] : []));
     this.buffers = this.aspects.map(() => new InputBuffer(PLAYER.inputBufferTime));
     const events = player.world.events;
     this.unsubscribe = [
@@ -25,7 +26,7 @@ export class AspectController {
     const { input, time } = this.player.world;
     this.aspects.forEach((aspect, i) => {
       if (!aspect.data.activatable) return;
-      if (input.wasPressed(`slot${i + 1}`)) this.buffers[i].press(time);
+      if (input.wasPressed(`slot${aspect.slot + 1}`)) this.buffers[i].press(time);
       if (!this.player.teleporting) this.buffers[i].consume(time, () => this.activate(aspect));
     });
     for (const a of this.aspects) a.step(dt);

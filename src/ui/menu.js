@@ -12,6 +12,7 @@ const tierOf = (a) => TIERS.find((t) => t.tier === a.tier);
 const COIN_COUNT_TIME = 0.6; // seconds the coin counter takes to roll to a new balance
 const TOAST_TIME = 2.6;
 const REVEAL_GUARD = 0.6; // seconds before a key or click can dismiss an unlock
+const DRAG_START = 6; // pixels the pointer moves before a press on an aspect becomes a drag
 const CONTROLS = [
   ['WASD', 'Move'], ['Mouse', 'Aim'], ['LMB', 'Attack'], ['RMB', 'Parry'], ['Shift', 'Dash'],
   ['X', 'Exalted'], ['1 2 3', 'Aspects'], ['Esc', 'Pause'], ['M', 'Mute'],
@@ -36,18 +37,19 @@ export class MenuScene {
       return h('div', { class: 'coin-pill' }, coinIcon(), value);
     };
 
+    // The loadout on the main menu is a glance only: hover for details.
     this.loadoutSlots = Array.from({ length: MAX_EQUIPPED_ASPECTS }, (_, i) => {
-      const b = h('button', { class: 'loadout-slot', onclick: () => this.openAspects() });
-      this.attachTooltip(b, () => profile.equippedAspects()[i]);
-      return b;
+      const el = h('div', { class: 'loadout-slot' });
+      this.attachTooltip(el, () => profile.loadout()[i]);
+      return el;
     });
     const main = h('div', { class: 'menu interactive' },
       h('h1', { class: 'menu-title title-in', text: 'Starspite' }),
       h('div', { class: 'rule menu-rule' }, '✦'),
       h('div', { class: 'main-buttons' },
         rise(h('button', { class: 'primary', text: 'Start Run', onclick: onStartRun })),
-        rise(h('button', { text: 'Aspects', onclick: () => this.openAspects() })),
         rise(h('button', { text: 'Playground', onclick: onPlayground })),
+        rise(h('button', { text: 'Aspects', onclick: () => this.openAspects() })),
         window.desktop ? rise(h('button', { text: 'Quit', onclick: () => window.desktop.quit() })) : null,
       ),
       rise(h('div', { class: 'loadout' },
@@ -58,18 +60,23 @@ export class MenuScene {
 
     // Aspects: the equipped slots as three icons spread in a triangle on the left (click
     // one to unequip), the collection scrolling on the right (click to equip/unequip).
+    // Aspects can also be dragged: onto a slot to equip them there, between slots to swap,
+    // or from a slot back to the collection to unequip.
     this.slotButtons = Array.from({ length: MAX_EQUIPPED_ASPECTS }, (_, i) => {
-      const b = h('button', { class: `slot s${i}`, onclick: () => this.unequipSlot(i) });
-      this.attachTooltip(b, () => profile.equippedAspects()[i]);
+      const b = h('button', { class: `slot s${i}`, onclick: () => this.clicked() && this.unequipSlot(i) });
+      this.attachTooltip(b, () => profile.loadout()[i]);
+      this.draggable(b, () => profile.loadout()[i], true);
       return b;
     });
     this.list = h('div', { class: 'aspect-list' });
+    this.collectionSide = h('section', { class: 'collection-side' }, h('div', { class: 'eyebrow', text: 'Collection' }), this.list);
+    this.drag = null;
     this.aspectsPanel = h('div', { class: 'panel interactive hidden' },
       h('div', { class: 'panel-card aspects-card' },
         h('header', { class: 'panel-head' }, h('h2', { text: 'Aspects' })),
         h('div', { class: 'aspects-body' },
           h('section', { class: 'loadout-side' }, h('div', { class: 'eyebrow', text: 'Loadout' }), h('div', { class: 'slots' }, this.slotButtons)),
-          h('section', { class: 'collection-side' }, h('div', { class: 'eyebrow', text: 'Collection' }), this.list),
+          this.collectionSide,
         ),
         h('div', { class: 'panel-actions' },
           h('button', { class: 'primary', text: 'Request Aspect', onclick: () => this.openShop() }),
@@ -120,7 +127,13 @@ export class MenuScene {
     root.append(this.el);
 
     this.listeners = new AbortController();
-    window.addEventListener('keydown', (e) => this.onKey(e), { signal: this.listeners.signal });
+    const { signal } = this.listeners;
+    window.addEventListener('keydown', (e) => this.onKey(e), { signal });
+    window.addEventListener('pointermove', (e) => this.dragMove(e), { signal });
+    window.addEventListener('pointerup', (e) => this.dragEnd(e), { signal });
+    window.addEventListener('pointercancel', () => this.dragEnd(null), { signal });
+    window.addEventListener('blur', () => this.dragEnd(null), { signal });
+    this.el.addEventListener('dragstart', (e) => e.preventDefault()); // no native image drag
     this.refresh();
   }
 
@@ -153,7 +166,7 @@ export class MenuScene {
   }
 
   openAspects() { this.hideTooltip(); this.aspectsPanel.classList.remove('hidden'); this.refresh(); }
-  closeAspects() { this.aspectsPanel.classList.add('hidden'); this.closeShop(); this.hideTooltip(); }
+  closeAspects() { this.dragEnd(null); this.aspectsPanel.classList.add('hidden'); this.closeShop(); this.hideTooltip(); }
   openShop() { this.hideTooltip(); this.shopPanel.classList.remove('hidden'); this.refresh(); }
   closeShop() { this.shopPanel.classList.add('hidden'); }
 
@@ -172,7 +185,7 @@ export class MenuScene {
   }
 
   unequipSlot(i) {
-    const a = profile.equippedAspects()[i];
+    const a = profile.loadout()[i];
     if (!a) return;
     profile.unequip(a.id);
     this.hideTooltip();
@@ -213,17 +226,18 @@ export class MenuScene {
     this.list.replaceChildren(...unlocked.map((a) => {
       const equipped = profile.isEquipped(a.id);
       const canEquip = equipped || profile.canEquipMore();
-      const tile = h('button', { class: `collection-tile${equipped ? ' equipped' : ''}${canEquip ? '' : ' unavailable'}`, onclick: () => this.toggleEquip(a.id) },
+      const tile = h('button', { class: `collection-tile${equipped ? ' equipped' : ''}${canEquip ? '' : ' unavailable'}`, onclick: () => this.clicked() && this.toggleEquip(a.id) },
         h('img', { src: iconUrls[a.icon], alt: a.displayName }),
         equipped ? h('span', { class: 'tile-check', text: '✓' }) : null,
       );
       this.attachTooltip(tile, () => a);
+      this.draggable(tile, () => a, false);
       return setTier(tile, a);
     }));
   }
 
   refreshSlots() {
-    const eq = profile.equippedAspects();
+    const eq = profile.loadout();
     this.slotButtons.forEach((b, i) => {
       const a = eq[i];
       b.disabled = !a;
@@ -270,10 +284,62 @@ export class MenuScene {
     this.refresh();
   }
 
+  // A press on an aspect that moves far enough picks it up; the icon follows the pointer
+  // and the slot (or the collection, for a slotted aspect) under it lights up as the drop.
+  draggable(el, getAspect, fromSlot) {
+    el.addEventListener('pointerdown', (e) => {
+      this.justDragged = false;
+      const a = e.button === 0 && getAspect();
+      if (a) this.drag = { a, el, fromSlot, x: e.clientX, y: e.clientY, ghost: null, target: null };
+    });
+  }
+
+  dragMove(e) {
+    const d = this.drag;
+    if (!d) return;
+    if (!d.ghost) {
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_START) return;
+      this.hideTooltip();
+      d.ghost = setTier(h('div', { class: 'drag-ghost' }, h('img', { src: iconUrls[d.a.icon], alt: '' })), d.a);
+      d.el.classList.add('drag-source');
+      this.el.classList.add('dragging');
+      this.el.append(d.ghost);
+    }
+    d.ghost.style.left = `${e.clientX}px`;
+    d.ghost.style.top = `${e.clientY}px`;
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = this.slotButtons.findIndex((b) => b.contains(under));
+    d.target = slot >= 0 ? slot : d.fromSlot && this.collectionSide.contains(under) ? 'collection' : null;
+    this.slotButtons.forEach((b, i) => b.classList.toggle('drop-target', d.target === i));
+    this.collectionSide.classList.toggle('drop-target', d.target === 'collection');
+  }
+
+  // Drops the dragged aspect (e is null to cancel). The click that follows a drag (released
+  // over its own slot) is swallowed, until the next press.
+  dragEnd(e) {
+    const d = this.drag;
+    this.drag = null;
+    if (!d?.ghost) return;
+    d.ghost.remove();
+    d.el.classList.remove('drag-source');
+    this.el.classList.remove('dragging');
+    this.slotButtons.forEach((b) => b.classList.remove('drop-target'));
+    this.collectionSide.classList.remove('drop-target');
+    this.justDragged = true;
+    if (!e || d.target === null) return;
+    if (d.target === 'collection') profile.unequip(d.a.id);
+    else profile.equip(d.a.id, d.target);
+    sfx.play('click');
+    this.refresh();
+  }
+
+  clicked() { return !this.justDragged; }
+
   // Tooltip after a short hover, kept on screen.
   attachTooltip(el, getData) {
     el.addEventListener('mouseenter', () => {
       this.hideTooltip();
+      if (this.drag?.ghost) return;
       const data = getData();
       if (data) this.tooltipTimer = setTimeout(() => this.showTooltip(data, el), HUD.tooltipHoverDelay * 1000);
     });

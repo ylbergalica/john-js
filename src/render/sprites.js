@@ -1115,20 +1115,31 @@ function flashIcon(S = 256) {
     core: '#1d1606', edge: '#030302',
     nebulae: [[0.5, 0.5, 0.45, '#ffcc00', 0.35], [0.7, 0.3, 0.25, '#ff8a00', 0.12]],
   });
-  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.36, [rgba('#ffe14a', 0.75), rgba('#ffc400', 0.25), rgba('#ffc400', 0)]);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.36, [rgba('#ffe14a', 0.6), rgba('#ffc400', 0.2), rgba('#ffc400', 0)]);
   ctx.fillRect(0, 0, 1, 1);
-  glow(ctx, rgba('#fff2a0', 0.9), px * 0.03, () => {
-    ctx.strokeStyle = '#fff8d6';
-    ctx.lineWidth = 0.014;
-    ctx.beginPath();
-    ctx.arc(0.5, 0.5, 0.19, 0, TAU);
-    ctx.stroke();
+  // A fainter, shorter star turned 45° behind the main one.
+  ctx.save();
+  ctx.translate(0.5, 0.5); ctx.rotate(45 * DEG);
+  glow(ctx, rgba('#ffcc33', 0.8), px * 0.04, () => {
+    ctx.fillStyle = rgba('#ffe27a', 0.75);
+    ctx.fill(starPath(0, 0, 0.24, 0.12));
   });
-  ctx.beginPath();
-  ctx.arc(0.5, 0.5, 0.165, 0, TAU);
-  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.165, ['#fffde8', '#ffee3a', '#e3b400'], 0.47, 0.46);
-  ctx.fill();
-  sparkle(ctx, 0.44, 0.44, 0.09, '#ffffff', 1, 0.15);
+  ctx.restore();
+  // The sparkle itself: long slim arms, a little taller than wide, white-hot at the heart.
+  ctx.save();
+  ctx.translate(0.5, 0.5); ctx.scale(0.9, 1.1);
+  const star = starPath(0, 0, 0.4, 0.09);
+  glow(ctx, rgba('#ffd84a', 0.95), px * 0.09, () => {
+    ctx.fillStyle = radial(ctx, 0, 0, 0.4, ['#ffffff', '#fff1a6', '#ffcf26', '#e89a00']);
+    ctx.fill(star);
+  });
+  glow(ctx, rgba('#ffffff', 0.9), px * 0.03, () => {
+    ctx.fillStyle = '#ffffff';
+    ctx.fill(starPath(0, 0, 0.16, 0.14));
+  });
+  ctx.restore();
+  sparkle(ctx, 0.75, 0.26, 0.07, '#fff6cf', 1, 0);
+  sparkle(ctx, 0.26, 0.76, 0.05, '#fff6cf', 0.9, 0);
   return c;
 }
 

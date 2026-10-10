@@ -37,6 +37,26 @@ export const ASPECTS = [
     quote: 'F for flash.',
     description: 'Blink a short distance. Every parry or kill reduces the active cooldown.',
     maxBlinkDistance: 6, baseCooldown: 10, cooldownReductionPerTrigger: 1,
+    // The blink's look (src/aspects/flash.js): light folds in where you leave, a streak
+    // of it joins the two spots, and it bursts out where you land. Sizes in world units,
+    // times in seconds, [min, max] picks at random.
+    fx: {
+      color: 0xffb81f, hot: 0xffe27a,
+      depart: {
+        flash: { size: 2.6, shrink: 0.3, time: 0.22, alpha: 0.9 },
+        ring: { from: 2.4, to: 0.3, time: 0.2, alpha: 0.85 },
+        star: { size: 2, time: 0.2 },
+        glints: { count: 7, speed: [1, 3], size: [0.14, 0.26], life: [0.3, 0.55] },
+      },
+      streak: { width: 0.7, time: 0.22, alpha: 0.7 },
+      arrive: {
+        flash: { size: 1.4, grow: 2.2, time: 0.26, alpha: 1 },
+        ring: { from: 0.4, to: 3.2, time: 0.32, alpha: 0.9 },
+        star: { size: 3.2, time: 0.3 },
+        sparks: { count: 20, speed: 9, lifetime: 0.35, size: 0.3, coneDeg: 180 },
+        glints: { count: 10, speed: [2.5, 6], size: [0.16, 0.3], life: [0.4, 0.75] },
+      },
+    },
   },
   {
     id: 'rift', displayName: 'Rift', tier: AspectTier.Gift, icon: 'rift_icon', activatable: false,

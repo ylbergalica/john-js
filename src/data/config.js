@@ -6,6 +6,7 @@ export * from './player.js';
 export * from './exalted.js';
 export * from './effects.js';
 export * from './pickups.js';
+export * from './props.js';
 export * from './abilities.js';
 export * from './enemies.js';
 export * from './aspects.js';

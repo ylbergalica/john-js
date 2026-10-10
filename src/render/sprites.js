@@ -58,6 +58,8 @@ export function sprites() {
     ribbon: ribbon(),
     feathers: feathers(),
     feather: feather(),
+    ...propSprites(),
+    shard: shard(),
   };
 }
 
@@ -69,6 +71,9 @@ export function icons() {
     predator_icon: predatorIcon(),
     rift_icon: riftIcon(),
     coin_icon: coinIcon(),
+    buff_swift: swiftGlyph(),
+    buff_ward: wardGlyph(),
+    buff_fury: furyGlyph(),
     ...Object.fromEntries(Object.entries(GEM_CUTS).map(([tier, cut]) => [`gem_${tier}`, gemIcon(cut)])),
   };
 }
@@ -1020,16 +1025,22 @@ function voidFill(path, { core, edge, clouds, seed }, rule = 'nonzero', S = 256)
   ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.42, [core, edge], 0.4, 0.38);
   ctx.fill(path, rule);
   ctx.globalCompositeOperation = 'source-atop';
-  for (let i = 0; i < 5; i++) {
+  nebula(ctx, rand, clouds);
+  return c;
+}
+
+// `count` soft, squashed clouds of the given [colour, alpha]s, scattered over the box
+// x0…x1, y0…y1 (drawn over whatever the context's compositing allows).
+function nebula(ctx, rand, clouds, count = 5, [x0, x1, y0, y1] = [0.25, 0.75, 0.25, 0.75]) {
+  for (let i = 0; i < count; i++) {
     const [color, a] = clouds[i % clouds.length];
-    const x = lerp(0.25, 0.75, rand()), y = lerp(0.25, 0.75, rand()), r = lerp(0.12, 0.26, rand());
+    const x = lerp(x0, x1, rand()), y = lerp(y0, y1, rand()), r = lerp(0.12, 0.26, rand());
     ctx.save();
     ctx.translate(x, y); ctx.rotate(rand() * TAU); ctx.scale(1, lerp(0.35, 0.7, rand()));
     ctx.fillStyle = radial(ctx, 0, 0, r, [rgba(color, a), rgba(color, 0)]);
     ctx.fillRect(-r, -r, 2 * r, 2 * r);
     ctx.restore();
   }
-  return c;
 }
 
 // ---------------------------------------------------------------- player & pickups
@@ -1250,6 +1261,417 @@ function hexFrame(W = 256) {
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 0.02;
   glow(ctx, rgba('#ffffff', 0.9), px * 0.05, () => { ctx.stroke(p); ctx.stroke(p); });
+  return c;
+}
+
+// ---------------------------------------------------------------- props
+
+// Destroyable props (src/game/props.js): one sprite per crack stage, `${name}_${stage}`.
+// Each is a shape of void in a glowing outline like the enemies, cracks of the light sealed
+// inside spreading through it stage by stage (each stage keeps the last one's cracks).
+function propSprites() {
+  const out = {};
+  for (const name of Object.keys(PROP_ART)) {
+    for (let stage = 0; stage < propStageCount(name); stage++) out[`${name}_${stage}`] = propSprite(name, stage);
+  }
+  return out;
+}
+
+export const propStageCount = (name) => PROP_ART[name].cracks.length;
+
+const PROP_ART = {
+  // A closed bud seen from above: petals curling round into the middle, starlight glowing
+  // through the seams between them (a star peeks out where they meet, at runtime).
+  starPod: {
+    path: podPath, line: 0.034, cracks: [0],
+    palette: { stroke: ['#f0e4ff', '#c8a8ff', '#6a4aa8'], glow: rgba('#b48cff', 0.7) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, 0.4, ['#2a1c44', '#0a0614'], 0.44, 0.42),
+    clouds: [['#9a6cff', 0.2], ['#5a7cff', 0.12]], seed: 61,
+    detail: podDetail,
+  },
+  // A star (drawn at runtime) held in a cage of light seen from above: an outer ring and
+  // two tilted orbits crossing it, slowly turning.
+  cagedStar: {
+    path: () => circlePath(CAGE.r), line: 0.03, cracks: [0],
+    palette: { stroke: ['#ffffff', '#9fd8ff', '#3f7cc4'], glow: rgba('#7fc8ff', 0.8) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, CAGE.r, [rgba('#16305a', 0.55), rgba('#060c1c', 0.35)]),
+    clouds: [['#3f8cff', 0.12]], seed: 67,
+    detail: cageDetail,
+  },
+  // A speckled egg of void lying on its side, something bright stirring inside; its shell
+  // cracks before it bursts.
+  starEgg: {
+    path: eggPath, line: 0.034, cracks: [0, 4],
+    palette: { stroke: ['#fff0e8', '#ffb8a0', '#a85a4a'], glow: rgba('#ff9a80', 0.6) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, 0.4, ['#3a2230', '#0c0608'], 0.42, 0.4),
+    clouds: [['#ff8a6a', 0.16], ['#8a4adc', 0.12]], seed: 89,
+    crack: '#fff0e8', crackGlow: rgba('#ffb8a0', 0.95),
+    detail: eggDetail,
+  },
+  // A lump of void rock, a cluster of crystal poking out of one side, light leaking
+  // through its cracks.
+  geode: {
+    path: geodePath, line: 0.034, cracks: [2, 4, 6],
+    palette: { stroke: ['#d6d0ee', '#8c85ad', '#4a4466'], glow: rgba('#6fe0c4', 0.4) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, 0.4, ['#262236', '#09080f'], 0.42, 0.4),
+    clouds: [['#2fae8c', 0.16], ['#5a46b0', 0.18]], seed: 73,
+    crack: '#e6fff8', crackGlow: rgba('#7af0d0', 0.95),
+    detail: geodeDetail, over: geodeCrystals,
+  },
+  // A gilded hex casket: an inner hex sealing a star, straps of gold out to studs at its
+  // corners.
+  reliquary: {
+    path: reliquaryPath, line: 0.04, cracks: [0, 2, 4, 6, 8],
+    palette: { stroke: ['#fff4d6', '#ffd27a', '#a8701e'], glow: rgba('#ffb347', 0.7) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, 0.42, ['#2a1d08', '#080502'], 0.44, 0.42),
+    clouds: [['#d99a2a', 0.18], ['#7a3ec0', 0.12]], seed: 79,
+    crack: '#fff6dc', crackGlow: rgba('#ffc85a', 0.95),
+    detail: reliquaryDetail,
+  },
+};
+
+function propSprite(name, stage, S = 256) {
+  const A = PROP_ART[name];
+  const { c, ctx, px } = surface(S);
+  const shape = A.path();
+  ctx.fillStyle = A.fill(ctx);
+  ctx.fill(shape);
+  ctx.save();
+  ctx.clip(shape);
+  nebula(ctx, seededRandom(A.seed), A.clouds, 5, A.cloudBox);
+  A.detail(ctx, px);
+  // Cracks: a soft glow under a thin white-hot line, both brighter each stage.
+  const heat = A.cracks.length > 1 ? stage / (A.cracks.length - 1) : 0;
+  for (let i = 0; i < A.cracks[stage]; i++) {
+    const p = crackPath(seededRandom(A.seed * 31 + i * 97), 0.42);
+    glow(ctx, A.crackGlow, px * lerp(0.03, 0.06, heat), () => {
+      ctx.strokeStyle = A.crackGlow;
+      ctx.lineWidth = lerp(0.02, 0.03, heat);
+      ctx.stroke(p);
+    });
+    ctx.strokeStyle = A.crack;
+    ctx.lineWidth = lerp(0.008, 0.014, heat);
+    ctx.stroke(p);
+  }
+  ctx.restore();
+  ctx.strokeStyle = linear(ctx, 0.2, 0.15, 0.8, 0.85, A.palette.stroke);
+  glow(ctx, A.palette.glow, px * 0.035, () => {
+    ctx.lineWidth = A.line;
+    ctx.stroke(shape);
+  });
+  A.over?.(ctx, px);
+  return c;
+}
+
+// A crack wandering out from near the centre past `reach`, with the odd short branch.
+function crackPath(rand, reach) {
+  const p = new Path2D();
+  const walk = (x, y, heading, len, branchy) => {
+    p.moveTo(x, y);
+    for (let d = 0; d < len;) {
+      const step = lerp(0.03, 0.055, rand()), a = heading + lerp(-0.75, 0.75, rand());
+      x += Math.cos(a) * step; y += Math.sin(a) * step; d += step;
+      p.lineTo(x, y);
+      if (branchy && rand() < 0.2) {
+        walk(x, y, heading + lerp(0.6, 1.1, rand()) * (rand() < 0.5 ? -1 : 1), (len - d) * 0.5, false);
+        p.moveTo(x, y);
+      }
+    }
+  };
+  const a = rand() * TAU, r = rand() * 0.06;
+  walk(0.5 + Math.cos(a) * r, 0.5 + Math.sin(a) * r, a, reach, true);
+  return p;
+}
+
+function circlePath(r) {
+  const p = new Path2D();
+  p.arc(0.5, 0.5, r, 0, TAU);
+  return p;
+}
+
+// The star pod's petals: `n` of them round to radius `r`, each bulging out to `bulge` × r
+// between the seams; the seams curl `twist` degrees round on their way in.
+const POD = { n: 6, r: 0.32, bulge: 1.32, twist: 34 };
+
+// Where seam `i` meets the rim (degrees, radius).
+const podSeam = (i) => [(i / POD.n) * 360 - 90, POD.r];
+
+function podPath() {
+  const p = new Path2D();
+  for (let i = 0; i <= POD.n; i++) {
+    const [a, r] = podSeam(i), [x, y] = polar(0.5, 0.5, a, r);
+    if (i === 0) { p.moveTo(x, y); continue; }
+    const [cx, cy] = polar(0.5, 0.5, a - 180 / POD.n, r * POD.bulge);
+    p.quadraticCurveTo(cx, cy, x, y);
+  }
+  p.closePath();
+  return p;
+}
+
+// The petals, every other one catching the light, and the seams between them glowing.
+function podDetail(ctx, px) {
+  const seam = (i) => {
+    const [a, r] = podSeam(i), [x, y] = polar(0.5, 0.5, a, r), [cx, cy] = polar(0.5, 0.5, a - POD.twist, r * 0.55);
+    return { x, y, cx, cy };
+  };
+  for (let i = 0; i < POD.n; i += 2) {
+    const s0 = seam(i), s1 = seam(i + 1), [bx, by] = polar(0.5, 0.5, podSeam(i + 1)[0] - 180 / POD.n, POD.r * POD.bulge);
+    const p = new Path2D();
+    p.moveTo(0.5, 0.5);
+    p.quadraticCurveTo(s0.cx, s0.cy, s0.x, s0.y);
+    p.quadraticCurveTo(bx, by, s1.x, s1.y);
+    p.quadraticCurveTo(s1.cx, s1.cy, 0.5, 0.5);
+    ctx.fillStyle = rgba('#b48cff', 0.1);
+    ctx.fill(p);
+  }
+  const seams = new Path2D();
+  for (let i = 0; i < POD.n; i++) {
+    const s = seam(i);
+    seams.moveTo(0.5, 0.5);
+    seams.quadraticCurveTo(s.cx, s.cy, s.x, s.y);
+  }
+  glow(ctx, rgba('#c8a8ff', 0.95), px * 0.05, () => {
+    ctx.strokeStyle = rgba('#c8a8ff', 0.9);
+    ctx.lineWidth = 0.026;
+    ctx.stroke(seams);
+  });
+  ctx.strokeStyle = '#f4ecff';
+  ctx.lineWidth = 0.009;
+  ctx.stroke(seams);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.12, [rgba('#e8dcff', 0.7), rgba('#b48cff', 0)]);
+  ctx.fillRect(0.38, 0.38, 0.24, 0.24);
+}
+
+// The caged star's outer ring (`r`), the two orbits crossing it (`orbit`: half-length,
+// half-width, tilt in degrees either way), and an inner ring (`inner`).
+const CAGE = { r: 0.42, orbit: [0.4, 0.15, 32], inner: 0.2 };
+
+function cageDetail(ctx, px) {
+  const [ox, oy, tilt] = CAGE.orbit;
+  const rings = new Path2D();
+  for (const t of [tilt, -tilt]) {
+    rings.moveTo(0.5 + Math.cos(t * DEG) * ox, 0.5 + Math.sin(t * DEG) * ox); // no line joining it to the last
+    rings.ellipse(0.5, 0.5, ox, oy, t * DEG, 0, TAU);
+  }
+  rings.moveTo(0.5 + CAGE.inner, 0.5);
+  rings.arc(0.5, 0.5, CAGE.inner, 0, TAU);
+  glow(ctx, rgba('#7fc8ff', 0.9), px * 0.04, () => {
+    ctx.strokeStyle = rgba('#bfe4ff', 0.85);
+    ctx.lineWidth = 0.018;
+    ctx.stroke(rings);
+  });
+  // Beads of light riding the orbits.
+  for (const [t, at] of [[tilt, 40], [-tilt, 200], [tilt, 250]]) {
+    const a = at * DEG, c = Math.cos(t * DEG), s = Math.sin(t * DEG);
+    const ex = Math.cos(a) * ox, ey = Math.sin(a) * oy;
+    sparkle(ctx, 0.5 + ex * c - ey * s, 0.5 + ex * s + ey * c, 0.04, '#ffffff', 0.9);
+  }
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.18, [rgba('#cfeaff', 0.55), rgba('#7fc8ff', 0)]);
+  ctx.fillRect(0.32, 0.32, 0.36, 0.36);
+}
+
+// An egg on its side, rounder at one end.
+function eggPath() {
+  const p = new Path2D();
+  p.moveTo(0.13, 0.5);
+  p.bezierCurveTo(0.13, 0.3, 0.4, 0.21, 0.57, 0.21);
+  p.bezierCurveTo(0.76, 0.21, 0.87, 0.34, 0.87, 0.5);
+  p.bezierCurveTo(0.87, 0.66, 0.76, 0.79, 0.57, 0.79);
+  p.bezierCurveTo(0.4, 0.79, 0.13, 0.7, 0.13, 0.5);
+  p.closePath();
+  return p;
+}
+
+// Pale speckles over the shell and a soft sheen along its top.
+function eggDetail(ctx) {
+  const rand = seededRandom(97);
+  for (let i = 0; i < 22; i++) {
+    ctx.fillStyle = rgba('#ffd8c8', lerp(0.15, 0.45, rand()));
+    ctx.beginPath();
+    ctx.arc(lerp(0.18, 0.84, rand()), lerp(0.25, 0.75, rand()), lerp(0.005, 0.016, rand()), 0, TAU);
+    ctx.fill();
+  }
+  ctx.strokeStyle = rgba('#ffffff', 0.4);
+  ctx.lineWidth = 0.022;
+  ctx.beginPath();
+  ctx.moveTo(0.3, 0.32); ctx.quadraticCurveTo(0.5, 0.25, 0.7, 0.29);
+  ctx.stroke();
+  ctx.fillStyle = radial(ctx, 0.56, 0.52, 0.2, [rgba('#ffb8a0', 0.35), rgba('#ffb8a0', 0)]);
+  ctx.fillRect(0.3, 0.3, 0.5, 0.45);
+}
+
+// A lumpy, angular rock: a seeded ring of points at jittered radii.
+function geodePath() {
+  const rand = seededRandom(71), n = 11, p = new Path2D();
+  for (let i = 0; i < n; i++) {
+    const a = ((i + lerp(-0.25, 0.25, rand())) / n) * TAU, r = lerp(0.3, 0.385, rand());
+    const x = 0.5 + Math.cos(a) * r, y = 0.5 + Math.sin(a) * r;
+    if (i === 0) p.moveTo(x, y); else p.lineTo(x, y);
+  }
+  p.closePath();
+  return p;
+}
+
+// Faint facet edges catching the light across the rock.
+function geodeDetail(ctx) {
+  const rand = seededRandom(83);
+  ctx.strokeStyle = rgba('#b8b0e0', 0.12);
+  ctx.lineWidth = 0.012;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = rand() * TAU, b = a + lerp(0.8, 1.6, rand());
+    ctx.moveTo(0.5 + Math.cos(a) * 0.38, 0.5 + Math.sin(a) * 0.38);
+    ctx.lineTo(0.5 + Math.cos(a) * 0.12 + lerp(-0.05, 0.05, rand()), 0.5 + Math.sin(a) * 0.12);
+    ctx.lineTo(0.5 + Math.cos(b) * 0.38, 0.5 + Math.sin(b) * 0.38);
+  }
+  ctx.stroke();
+}
+
+// Teal crystals breaking out of its lower right.
+function geodeCrystals(ctx, px) {
+  const shards = [[38, 0.3, 0.16, 0.05], [22, 0.31, 0.11, 0.035], [56, 0.29, 0.1, 0.034]]; // angle°, root radius, length, half width
+  glow(ctx, rgba('#7af0d0', 0.8), px * 0.04, () => {
+    for (const [deg, r0, len, w] of shards) {
+      const a = deg * DEG, [x, y] = polar(0.5, 0.5, deg, r0);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.moveTo(-0.02, -w); ctx.lineTo(len * 0.7, -w * 0.8); ctx.lineTo(len, 0); ctx.lineTo(len * 0.7, w * 0.8); ctx.lineTo(-0.02, w);
+      ctx.closePath();
+      ctx.fillStyle = linear(ctx, 0, -w, 0, w, ['#d8fff4', '#4fd8b4', '#1c7a64']);
+      ctx.fill();
+      ctx.strokeStyle = '#eafffa';
+      ctx.lineWidth = 0.01;
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+}
+
+const RELIQUARY_HEX = { w: 0.84, inner: 0.52 };
+
+function reliquaryHex(scale = 1) {
+  const w = RELIQUARY_HEX.w, h = w * Math.sin(Math.PI / 3), p = new Path2D();
+  p.addPath(hexPath(w, h, true), new DOMMatrix().translate(0.5, 0.5).scale(scale).translate(-w / 2, -h / 2));
+  return p;
+}
+
+function reliquaryPath() { return reliquaryHex(); }
+
+// The inner hex, gold straps out to studded corners, and the sealed star.
+function reliquaryDetail(ctx, px) {
+  const R = RELIQUARY_HEX, corners = Array.from({ length: 6 }, (_, i) => polar(0.5, 0.5, i * 60, R.w / 2));
+  ctx.strokeStyle = rgba('#ffd27a', 0.45);
+  ctx.lineWidth = 0.014;
+  ctx.beginPath();
+  for (const [x, y] of corners) {
+    ctx.moveTo(lerp(0.5, x, R.inner), lerp(0.5, y, R.inner));
+    ctx.lineTo(lerp(0.5, x, 0.9), lerp(0.5, y, 0.9));
+  }
+  ctx.stroke();
+  ctx.strokeStyle = rgba('#ffe2a0', 0.8);
+  ctx.lineWidth = 0.018;
+  ctx.stroke(reliquaryHex(R.inner));
+  ctx.fillStyle = '#ffe2a0';
+  for (const [x, y] of corners) {
+    ctx.beginPath();
+    ctx.arc(lerp(0.5, x, 0.8), lerp(0.5, y, 0.8), 0.018, 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.2, [rgba('#ffd27a', 0.45), rgba('#ffd27a', 0)]);
+  ctx.fillRect(0.3, 0.3, 0.4, 0.4);
+  glow(ctx, rgba('#ffc85a', 0.9), px * 0.05, () => sparkle(ctx, 0.5, 0.5, 0.13, '#fff4d6'));
+}
+
+// A shard of a broken prop or ward, white so it can be tinted (src/render/debris.js): a
+// jagged sliver, pale with a bright edge, pointing along +x. Stretched at random for variety.
+function shard(S = 64) {
+  const { c, ctx } = surface(S);
+  const p = new Path2D();
+  p.moveTo(0.94, 0.5); p.lineTo(0.42, 0.22); p.lineTo(0.08, 0.44); p.lineTo(0.3, 0.6); p.lineTo(0.5, 0.78);
+  p.closePath();
+  ctx.fillStyle = linear(ctx, 0.1, 0.3, 0.9, 0.7, ['#ffffff', '#bcbcbc', '#909090']);
+  ctx.fill(p);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.05;
+  ctx.stroke(p);
+  return c;
+}
+
+// ---------------------------------------------------------------- buff glyphs
+
+// The buffs' faces (src/player/buffs.js): on their pickups and in the HUD's list, in their
+// BUFFS colours on nothing, white-hot at the heart.
+
+// Swift: a star streaking right, three trails of light behind it.
+function swiftGlyph(S = 128) {
+  const { c, ctx, px } = surface(S);
+  const col = '#7fe8ff';
+  glow(ctx, rgba(col, 0.9), px * 0.06, () => {
+    for (const [y, x0, x1, w] of [[0.33, 0.14, 0.6, 0.035], [0.5, 0.06, 0.6, 0.05], [0.67, 0.14, 0.6, 0.035]]) {
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x1, y - w);
+      ctx.arc(x1, y, w, -Math.PI / 2, Math.PI / 2);
+      ctx.closePath();
+      ctx.fillStyle = linear(ctx, x0, 0, x1 + w, 0, [rgba(col, 0), rgba(col, 0.75), '#ffffff']);
+      ctx.fill();
+    }
+    sparkle(ctx, 0.68, 0.5, 0.3, col);
+  });
+  sparkle(ctx, 0.68, 0.5, 0.16, '#ffffff');
+  return c;
+}
+
+// Ward: a crystal shield, a star at its heart.
+function wardGlyph(S = 128) {
+  const { c, ctx, px } = surface(S);
+  const col = '#c8d4ff';
+  const p = new Path2D();
+  p.moveTo(0.5, 0.1);
+  p.quadraticCurveTo(0.68, 0.19, 0.84, 0.19);
+  p.quadraticCurveTo(0.86, 0.64, 0.5, 0.91);
+  p.quadraticCurveTo(0.14, 0.64, 0.16, 0.19);
+  p.quadraticCurveTo(0.32, 0.19, 0.5, 0.1);
+  p.closePath();
+  ctx.fillStyle = radial(ctx, 0.5, 0.45, 0.45, [rgba(col, 0.5), rgba('#6f82dc', 0.35), rgba('#2a3470', 0.5)]);
+  ctx.fill(p);
+  ctx.strokeStyle = rgba('#ffffff', 0.35);
+  ctx.lineWidth = 0.02;
+  ctx.beginPath();
+  ctx.moveTo(0.5, 0.12); ctx.lineTo(0.5, 0.88);
+  ctx.moveTo(0.17, 0.3); ctx.lineTo(0.83, 0.3);
+  ctx.stroke();
+  glow(ctx, rgba(col, 0.95), px * 0.06, () => {
+    ctx.strokeStyle = linear(ctx, 0.2, 0.1, 0.8, 0.9, ['#ffffff', col, '#8d9ff0']);
+    ctx.lineWidth = 0.06;
+    ctx.stroke(p);
+  });
+  sparkle(ctx, 0.5, 0.48, 0.17, '#ffffff');
+  return c;
+}
+
+// Fury: three claw slashes raked across it, white-hot down their middles.
+function furyGlyph(S = 128) {
+  const { c, ctx, px } = surface(S);
+  const col = '#ff5fc8';
+  const slash = (ax, ay, bx, by, bow, w) => {
+    const mx = (ax + bx) / 2, my = (ay + by) / 2, len = Math.hypot(bx - ax, by - ay);
+    const nx = -(by - ay) / len, ny = (bx - ax) / len, cx = mx + nx * bow, cy = my + ny * bow;
+    const p = new Path2D();
+    p.moveTo(ax, ay);
+    p.quadraticCurveTo(cx + nx * w, cy + ny * w, bx, by);
+    p.quadraticCurveTo(cx - nx * w, cy - ny * w, ax, ay);
+    return p;
+  };
+  const claws = [-0.17, 0, 0.17].map((o) => slash(0.74 + o, 0.14 + o, 0.2 + o, 0.68 + o, 0.05, o ? 0.05 : 0.065));
+  glow(ctx, rgba(col, 0.95), px * 0.07, () => {
+    ctx.fillStyle = linear(ctx, 0.8, 0.1, 0.2, 0.9, ['#ffd6f4', col, '#b0207e']);
+    for (const p of claws) ctx.fill(p);
+  });
+  ctx.fillStyle = rgba('#ffffff', 0.85);
+  for (const o of [-0.17, 0, 0.17]) ctx.fill(slash(0.7 + o, 0.2 + o, 0.26 + o, 0.62 + o, 0.045, 0.014));
   return c;
 }
 

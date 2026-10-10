@@ -1,6 +1,6 @@
-// The playground's fixed test map: an open arena with a few kinds of cover, joined to a
-// side room by a wide corridor and by a 2-tile one that guardians (3-tile footprint)
-// can't fit through. Rects are [x, y, width, height] in tiles.
+// The playground's fixed test map: an open arena with a few kinds of cover and a few props
+// to smash, joined to a side room by a wide corridor and by a 2-tile one that guardians
+// (3-tile footprint) can't fit through. Rects are [x, y, width, height] in tiles.
 import { Grid } from './generator.js';
 
 const WIDTH = 70, HEIGHT = 38;
@@ -23,7 +23,16 @@ const WALLS = [
 
 const START = { x: 20, y: 18 };
 
-// → { grid, rooms, start, exit } like generateLayout, without rooms or an exit.
+// Destroyables huddled against the cover, in world units.
+const PROPS = [
+  { type: 'starPod', x: 8.4, y: 10.6 }, { type: 'starPod', x: 9.3, y: 11 }, { type: 'cagedStar', x: 11.6, y: 9.4 },
+  { type: 'starEgg', x: 14.6, y: 15 }, { type: 'starEgg', x: 14.7, y: 16.2 },
+  { type: 'geode', x: 12.6, y: 25 }, { type: 'geode', x: 12.8, y: 26.3 }, { type: 'geode', x: 28.4, y: 10.6 },
+  { type: 'reliquary', x: 29.5, y: 25.5 },
+];
+
+// → { grid, rooms, start, exit, props } like generateLayout, without rooms or an exit, and
+// with its own props.
 export function playgroundLayout() {
   const grid = new Grid(WIDTH, HEIGHT);
   const fill = ([x0, y0, w, h], floor) => {
@@ -31,5 +40,5 @@ export function playgroundLayout() {
   };
   for (const r of FLOOR) fill(r, true);
   for (const r of WALLS) fill(r, false);
-  return { grid, rooms: [], start: { x: START.x + 0.5, y: START.y + 0.5 }, exit: null };
+  return { grid, rooms: [], start: { x: START.x + 0.5, y: START.y + 0.5 }, exit: null, props: PROPS };
 }

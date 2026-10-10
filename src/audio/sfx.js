@@ -114,6 +114,14 @@ function arp(v, freqs, step, opts) {
   freqs.forEach((freq, i) => tone(v, { ...opts, freq, at: (opts.at ?? 0) + i * step }));
 }
 
+// `n` tiny glassy pings scattered over `spread` seconds from `at`: fragments landing.
+function tinkles(v, n, { at = 0, spread = 0.4, vol = 0.05, lo = 2400, hi = 6000 } = {}) {
+  for (let i = 0; i < n; i++) {
+    const t = at + spread * Math.random() ** 1.6; // thickest at the start
+    tone(v, { type: 'triangle', freq: lo + Math.random() * (hi - lo), at: t, dur: 0.06 + Math.random() * 0.12, vol: vol * (0.4 + 0.6 * Math.random()) });
+  }
+}
+
 // ── recipes ────────────────────────────────────────────────────────
 const SOUNDS = {
   // player
@@ -348,9 +356,117 @@ const SOUNDS = {
     tone(v, { freq: 60, to: 40, dur: 0.4, vol: 0.4 });
   },
 
+  // props (src/game/props.js)
+  podHit(v) { // a star pod struck: a soft, papery thump
+    noise(v, { freq: 900, to: 400, q: 0.8, dur: 0.1, vol: 0.3 });
+    tone(v, { freq: 220, to: 120, dur: 0.08, vol: 0.15 });
+  },
+  podBreak(v) { // ...and bursting: a muffled pop, petals rustling off, an airy chime as the star slips out
+    noise(v, { filter: 'lowpass', freq: 2500, to: 300, dur: 0.2, vol: 0.4 });
+    tone(v, { freq: 180, to: 70, dur: 0.18, vol: 0.3 });
+    for (let i = 0; i < 8; i++) {
+      noise(v, { freq: 1500 + Math.random() * 2000, q: 1.5, at: Math.random() * 0.25, dur: 0.02 + Math.random() * 0.02, vol: 0.05 + Math.random() * 0.05 });
+    }
+    noise(v, { filter: 'highpass', freq: 2000, to: 6000, dur: 0.4, vol: 0.06, attack: 0.05 });
+    arp(v, [784, 1047, 1319], 0.06, { type: 'triangle', at: 0.08, dur: 0.5, vol: 0.05 });
+  },
+  cageHit(v) { // a caged star struck: a ringing ting
+    tone(v, { type: 'triangle', freq: 1760, dur: 0.4, vol: 0.07 });
+    tone(v, { freq: 2640, dur: 0.3, vol: 0.04 });
+    noise(v, { filter: 'highpass', freq: 5000, dur: 0.03, vol: 0.12 });
+  },
+  cageBreak(v) { // ...and breaking: its rings snapping one after another, the star zinging free
+    for (const [freq, to, at] of [[2349, 2200, 0], [1760, 1600, 0.04], [1319, 1150, 0.09]]) {
+      tone(v, { type: 'triangle', freq, to, at, dur: 0.35, vol: 0.08 });
+    }
+    noise(v, { filter: 'highpass', freq: 4000, to: 2000, dur: 0.15, vol: 0.25 });
+    tone(v, { freq: 140, to: 60, dur: 0.14, vol: 0.25 });
+    tinkles(v, 6, { at: 0.03, spread: 0.3, vol: 0.045, lo: 3000, hi: 6500 });
+    tone(v, { freq: 1047, to: 2093, at: 0.05, dur: 0.35, vol: 0.05 });
+  },
+  eggHit(v) { // a star egg struck: a hollow tock and the shell crackling
+    tone(v, { type: 'triangle', freq: 520, to: 420, dur: 0.09, vol: 0.14 });
+    noise(v, { freq: 1800, q: 2, dur: 0.05, vol: 0.25 });
+    for (let i = 0; i < 4; i++) noise(v, { filter: 'highpass', freq: 3000 + Math.random() * 2000, at: 0.02 + Math.random() * 0.1, dur: 0.015, vol: 0.06 });
+  },
+  eggBreak(v) { // ...and hatching: the shell crunching apart with a pop, then a shimmer of light
+    noise(v, { filter: 'lowpass', freq: 3500, to: 200, dur: 0.25, vol: 0.45 });
+    tone(v, { freq: 200, to: 70, dur: 0.2, vol: 0.35 });
+    for (let i = 0; i < 10; i++) {
+      noise(v, { freq: 2000 + Math.random() * 2500, q: 2, at: Math.random() * 0.2, dur: 0.015 + Math.random() * 0.02, vol: 0.05 + Math.random() * 0.06 });
+    }
+    noise(v, { filter: 'highpass', freq: 4000, to: 7000, dur: 0.5, vol: 0.05, attack: 0.08 });
+    arp(v, [659, 880, 1175, 1568], 0.05, { type: 'triangle', at: 0.1, dur: 0.5, vol: 0.05 });
+  },
+  stoneHit(v) { // a geode struck: a crunchy knock and the faint ping of the crystal inside
+    tone(v, { type: 'square', freq: 190, to: 85, dur: 0.09, vol: 0.14 });
+    noise(v, { filter: 'lowpass', freq: 2600, to: 300, dur: 0.1, vol: 0.45 });
+    tone(v, { type: 'triangle', freq: 1900, to: 1860, at: 0.01, dur: 0.14, vol: 0.04 });
+  },
+  stoneBreak(v) { // ...and bursting: a heavy crack, rubble crumbling, light rushing out
+    tone(v, { freq: 110, to: 38, dur: 0.5, vol: 0.5 });
+    noise(v, { filter: 'lowpass', freq: 3200, to: 90, dur: 0.45, vol: 0.55 });
+    for (let i = 0; i < 10; i++) {
+      noise(v, { freq: 600 + Math.random() * 1000, q: 2, at: Math.random() * 0.35, dur: 0.03 + Math.random() * 0.03, vol: 0.08 + Math.random() * 0.08 });
+    }
+    noise(v, { filter: 'highpass', freq: 4000, to: 2500, dur: 0.3, vol: 0.1 });
+    arp(v, [988, 1319, 1976], 0.045, { type: 'triangle', at: 0.06, dur: 0.5, vol: 0.05 });
+  },
+  cacheHit(v) { // a reliquary struck: a gilded clang, ringing
+    tone(v, { type: 'triangle', freq: 620, to: 600, dur: 0.4, vol: 0.08 });
+    tone(v, { freq: 930, to: 915, dur: 0.28, vol: 0.05 });
+    tone(v, { type: 'square', freq: 180, to: 80, dur: 0.08, vol: 0.12 });
+    noise(v, { filter: 'lowpass', freq: 3000, to: 400, dur: 0.08, vol: 0.35 });
+  },
+  cacheBreak(v) { // ...and bursting open: a deep boom and a shatter of gold, then a bright chord rising
+    tone(v, { freq: 80, to: 28, dur: 1, vol: 0.5 });
+    noise(v, { filter: 'lowpass', freq: 4000, to: 80, dur: 0.8, vol: 0.5 });
+    noise(v, { filter: 'highpass', freq: 4000, to: 2000, dur: 0.4, vol: 0.2 });
+    tinkles(v, 10, { at: 0.03, spread: 0.5, vol: 0.045, lo: 1800, hi: 4800 });
+    arp(v, [523, 659, 784, 1047, 1319, 1568], 0.05, { type: 'triangle', at: 0.12, dur: 0.8, vol: 0.07 });
+    tone(v, { freq: 262, at: 0.15, dur: 1.1, vol: 0.1, attack: 0.04 });
+  },
+  lootPop(v) { // loot springing out
+    tone(v, { freq: 520, to: 1040, dur: 0.08, vol: 0.06 });
+    tone(v, { type: 'triangle', freq: 780, to: 1560, at: 0.03, dur: 0.08, vol: 0.04 });
+  },
+
   // pickups and progression
   orb(v) {
     tone(v, { freq: 660, to: 990, dur: 0.09, vol: 0.12 });
+  },
+  mend(v) { // a mend orb: a warm, airy chime
+    tone(v, { freq: 392, to: 523, dur: 0.5, vol: 0.06, attack: 0.05 });
+    arp(v, [784, 988, 1175], 0.05, { type: 'triangle', dur: 0.4, vol: 0.07 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 6000, dur: 0.4, vol: 0.04, attack: 0.1 });
+  },
+  // Buffs (src/player/buffs.js) as they're taken.
+  swiftGain(v) { // a whoosh swept upward and a quick bright run
+    noise(v, { freq: 600, to: 4000, q: 1, dur: 0.35, vol: 0.2, attack: 0.05 });
+    arp(v, [1175, 1568, 2349], 0.04, { type: 'triangle', at: 0.1, dur: 0.3, vol: 0.06 });
+  },
+  wardGain(v) { // a glass bell struck over a low hum
+    tone(v, { freq: 1047, dur: 1, vol: 0.08, attack: 0.01 });
+    tone(v, { freq: 1568, dur: 0.8, vol: 0.05 });
+    tone(v, { type: 'triangle', freq: 2093, dur: 0.6, vol: 0.04 });
+    noise(v, { filter: 'highpass', freq: 5000, dur: 0.25, vol: 0.06, attack: 0.05 });
+    tone(v, { freq: 262, dur: 0.6, vol: 0.06, attack: 0.08 });
+  },
+  furyGain(v) { // fire catching, a growl and a rising chime
+    noise(v, { filter: 'lowpass', freq: 300, to: 3000, dur: 0.3, vol: 0.25, attack: 0.04 });
+    tone(v, { type: 'sawtooth', freq: 110, to: 220, dur: 0.3, vol: 0.06, attack: 0.05 });
+    arp(v, [659, 988, 1319], 0.05, { type: 'triangle', at: 0.1, dur: 0.4, vol: 0.07 });
+    for (let i = 0; i < 4; i++) noise(v, { filter: 'highpass', freq: 3000 + Math.random() * 2000, at: 0.05 + Math.random() * 0.25, dur: 0.02, vol: 0.06 });
+  },
+  wardBreak(v) { // the ward stops a hit: a thump, and it shatters
+    tone(v, { freq: 140, to: 60, dur: 0.15, vol: 0.25 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 1500, dur: 0.25, vol: 0.35 });
+    tone(v, { type: 'triangle', freq: 1047, to: 523, dur: 0.3, vol: 0.08 });
+    tinkles(v, 8, { at: 0.02, spread: 0.35, vol: 0.05 });
+  },
+  buffEnd(v) { // a buff wearing off: a soft falling blip
+    tone(v, { type: 'triangle', freq: 880, to: 440, dur: 0.2, vol: 0.07 });
+    noise(v, { filter: 'highpass', freq: 4000, to: 2000, dur: 0.12, vol: 0.03 });
   },
   // Exalted is ready: a heartbeat double-thump, then fire catches with a dark whoosh, a
   // burst of crackles and a low growl swelling under it.

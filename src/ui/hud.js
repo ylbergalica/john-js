@@ -2,14 +2,16 @@
 // screen-edge effects (hurt, Exalted), the guardian intro's framing, and the pause menu.
 // Reads world state each frame and only touches the DOM on change.
 import { h, DomWriter } from './dom.js';
-import { HUD, GAME } from '../data/config.js';
+import { BUFFS, HUD, GAME } from '../data/config.js';
 import { lerpColor, randRange } from '../engine/math.js';
 import { iconUrls } from '../render/assets.js';
 import { RunMode } from '../game/session.js';
+import { BUFF_KINDS } from '../player/buffs.js';
 import { keycap, replay, mistFx } from './common.js';
 
 const hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
 const LOW_HEALTH = 0.3; // fraction at which the health bar starts pulsing
+const BUFF_ENDING = 2.5; // seconds left at which a buff's glyph starts blinking
 
 // Crimson mist and embers along the adrenaline bar over a pulsing halo; CSS shows them, and
 // how, by the bar's state (ready or Exalted).
@@ -65,6 +67,13 @@ export class Hud {
     this.adrenalineFill = h('div', { class: 'fill' });
     this.adrenaline = h('div', { class: 'bar adrenaline' }, this.adrenalineFill);
     this.adrenalineWrap = h('div', { class: 'adr' }, adrenalineFx(), this.adrenaline);
+    // Buffs held: their glyphs over the health bar, draining as they run out.
+    this.buffPips = BUFF_KINDS.map((kind) => {
+      const cd = h('div', { class: 'cd' });
+      const el = h('div', { class: 'buff hidden', style: `--c: ${hex(BUFFS[kind].color)}` }, h('img', { src: iconUrls[`buff_${kind}`], alt: '' }), cd);
+      return { kind, el, cd, player: null, grants: 0 };
+    });
+    this.buffList = h('div', { class: 'buffs' }, this.buffPips.map((b) => b.el));
 
     this.exaltedGlow = h('div', { class: 'exalted-glow' }); // dark-red screen edges while Exalted
     this.hurtFlash = h('div', { class: 'hurt-flash' });
@@ -99,6 +108,7 @@ export class Hud {
       this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.warpWash, this.floorIntro,
       h('div', { class: 'hud-cluster' },
         this.icons,
+        this.buffList,
         this.healthWrap,
         this.adrenalineWrap,
       ),
@@ -158,7 +168,8 @@ export class Hud {
       d.set(this.health, '.low', false);
     }
     this.updateFloorHeal(world, p);
-    this.updateHurt(world.player);
+    this.updateHurt(world.player, world);
+    this.updateBuffs(p);
 
     // The bar itself grows as tolerance rises.
     const a = world.adrenaline, apx = HUD.pixelsPerAdrenalinePoint;
@@ -226,14 +237,40 @@ export class Hud {
     }
   }
 
-  // Red screen-edge flash whenever the player loses health (including the killing blow).
-  updateHurt(player) {
+  // Red screen-edge flash whenever the player loses health (including the killing blow), and
+  // the bar flaring when they mend outside a floor heal (a mend orb).
+  updateHurt(player, world) {
     if (player !== this.trackedPlayer) {
       this.trackedPlayer = player;
     } else if (player && player.health < this.lastHealth) {
       replay(this.hurtFlash, 'on');
+    } else if (player && player.health > this.lastHealth && !world.floorHeal) {
+      replay(this.healthWrap, 'mended');
     }
     this.lastHealth = player?.health ?? 0;
+  }
+
+  // A glyph per buff held, popping as it's taken (again), draining as it runs out and
+  // blinking near the end. A ward holds until it breaks.
+  updateBuffs(player) {
+    const d = this.dom;
+    for (const pip of this.buffPips) {
+      const left = player ? player.buffs.left(pip.kind) : 0, time = BUFFS[pip.kind].time;
+      d.set(pip.el, 'hidden', left <= 0);
+      if (!player) continue;
+      const grants = player.buffs.grants[pip.kind];
+      if (pip.player !== player) { // a new floor's player: carried-over buffs don't pop
+        pip.player = player;
+        pip.grants = grants;
+      } else if (grants !== pip.grants) {
+        pip.grants = grants;
+        replay(pip.el, 'gained');
+      }
+      if (!time || left <= 0) continue;
+      const pct = Math.round((1 - left / time) * 200) / 2;
+      d.set(pip.cd, 'background', `conic-gradient(${HUD.cooldownOverlay} ${pct}%, transparent ${pct}%)`);
+      d.set(pip.el, '.ending', left < BUFF_ENDING);
+    }
   }
 
   // Icon per equipped aspect with a radial cooldown overlay, dimmed while it can't fire. It

@@ -44,7 +44,7 @@ src/
   engine/            math, input (presses latched per sim step), physics, events
   game/              World (entities, floors, services), GameScene (fixed-step loop,
                      pause, tool menus), RunSession (per-run state), adrenaline,
-                     pickups, dev flags
+                     pickups, destroyable props, dev flags
   player/            Player logic, PlayerView visuals, input buffering
   enemies/           Enemy, EnemyAI state machine, ability phase machines, hitboxes, projectile
   aspects/           one module per aspect + the controller that routes slots/events

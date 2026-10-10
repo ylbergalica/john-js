@@ -1,14 +1,16 @@
 // Turns the procedural art (sprites.js) into Pixi textures: single sprites in `tex`,
 // frame sequences in `anims`, aspect and UI icons in `tex` plus data URLs for the DOM UI,
-// enemy portraits for the run summary, and white silhouettes used for the hit flash.
+// enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
+// for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
 import { animations, icons, sprites, MAUL_ART, BLADE_ART } from './sprites.js';
-import { BLADES, ENEMY_TYPES, MAUL } from '../data/config.js';
+import { BLADES, ENEMY_TYPES, MAUL, PROPS } from '../data/config.js';
 
 export const tex = {};
 export const anims = {};
 export const iconUrls = {}; // for <img> elements in the DOM UI
 export const enemyIconUrls = {}; // by enemy type key
+export const propIconUrls = {}; // by prop type key
 
 const masks = new Map();
 
@@ -23,12 +25,15 @@ export async function loadAssets() {
   iconUrls.mist = tex.mist.source.resource.toDataURL(); // the HUD's adrenaline mist, same puff as the Exalted haze
   iconUrls.glint = tex.glint.source.resource.toDataURL(); // the HUD's ready sparkle, same star as the blinks
   for (const [key, type] of Object.entries(ENEMY_TYPES)) enemyIconUrls[key] = enemyPortrait(type.visual).toDataURL();
+  for (const key of Object.keys(PROPS)) propIconUrls[key] = tex[`${key}_0`].source.resource.toDataURL();
 
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
-  // and tinted over an enemy as it winds up an attack.
+  // and tinted over an enemy as it winds up an attack. A prop's cracks never change its
+  // outline, so one serves all its stages.
   for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
+  for (const key of Object.keys(PROPS)) tex[`${key}_white`] = toTexture(whiteSilhouette(tex[`${key}_0`].source.resource));
 }
 
 // Low-res alpha grid of a texture, for scattering detail inside a sprite's shape.

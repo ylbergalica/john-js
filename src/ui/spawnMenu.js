@@ -1,11 +1,12 @@
-// Spawn menu: drops enemies near the player. The playground's own menu (Tab); in a dev
-// build a run can open it from the dev menu too. Enemies show as portraits, regular mobs
-// above and the larger, gold-framed guardians below; a type is listed once it has been
-// killed in a run, or always with the dev tool that unlocks them all.
+// Spawn menu: drops enemies and props near the player. The playground's own menu (Tab); in
+// a dev build a run can open it from the dev menu too. Enemies show as portraits, regular
+// mobs above and the larger, gold-framed guardians below; a type is listed once it has been
+// killed in a run, or always with the dev tool that unlocks them all. Props come last,
+// always listed.
 import { h } from './dom.js';
 import { keycap } from './common.js';
-import { ENEMY_TYPES } from '../data/config.js';
-import { enemyIconUrls } from '../render/assets.js';
+import { ENEMY_TYPES, PROPS } from '../data/config.js';
+import { enemyIconUrls, propIconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { devFlags } from '../game/devFlags.js';
 
@@ -17,10 +18,14 @@ export class SpawnMenu {
     this.split = h('div', { class: 'tool-rule' });
     this.guardians = h('div', { class: 'spawn-grid guardians' });
     this.clearRule = h('div', { class: 'tool-rule' });
+    const props = Object.keys(PROPS).map((key) => h('button', { class: 'spawn-tile', 'aria-label': key, onclick: () => world.summonProp(key) },
+      h('img', { src: propIconUrls[key], alt: '' })));
     this.el = h('div', { class: 'tool-menu interactive hidden' },
       h('div', { class: 'tool-head' }, h('span', { text: 'Spawn' }), hotkey ? keycap(hotkey) : null),
       this.mobs, this.split, this.guardians, this.clearRule,
       h('button', { class: 'tool', onclick: () => world.clearEnemies() }, h('span', { class: 'grow', text: 'Clear enemies' })),
+      h('div', { class: 'tool-rule' }),
+      h('div', { class: 'spawn-grid props' }, props),
     );
     // While closed, a reminder of the hotkey.
     this.hint = hotkey ? h('div', { class: 'tool-hint' }, keycap(hotkey), h('span', { text: 'Spawn enemies' })) : null;

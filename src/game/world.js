@@ -10,7 +10,7 @@ import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
-import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER } from '../data/config.js';
+import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER, PROPS } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
@@ -19,6 +19,8 @@ import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
 import { Exit } from './pickups.js';
+import { Prop, scatterProps } from './props.js';
+import { Debris } from '../render/debris.js';
 import { ExitTrail } from './exitTrail.js';
 import { RunMode } from './session.js';
 
@@ -39,6 +41,8 @@ export class World {
     this.layers = {
       level: this.levelView.root,
       exit: new Container(),
+      debris: new Container(), // shards of broken props, settling on the floor
+      props: new Container(),
       pickups: new Container(),
       telegraphs: new Container(), // enemy attack areas and afterimages, on the floor
       playerBack: new Container({ sortableChildren: true }),
@@ -50,11 +54,13 @@ export class World {
     this.root.addChild(...Object.values(this.layers));
     this.effects = new Effects(this.layers.fx);
     this.deathFx = new DeathFx(this); // enemies bursting apart as they die
+    this.debris = new Debris(this.layers.debris, (x, y) => this.physics.isWall(x, y));
     this.camera = new Camera();
     this.ripple = new ScreenRipple(); // full-screen shockwave on entering Exalted
 
     this.entities = [];
     this.enemies = [];
+    this.props = []; // destroyables, for the player's attacks
     this.hostileAttacks = new Set(); // enemy hitboxes/projectiles the player can parry
     this.player = null;
     this.level = null;
@@ -87,7 +93,8 @@ export class World {
   startFloor() {
     this.clearFloor();
     if (this.session.mode === RunMode.Playground) {
-      this.buildLevel(playgroundLayout());
+      const layout = this.buildLevel(playgroundLayout());
+      for (const { type, x, y } of layout.props) this.spawnProp(type, { x, y });
       this.cores = { required: 0, collected: 0 };
       this.floorStartedAt = this.time;
       this.intro = null;
@@ -137,6 +144,7 @@ export class World {
       chasers++;
     }
     this.cores = { required: chasers, collected: 0 };
+    scatterProps(this, layout); // after the enemies, so they keep clear of them
     this.floorStartedAt = this.time; // the clock is frozen through the guardian intro, so this still holds after it
     this.intro = null;
     const guardian = this.enemies.find((e) => e.type.isChaser);
@@ -191,6 +199,7 @@ export class World {
     for (const e of this.entities) e.destroy();
     this.entities = [];
     this.enemies = [];
+    this.props = [];
     this.exit = null;
     this.exitTrailAt = Infinity;
     this.hostileAttacks.clear();
@@ -198,6 +207,7 @@ export class World {
     this.activeAttackers = 0;
     this.effects.clear();
     this.deathFx.clear();
+    this.debris.clear();
     this.floorHeal = null;
     this.respawnAt = Infinity;
   }
@@ -229,9 +239,10 @@ export class World {
   advanceFloor() {
     this.session.floorCleared();
     if (this.session.scalesDifficulty) this.session.floor++;
-    const health = this.player.health; // the player is rebuilt each floor
+    const health = this.player.health, buffs = this.player.buffs.carry(); // the player is rebuilt each floor
     this.startFloor();
     if (health > 0) this.carryHealth(health);
+    this.player.buffs.restore(buffs);
   }
 
   // ── taking the exit ──────────────────────────────────────────────
@@ -382,6 +393,24 @@ export class World {
     return null;
   }
 
+  spawnProp(type, pos) {
+    const prop = this.add(new Prop(this, type, pos.x, pos.y));
+    this.props.push(prop);
+    return prop;
+  }
+
+  // Spawn menu: sets a prop down on a free spot a couple of units from the player.
+  summonProp(type) {
+    const p = this.livePlayer;
+    if (!p) return null;
+    for (let i = 0; i < 60; i++) {
+      const a = Math.random() * TAU, d = 1.6 + Math.random() * 1.5 + i * 0.05;
+      const x = p.body.pos.x + Math.cos(a) * d, y = p.body.pos.y + Math.sin(a) * d;
+      if (this.physics.isCircleFree(x, y, PROPS[type].radius * 1.2)) return this.spawnProp(type, { x, y });
+    }
+    return null;
+  }
+
   // Removes every enemy without killing it (no drops, no death effects), dying guardians too.
   clearEnemies() {
     for (const e of this.entities) if (e instanceof Enemy) e.destroy();
@@ -464,6 +493,7 @@ export class World {
 
     compact(this.entities);
     compact(this.enemies);
+    compact(this.props);
 
     if (this.nextFloorRequested) {
       this.nextFloorRequested = false;
@@ -484,6 +514,7 @@ export class World {
     for (const e of this.entities) if (!e.dead) e.render(alpha, dt, view);
     this.effects.update(dt);
     this.deathFx.update(dt);
+    this.debris.update(dt);
     cam.apply(this.root);
     this.ripple.update(dt, cam, this.root);
     this.levelView.update(dt, view);

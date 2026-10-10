@@ -72,9 +72,7 @@ export class DeathFx {
     this.scatter(this.mist, D.mist, x, y, r * 0.4, color, { alpha: D.mist.alpha, grow: D.mist.grow, fade: 0x000000 });
     if (D.embers) this.scatter(this.embers, D.embers, x, y, r * 0.5, color, { fade: lerpColor(color, 0x000000, 0.6), orient: true, sway: 3 });
 
-    // A small kill's shake shouldn't cut short a stronger one still playing (a guardian's, say).
-    const sh = D.shake, cur = w.camera.shakeState;
-    if (!cur || cur.strength * (1 - cur.elapsed / cur.duration) < sh.strength) w.camera.shake(sh.duration, sh.strength, sh.frequency);
+    w.camera.shakeAtLeast(D.shake);
     if (D.ripple) {
       const k = D.ripple.glow;
       const tint = [((color >> 16) & 255) / 255 * k, ((color >> 8) & 255) / 255 * k, (color & 255) / 255 * k];

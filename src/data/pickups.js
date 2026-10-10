@@ -1,8 +1,17 @@
-// Things the player picks up: adrenaline orbs, chaser cores and the floor exit.
+// Things the player picks up: adrenaline orbs, chaser cores, mend orbs and buffs (from
+// broken props) and the floor exit.
+// mendOrb: heals `heal`; it ignores the player at full health, so it waits for them.
+// buff: a boon's glyph (BUFFS) in a breathing halo, bobbing `bob` units at `bobHz`. A ward
+//   ignores a player already warded.
+// launch: loot pops out of a broken prop, flung `distance` units (picked in range) and
+//   hopping `hop` units high over `time`; it can't be picked up until it has landed.
 
 export const PICKUPS = {
   adrenalineOrb: { adrenalineValue: 1, radius: 0.5 * 0.2, magneticRange: 3, magneticSpeed: 10, size: 0.2, color: 0xa60000, scatter: 0.5 },
   chaserCore: { radius: 0.2 * 0.8, magneticRange: 1, magneticSpeed: 10, width: 0.8, height: 1.0 },
+  mendOrb: { heal: 2, radius: 0.16, magneticRange: 2.5, magneticSpeed: 10, size: 0.34, color: 0x6dff9a, pulse: 1.4 },
+  buff: { radius: 0.22, magneticRange: 1.8, magneticSpeed: 9, size: 0.62, halo: 1.9, bob: 0.06, bobHz: 0.9 },
+  launch: { distance: [0.7, 1.6], hop: 0.45, time: 0.38 },
   exit: { radius: 0.5, width: 0.89, height: 1, color: 0x606060 },
 };
 

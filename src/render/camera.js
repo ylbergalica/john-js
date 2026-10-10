@@ -26,6 +26,13 @@ export class Camera {
     this.shakeState = { duration, strength, frequency: Math.max(1, frequency), elapsed: 0, sx: seed.x * 1000, sy: seed.y * 1000 };
   }
 
+  // A shake ({ duration, strength, frequency }) that doesn't cut short a stronger one
+  // still playing (a guardian's death under a small kill's, say).
+  shakeAtLeast({ duration, strength, frequency }) {
+    const cur = this.shakeState;
+    if (!cur || cur.strength * (1 - cur.elapsed / cur.duration) < strength) this.shake(duration, strength, frequency);
+  }
+
   update(dt, target) {
     if (dt <= 0) return;
     if (target) {

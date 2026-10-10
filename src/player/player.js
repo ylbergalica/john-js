@@ -10,6 +10,7 @@ import { PlayerDeath } from './death.js';
 import { AspectController } from '../aspects/controller.js';
 import { devFlags } from '../game/devFlags.js';
 import { DamageCause } from '../game/damage.js';
+import { Buffs } from './buffs.js';
 
 const A = PLAYER.attack, P = PLAYER.parry, D = PLAYER.dash, H = PLAYER.health;
 
@@ -53,6 +54,7 @@ export class Player extends Entity {
     this.death = null; // PlayerDeath once killed: out of the fight while it plays, then hidden
 
     this.view = new PlayerView(this);
+    this.buffs = new Buffs(this);
     this.aspects = new AspectController(this);
     // A successful parry refunds the dash.
     this.offParried = world.events.parried.on(() => { this.dashReadyAt = 0; });
@@ -92,11 +94,12 @@ export class Player extends Entity {
     this.parryBuffer.consume(now, () => this.tryStartParry());
 
     this.aspects.step(dt);
+    this.buffs.step();
 
     if (this.teleporting) {
       this.steer(0, 0, 1);
     } else if (!this.dashing) {
-      const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier * (devFlags.noclip ? 3 : 1);
+      const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier * this.buffs.speedMultiplier * (devFlags.noclip ? 3 : 1);
       const push = this.shoveVelocity(now);
       this.steer(this.movement.x * speed + push.x, this.movement.y * speed + push.y, PLAYER.movementResponsiveness);
     }
@@ -117,8 +120,9 @@ export class Player extends Entity {
   afterPhysics() {
     if (this.attacking) {
       const cap = this.attackCapsule();
-      const hits = this.world.enemies.filter((e) => !e.dead && circleVsCapsule(e.body.pos.x, e.body.pos.y, e.body.radius, cap));
-      this.attackContacts.update(hits, (e) => this.onAttackHit(e));
+      const struck = (e) => !e.dead && circleVsCapsule(e.body.pos.x, e.body.pos.y, e.body.radius, cap);
+      const hits = [...this.world.enemies.filter(struck), ...this.world.props.filter(struck)];
+      this.attackContacts.update(hits, (e) => (e.isProp ? this.onAttackProp(e) : this.onAttackHit(e)));
     }
     if (this.parrying) this.parryOverlapping();
     if (!this.death) this.aspects.afterPhysics();
@@ -165,16 +169,30 @@ export class Player extends Entity {
     this.view.hideSwing();
   }
 
+  get attackDamage() { return A.attackDamage * this.world.adrenaline.damageMultiplier * this.buffs.damageMultiplier; }
+
   onAttackHit(enemy) {
     if (enemy.dead) return;
     const src = this.attackPoint;
     const hitPoint = enemy.closestPoint(src);
-    enemy.takeDamage(A.attackDamage * this.world.adrenaline.damageMultiplier, hitPoint, src, DamageCause.Attack);
+    enemy.takeDamage(this.attackDamage, hitPoint, src, DamageCause.Attack);
     this.view.playHitImpact(hitPoint);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit);
     if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src);
     this.applyRecoil(A.playerKnockbackForce);
     this.aspects.onHitEnemy(enemy, hitPoint);
+  }
+
+  // Props land like enemy hits (the quicker follow-up, the recoil) but aren't enemies to
+  // the aspects or the adrenaline meter.
+  onAttackProp(prop) {
+    if (prop.dead) return;
+    const src = this.attackPoint;
+    const hitPoint = prop.closestPoint(src);
+    prop.takeDamage(this.attackDamage, hitPoint, src);
+    this.view.playHitImpact(hitPoint);
+    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit);
+    this.applyRecoil(A.playerKnockbackForce);
   }
 
   // Capsule `forward` ahead of the player, long axis perpendicular to facing.
@@ -268,6 +286,12 @@ export class Player extends Entity {
   // ── health ───────────────────────────────────────────────────────
   takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {
     if (this.dead || this.death || this.now < this.invincibleUntil) return;
+    // A ward takes the hit instead, with the moment of invulnerability a hit would give.
+    if (damage > 0 && this.buffs.absorb(source)) {
+      this.lastHitAt = this.now;
+      this.invincibleUntil = this.now + H.invincibilityDuration;
+      return;
+    }
     const final = devFlags.fullResistance ? 0 : damage * this.world.adrenaline.damageTakenMultiplier;
     this.health -= final;
     if (final > 0) {
@@ -305,11 +329,13 @@ export class Player extends Entity {
   // ── lifecycle ────────────────────────────────────────────────────
   render(alpha, dt) {
     this.view.render(alpha, dt);
+    this.buffs.render(alpha, dt);
     this.aspects.render(alpha, dt);
   }
 
   dispose() {
     this.offParried();
+    this.buffs.destroy();
     this.aspects.dispose();
     this.world.physics.remove(this.body);
     this.view.destroy();

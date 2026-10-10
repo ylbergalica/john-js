@@ -55,7 +55,8 @@ export class FlashAspect extends Aspect {
       time: A.flash.time, w0: A.flash.size, h0: A.flash.size, w1: A.flash.size * A.flash.grow, h1: A.flash.size * A.flash.grow,
       alpha: A.flash.alpha, color0: hot, color1: color,
     });
-    fx.flare(tex.glint, to.x, to.y, 0, { time: A.star.time, w0: A.star.size, h0: A.star.size, w1: A.star.size * 0.2, h1: A.star.size * 0.2, fade: 1.5, color0: hot, color1: color });
+    // Tilted at random; a quarter turn covers every look a four-point star has.
+    fx.flare(tex.glint, to.x, to.y, Math.random() * Math.PI / 2, { time: A.star.time, w0: A.star.size, h0: A.star.size, w1: A.star.size * 0.2, h1: A.star.size * 0.2, fade: 1.5, color0: hot, color1: color });
     this.world.effects.burst(to.x, to.y, 0, { ...A.sparks, color });
     fx.scatter(fx.stars, A.glints, to.x, to.y, 0.3, hot, { fade: color });
   }

@@ -1,4 +1,4 @@
-// Crescent: each melee hit launches a slash that flies forward and damages every
+// Cleave: each melee hit launches a slash that flies forward and damages every
 // enemy it passes through once.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
@@ -7,7 +7,7 @@ import { Body, circleVsBox } from '../engine/physics.js';
 import { clamp01, norm } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 
-export class CrescentAspect extends Aspect {
+export class CleaveAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     this.readyAt = 0;
@@ -26,15 +26,15 @@ export class CrescentAspect extends Aspect {
     dir = norm(dir);
     const damage = this.data.damage * this.world.adrenaline.damageMultiplier;
     const o = this.data.spawnForwardOffset;
-    this.world.sound('crescent');
-    this.world.add(new CrescentSlash(this.world, this.data, origin.x + dir.x * o, origin.y + dir.y * o, dir, damage));
+    this.world.sound('cleave');
+    this.world.add(new CleaveSlash(this.world, this.data, origin.x + dir.x * o, origin.y + dir.y * o, dir, damage));
     this.readyAt = this.now + Math.max(0, this.data.cooldown);
   }
 
   refreshCooldown() { this.readyAt = 0; }
 }
 
-class CrescentSlash extends Entity {
+class CleaveSlash extends Entity {
   constructor(world, data, x, y, dir, damage) {
     super(world);
     this.data = data;
@@ -45,7 +45,7 @@ class CrescentSlash extends Entity {
     this.body.vel.x = dir.x * data.speed;
     this.body.vel.y = dir.y * data.speed;
     this.expiresAt = world.time + (data.speed > 0.0001 ? Math.max(0, data.travelDistance) / data.speed : 0);
-    this.sprite = new Sprite(tex.crescent_slash);
+    this.sprite = new Sprite(tex.cleave_slash);
     this.sprite.anchor.set(0.5);
     this.sprite.width = this.sprite.height = data.spriteSize;
     this.sprite.alpha = data.alpha;

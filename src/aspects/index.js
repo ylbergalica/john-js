@@ -1,6 +1,6 @@
 // Aspect id → runtime class.
 import { AnchorAspect } from './anchor.js';
-import { CrescentAspect } from './crescent.js';
+import { CleaveAspect } from './cleave.js';
 import { FlashAspect } from './flash.js';
 import { PredatorAspect } from './predator.js';
 import { RiftAspect } from './rift.js';
@@ -8,7 +8,7 @@ import { RiftAspect } from './rift.js';
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
   assassin: PredatorAspect,
-  crescent: CrescentAspect,
+  crescent: CleaveAspect,
   flash: FlashAspect,
   rift: RiftAspect,
 };

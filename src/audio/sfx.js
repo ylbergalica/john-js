@@ -327,7 +327,7 @@ const SOUNDS = {
     tone(v, { freq: 2000, to: 300, dur: 0.14, vol: 0.14 });
     noise(v, { filter: 'highpass', freq: 4000, to: 1500, dur: 0.1, vol: 0.15 });
   },
-  crescent(v) {
+  cleave(v) {
     noise(v, { freq: 2600, to: 700, q: 3, dur: 0.22, vol: 0.22, attack: 0.01 });
     tone(v, { freq: 1300, to: 600, dur: 0.16, vol: 0.05 });
   },

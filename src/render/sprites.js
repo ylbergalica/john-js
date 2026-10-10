@@ -45,7 +45,7 @@ export function sprites() {
     ring: ring(),
     mist_ring: mistRing(),
     anchor_object: anchorObject(),
-    crescent_slash: crescentSlash(),
+    cleave_slash: cleaveSlash(),
     orb: orb(),
     comet: comet(),
     core: core(),
@@ -60,7 +60,7 @@ export function sprites() {
 export function icons() {
   return {
     anchor_icon: anchorIcon(),
-    crescent_icon: crescentIcon(),
+    cleave_icon: cleaveIcon(),
     flash_icon: flashIcon(),
     predator_icon: predatorIcon(),
     rift_icon: riftIcon(),
@@ -158,14 +158,6 @@ function space(ctx, rand, { core, edge, nebulae = [], stars = 40 }) {
   }
   ctx.globalAlpha = 1;
   for (let i = 0; i < 3; i++) sparkle(ctx, lerp(0.08, 0.92, rand()), lerp(0.08, 0.92, rand()), lerp(0.02, 0.035, rand()), '#ffffff', 0.75);
-}
-
-// Draws `paint` onto a scratch canvas the size of `ctx`'s, then stamps it back with a
-// glow. Needed when a shape is built with cut-outs (destination-out).
-function stamp(ctx, px, color, blur, paint) {
-  const { c, ctx: l } = surface(ctx.canvas.width, ctx.canvas.height, px);
-  paint(l);
-  glow(ctx, color, blur, () => ctx.drawImage(c, 0, 0, c.width / px, c.height / px));
 }
 
 // ---------------------------------------------------------------- blades
@@ -309,12 +301,21 @@ function parryFrames(S = 256) {
   });
 }
 
-// The Crescent aspect's flying slash: the full parry arc, tapered at both ends.
-function crescentSlash(S = 256) {
+// Cleave's palette: solid black edged in dark red.
+const CLEAVE = { body: '#000000', edge: '#8c0d16', glow: rgba('#6e0610', 0.7) };
+
+// The Cleave aspect's flying slash: the full parry arc, tapered at both ends, solid black
+// with a dark red outline. The outline is stroked under the fill so only its outer half shows.
+function cleaveSlash(S = 256) {
   const { c, ctx, px } = surface(S);
-  const path = arcBlade({ ...PARRY_ARC, width: 0.08, from: 52, to: -52, profile: (s) => Math.sin(Math.PI * s) ** 0.7 });
-  paintSlash(ctx, px, path, [0.4, 0.95], [0.4, 0.05]);
-  sparkle(ctx, 0.62, 0.5, 0.06, '#ffffff', 0.9);
+  const path = arcBlade({ ...PARRY_ARC, width: 0.09, from: 52, to: -52, profile: (s) => Math.sin(Math.PI * s) ** 0.7 });
+  glow(ctx, CLEAVE.glow, px * 0.03, () => {
+    ctx.strokeStyle = CLEAVE.edge;
+    ctx.lineWidth = 0.036;
+    ctx.stroke(path);
+  });
+  ctx.fillStyle = CLEAVE.body;
+  ctx.fill(path);
   return c;
 }
 
@@ -1243,19 +1244,50 @@ function flashIcon(S = 256) {
   return c;
 }
 
-function crescentIcon(S = 256) {
+// A slim black vesica (the lens where two circles overlap) laid on the diagonal, edged in
+// dark red over a red haze, with a thin lit sliver along one edge.
+function cleaveIcon(S = 256) {
   const { c, ctx, px } = surface(S);
   space(ctx, seededRandom(303), {
-    core: '#141640', edge: '#020208',
-    nebulae: [[0.55, 0.5, 0.45, '#5d73ff', 0.35], [0.3, 0.35, 0.28, '#9b5cff', 0.15]],
+    core: '#1c0307', edge: '#030001', stars: 30,
+    nebulae: [[0.5, 0.5, 0.45, '#b3121f', 0.4], [0.7, 0.3, 0.26, '#ff3b2f', 0.12]],
   });
-  stamp(ctx, px, rgba('#9fb4ff', 0.95), px * 0.1, (l) => {
-    l.fillStyle = radial(l, 0.5, 0.5, 0.34, ['#ffffff', '#e8ecff', '#b9c6ff'], 0.62, 0.45);
-    l.beginPath(); l.arc(0.5, 0.5, 0.34, 0, TAU); l.fill();
-    l.globalCompositeOperation = 'destination-out';
-    l.beginPath(); l.arc(0.36, 0.5, 0.3, 0, TAU); l.fill();
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.4, [rgba('#d4202c', 0.45), rgba('#8c0d16', 0.15), rgba('#8c0d16', 0)]);
+  ctx.fillRect(0, 0, 1, 1);
+  // Half-length L and half-width w along the lens's axes; each edge is an arc of radius R
+  // on a circle centred `off` across from it.
+  const L = 0.38, w = 0.075, R = (L * L / w + w) / 2, off = R - w, n = 48;
+  const edge = (side) => Array.from({ length: n + 1 }, (_, i) => {
+    const y = lerp(-L, L, i / n);
+    return [side * (Math.sqrt(R * R - y * y) - off), y];
   });
-  sparkle(ctx, 0.3, 0.32, 0.05, '#ffffff', 0.9);
+  const right = edge(1), left = edge(-1).reverse();
+  const lens = new Path2D();
+  [...right, ...left].forEach((p, i) => (i ? lens.lineTo(...p) : lens.moveTo(...p)));
+  lens.closePath();
+  ctx.save();
+  ctx.translate(0.5, 0.5);
+  ctx.rotate(45 * DEG);
+  glow(ctx, rgba('#e0202e', 0.9), px * 0.08, () => {
+    ctx.strokeStyle = CLEAVE.edge;
+    ctx.lineWidth = 0.03;
+    ctx.stroke(lens);
+  });
+  ctx.fillStyle = CLEAVE.body;
+  ctx.fill(lens);
+  // A sharp highlight hugging the upper-left edge, fading toward the tips.
+  ctx.save();
+  ctx.clip(lens);
+  ctx.translate(0.012, 0);
+  ctx.strokeStyle = linear(ctx, 0, -L, 0, L, [rgba('#ff5a4f', 0), rgba('#ff5a4f', 0.6), rgba('#ff5a4f', 0)]);
+  ctx.lineWidth = 0.012;
+  ctx.beginPath();
+  left.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p)));
+  ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+  const [tx, ty] = [0.5 + Math.SQRT1_2 * L, 0.5 - Math.SQRT1_2 * L];
+  sparkle(ctx, tx, ty, 0.06, '#ffd0cc', 0.9, 0.3);
   return c;
 }
 

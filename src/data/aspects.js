@@ -63,11 +63,11 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'crescent', displayName: 'Crescent', tier: AspectTier.Gift, icon: 'crescent_icon', activatable: false,
+    id: 'crescent', displayName: 'Cleave', tier: AspectTier.Gift, icon: 'cleave_icon', activatable: false,
     quote: 'Every strike leaves a wake.',
-    description: 'Connecting a hit sends a crescent slash flying forward.',
+    description: 'Connecting a hit sends a cleaving slash flying forward.',
     damage: 1, speed: 25, travelDistance: 4.5, spawnForwardOffset: 0.5, enemyKnockbackForce: 9, cooldown: 0,
-    hitboxDepth: 0.36178464 * 1.5, hitboxWidth: 1.765077 * 1.5, spriteSize: 2 * 1.5, alpha: 0.2784314,
+    hitboxDepth: 0.36178464 * 1.5, hitboxWidth: 1.765077 * 1.5, spriteSize: 2 * 1.5, alpha: 1,
   },
   {
     id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true,

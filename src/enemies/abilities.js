@@ -120,8 +120,8 @@ class Ability {
 
   // Damage taken when parried, plus the player's parry-streak bonus, both scaled by Exalted.
   parryDamage() {
-    const base = this.data.damageMultiplier * this.enemy.damage + (this.player?.parryBonusDamage ?? 0);
-    return base * this.world.adrenaline.damageMultiplier;
+    const base = this.data.damageMultiplier * this.enemy.damage;
+    return (base + (this.player?.parryBonusDamage(base) ?? 0)) * this.world.adrenaline.damageMultiplier;
   }
 
   sound(name) { this.world.sound(name, this.enemy.body.pos, { pitch: this.enemy.type.sfxPitch }); }

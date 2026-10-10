@@ -528,7 +528,7 @@ class ThrowAbility extends Ability {
     const e = this.enemy, d = this.data, dir = fromAngle(e.body.rotation);
     this.world.add(new Projectile(this.world, this, e.body.pos.x + dir.x * d.spawnDistance, e.body.pos.y + dir.y * d.spawnDistance, {
       dir, speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
-      size: d.projectileSize, look: d.look,
+      size: d.projectileSize, look: d.look, passesWalls: d.passesWalls,
     }));
     this.sound('throw');
   }

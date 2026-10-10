@@ -70,9 +70,11 @@ export const ABILITIES = {
   // of how far they would get by then at their current velocity (at most `maxLead`, and
   // never past a wall), the spot marked on the floor meanwhile, and hangs there `boomTime`
   // as a boom `boomRadius` around that can hurt from the moment it lands (mistShell.js).
+  // The Seer sees through walls: neither attack needs a clear path, the Omen comes down over
+  // them and the Bolt flies through them.
   SeerOmen: {
     type: 'lob', tell: 'conjure', cooldown: 3.5, range: 16, windUpTime: 1.5, lockTime: 0.3, duration: 0, recoveryTime: 0.4,
-    damageMultiplier: 1.5, parryStunTime: 1.2, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
+    damageMultiplier: 1.5, parryStunTime: 1.2, requireClearAttackPath: false,
     look: 'mist', spawnDistance: 1.2, chargeSize: 1.7,
     flightTime: 1.5, boomTime: 0.5, boomRadius: 0.85, leadFraction: 0.4, maxLead: 2.8,
   },
@@ -80,9 +82,9 @@ export const ABILITIES = {
   // Goblin's throw.
   SeerBolt: {
     type: 'throw', tell: 'conjure', cooldown: 3.5, range: 16, windUpTime: 1.5, lockTime: 0.3, duration: 0, recoveryTime: 0.4,
-    damageMultiplier: 1, parryStunTime: 0.8, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
+    damageMultiplier: 1, parryStunTime: 0.8, requireClearAttackPath: false,
     look: 'mist', projectileSpeed: 5.5, projectileLifetime: 5, spawnDistance: 1.2,
-    projectileSize: 1.7,
+    projectileSize: 1.7, passesWalls: true,
   },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,

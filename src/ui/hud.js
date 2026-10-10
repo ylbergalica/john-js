@@ -75,13 +75,23 @@ export class Hud {
       h('div', { class: 'cine-black' }));
     this.warpWash = h('div', { class: 'warp-wash' }); // white wash taking the exit (World.whiteout)
 
+    // Leaving mid-run forfeits the unbanked coins, so Main Menu asks first when there are any.
+    this.pauseButtons = h('div', { class: 'pause-buttons' },
+      h('button', { class: 'primary', text: 'Resume', onclick: () => scene.resume() }),
+      h('button', { text: 'Main Menu', onclick: () => this.askQuit() }),
+    );
+    this.quitConfirm = h('div', { class: 'pause-confirm hidden' },
+      h('p', { class: 'pause-confirm-text', text: 'Run coins will be lost.' }),
+      h('div', { class: 'pause-buttons' },
+        h('button', { class: 'primary', text: 'Stay', onclick: () => this.showQuitConfirm(false) }),
+        h('button', { text: 'Leave', onclick: () => scene.quitToMenu() }),
+      ),
+    );
     this.pausePanel = h('div', { class: 'pause hidden interactive' },
       h('div', { class: 'pause-card' },
         h('h2', { class: 'pause-title title-in', text: 'Paused' }),
-        h('div', { class: 'pause-buttons' },
-          h('button', { class: 'primary', text: 'Resume', onclick: () => scene.resume() }),
-          h('button', { text: 'Main Menu', onclick: () => scene.quitToMenu() }),
-        ),
+        this.pauseButtons,
+        this.quitConfirm,
       ),
     );
 
@@ -108,6 +118,18 @@ export class Hud {
   setPaused(on) {
     this.el.classList.toggle('paused', on); // also freezes the floor intro's animation
     this.pausePanel.classList.toggle('hidden', !on);
+    this.showQuitConfirm(false);
+  }
+
+  askQuit() {
+    const { session, world } = this.scene;
+    if (!this.isRun || world.player?.death || session.pendingCoins <= 0) { this.scene.quitToMenu(); return; }
+    this.showQuitConfirm(true);
+  }
+
+  showQuitConfirm(on) {
+    this.pauseButtons.classList.toggle('hidden', on);
+    this.quitConfirm.classList.toggle('hidden', !on);
   }
 
   setVisible(on) { this.el.classList.toggle('hidden', !on); }

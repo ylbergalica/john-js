@@ -2,8 +2,8 @@
 
 // Spark bursts; `size` is the spark's length in world units.
 export const PARTICLES = {
-  enemyHit: { count: 18, speed: 10, lifetime: 0.38, size: 0.42, coneDeg: 28, color: 0xffffff },
-  enemyHitTinted: { count: 12, speed: 6, lifetime: 0.45, size: 0.3, coneDeg: 50 }, // colour: the enemy's hitColor
+  enemyHit: { count: 27, speed: 17, lifetime: 0.4, size: 0.66, coneDeg: 28, color: 0xffffff },
+  enemyHitTinted: { count: 20, speed: 11.5, lifetime: 0.45, size: 0.48, coneDeg: 50 }, // colour: the enemy's hitColor
   playerHit: { count: 16, speed: 9, lifetime: 0.38, size: 0.32, coneDeg: 30, color: 0xffffff },
   parryConnect: { count: 24, speed: 12, lifetime: 0.4, size: 0.34, coneDeg: 40, color: 0xffe2a0 },
   parryConnectRing: { count: 16, speed: 5, lifetime: 0.35, size: 0.2, coneDeg: 180, color: 0xffffff },
@@ -20,16 +20,16 @@ export const PARTICLES = {
 // particles in world units; times in seconds; [min, max] picks at random.
 export const DEATH_FX = {
   enemy: {
-    pop: { time: 0.22, scale: 1.6 },
-    flash: { size: 3, grow: 1.8, time: 0.18, alpha: 0.85 },
+    pop: { time: 0.26, scale: 1.9 },
+    flash: { size: 4, grow: 2, time: 0.22, alpha: 0.95 },
     rings: [{ delay: 0, time: 0.35, from: 1, to: 3.6, alpha: 0.9 }],
     rays: null,
-    sparks: [{ count: 22, speed: 9, lifetime: 0.45, size: 0.34, coneDeg: 180 }],
-    blow: { count: 14, speed: 13, lifetime: 0.4, size: 0.42, coneDeg: 22, color: 0xffffff }, // along the killing blow
-    stars: { count: 9, speed: [2, 5.5], size: [0.18, 0.32], life: [0.5, 0.9], color: 0xffffff },
-    mist: { count: 6, speed: [0.6, 2], size: [0.9, 1.3], grow: 2, life: [0.45, 0.7], alpha: 0.35 },
+    sparks: [{ count: 38, speed: 13, lifetime: 0.5, size: 0.48, coneDeg: 180 }],
+    blow: { count: 34, speed: 20, lifetime: 0.45, size: 0.72, coneDeg: 24, color: 0xffffff }, // along the killing blow
+    stars: { count: 16, speed: [3, 8], size: [0.22, 0.4], life: [0.6, 1.1], color: 0xffffff },
+    mist: { count: 10, speed: [1, 3], size: [1.1, 1.6], grow: 2.2, life: [0.5, 0.8], alpha: 0.4 },
     embers: null,
-    shake: { duration: 0.14, strength: 0.08, frequency: 22 },
+    shake: { duration: 0.18, strength: 0.14, frequency: 22 },
     ripple: null,
   },
   guardian: {

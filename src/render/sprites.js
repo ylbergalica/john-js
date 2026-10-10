@@ -1226,126 +1226,70 @@ function riftIcon(S = 256) {
   return c;
 }
 
-// An oni-masked samurai: horned kabuto, green demon face, tusks, rope tie.
+// The eye in the dark: one slit-pupilled green eye glaring out, already locked on. The
+// upper lid slants down toward the nose, the iris is starry and streaked out from the
+// pupil, the slit holds the glint of its prey, and a wet catchlight sits on top.
 function predatorIcon(S = 256) {
   const { c, ctx, px } = surface(S);
-  space(ctx, seededRandom(505), {
-    core: '#0c1f0e', edge: '#020402',
-    nebulae: [[0.5, 0.5, 0.5, '#36b14a', 0.4], [0.3, 0.3, 0.3, '#1f7a3a', 0.2]],
+  const rand = seededRandom(505);
+  space(ctx, rand, {
+    core: '#071a0c', edge: '#010301', stars: 30,
+    nebulae: [[0.5, 0.5, 0.5, '#2fa84a', 0.3], [0.8, 0.2, 0.28, '#7dd63a', 0.12]],
   });
-  const steel = (y0, y1) => linear(ctx, 0, y0, 0, y1, ['#5a616d', '#2b2f37']);
-  const edge = '#7a8291';
+  const ex = 0.52, ey = 0.54; // iris centre
+  const eye = new Path2D();
+  eye.moveTo(0.04, 0.6);
+  eye.bezierCurveTo(0.26, 0.3, 0.64, 0.2, 0.96, 0.34);
+  eye.bezierCurveTo(0.84, 0.84, 0.32, 0.94, 0.04, 0.6);
+  // Haze bleeding out around the eye.
+  ctx.fillStyle = radial(ctx, ex, ey, 0.5, [rgba('#7dff6a', 0.3), rgba('#3fcf52', 0.1), rgba('#3fcf52', 0)]);
+  ctx.fillRect(0, 0, 1, 1);
+  glow(ctx, rgba('#5dff6a', 0.95), px * 0.1, () => { ctx.fillStyle = '#0a2a10'; ctx.fill(eye); });
 
-  // Neck guard plates, either side.
-  for (const m of [1, -1]) {
-    ctx.save();
-    ctx.translate(0.5, 0); ctx.scale(m, 1); ctx.translate(-0.5, 0);
+  ctx.save();
+  ctx.clip(eye);
+  ctx.fillStyle = radial(ctx, ex, ey, 0.46, ['#1d5a24', '#0b2a10', '#030c05']);
+  ctx.fillRect(0, 0, 1, 1);
+  // Iris: hot yellow-green round the pupil, deepening to a dark limbal ring.
+  const R = 0.33;
+  ctx.beginPath();
+  ctx.arc(ex, ey, R, 0, TAU);
+  ctx.fillStyle = radial(ctx, ex, ey, R, ['#f6ffb0', '#c8f75e', '#5fe04f', '#22a43a', '#0c4a1a', '#04170a']);
+  ctx.fill();
+  ctx.lineWidth = 0.005;
+  for (let i = 0; i < 120; i++) {
+    const a = rand() * TAU, r0 = lerp(0.04, 0.1, rand()), r1 = lerp(0.18, 0.31, rand());
+    ctx.strokeStyle = rand() < 0.55 ? rgba('#0d4a18', lerp(0.25, 0.6, rand())) : rgba('#f4ffc0', lerp(0.15, 0.45, rand()));
     ctx.beginPath();
-    ctx.moveTo(0.32, 0.38); ctx.lineTo(0.15, 0.5); ctx.lineTo(0.13, 0.66); ctx.lineTo(0.32, 0.62); ctx.closePath();
-    ctx.fillStyle = steel(0.38, 0.66);
-    ctx.fill();
-    ctx.strokeStyle = edge; ctx.lineWidth = 0.008; ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0.31, 0.46); ctx.lineTo(0.145, 0.55);
-    ctx.moveTo(0.31, 0.54); ctx.lineTo(0.137, 0.61);
-    ctx.strokeStyle = rgba('#9aa3b2', 0.6); ctx.stroke();
-    ctx.restore();
+    ctx.moveTo(ex + Math.cos(a) * r0, ey + Math.sin(a) * r0);
+    ctx.lineTo(ex + Math.cos(a) * r1, ey + Math.sin(a) * r1);
+    ctx.stroke();
   }
-
-  // Rope looped under the chin.
-  ctx.beginPath();
-  ctx.moveTo(0.27, 0.6); ctx.quadraticCurveTo(0.5, 1.0, 0.73, 0.6);
-  ctx.strokeStyle = '#a07a32'; ctx.lineWidth = 0.034; ctx.stroke();
-  ctx.setLineDash([0.018, 0.018]);
-  ctx.strokeStyle = '#e4c37a'; ctx.lineWidth = 0.014; ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.beginPath();
-  ctx.arc(0.5, 0.81, 0.028, 0, TAU);
-  ctx.fillStyle = '#c9a052'; ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(0.49, 0.83); ctx.quadraticCurveTo(0.46, 0.9, 0.47, 0.95);
-  ctx.moveTo(0.51, 0.83); ctx.quadraticCurveTo(0.55, 0.89, 0.54, 0.94);
-  ctx.strokeStyle = '#c9a052'; ctx.lineWidth = 0.016; ctx.stroke();
-
-  // Face.
-  const face = new Path2D();
-  face.moveTo(0.33, 0.44);
-  face.bezierCurveTo(0.31, 0.62, 0.4, 0.78, 0.5, 0.8);
-  face.bezierCurveTo(0.6, 0.78, 0.69, 0.62, 0.67, 0.44);
-  face.quadraticCurveTo(0.5, 0.41, 0.33, 0.44);
-  glow(ctx, rgba('#5dff6a', 0.6), px * 0.05, () => {
-    ctx.fillStyle = radial(ctx, 0.5, 0.58, 0.24, ['#9df58a', '#3fb24a', '#1d6a27'], 0.45, 0.5);
-    ctx.fill(face);
-  });
-  ctx.strokeStyle = '#0d2a12'; ctx.lineWidth = 0.01; ctx.stroke(face);
-
-  // Helmet bowl and horns.
-  const bowl = new Path2D();
-  bowl.moveTo(0.26, 0.43);
-  bowl.bezierCurveTo(0.26, 0.17, 0.74, 0.17, 0.74, 0.43);
-  bowl.quadraticCurveTo(0.5, 0.39, 0.26, 0.43);
-  ctx.fillStyle = steel(0.22, 0.43);
-  ctx.fill(bowl);
-  ctx.strokeStyle = edge; ctx.lineWidth = 0.01; ctx.stroke(bowl);
-  ctx.strokeStyle = rgba('#9aa3b2', 0.35); ctx.lineWidth = 0.006;
-  ctx.beginPath();
-  for (const x of [0.36, 0.43, 0.57, 0.64]) { ctx.moveTo(x, 0.4); ctx.quadraticCurveTo((x + 0.5) / 2, 0.22, 0.5, 0.21); }
-  ctx.stroke();
-  for (const m of [1, -1]) {
-    ctx.save();
-    ctx.translate(0.5, 0); ctx.scale(m, 1); ctx.translate(-0.5, 0);
-    ctx.beginPath();
-    ctx.moveTo(0.47, 0.34);
-    ctx.quadraticCurveTo(0.3, 0.26, 0.22, 0.04);
-    ctx.quadraticCurveTo(0.36, 0.2, 0.495, 0.28);
-    ctx.closePath();
-    ctx.fillStyle = linear(ctx, 0.22, 0.04, 0.47, 0.34, ['#e6e9ef', '#9aa1ad', '#5a616d']);
-    ctx.fill();
-    ctx.strokeStyle = '#2b2f37'; ctx.lineWidth = 0.007; ctx.stroke();
-    ctx.restore();
+  for (let i = 0; i < 14; i++) {
+    const a = rand() * TAU, d = lerp(0.09, 0.27, rand());
+    sparkle(ctx, ex + Math.cos(a) * d, ey + Math.sin(a) * d, lerp(0.009, 0.02, rand()), '#fbffd8', lerp(0.4, 0.9, rand()));
   }
-  // Brim.
-  const brim = new Path2D();
-  brim.moveTo(0.23, 0.44);
-  brim.quadraticCurveTo(0.5, 0.33, 0.77, 0.44);
-  brim.lineTo(0.75, 0.475);
-  brim.quadraticCurveTo(0.5, 0.39, 0.25, 0.475);
-  brim.closePath();
-  ctx.fillStyle = linear(ctx, 0, 0.36, 0, 0.48, ['#8a92a0', '#4a505b']);
-  ctx.fill(brim);
-  ctx.strokeStyle = '#2b2f37'; ctx.lineWidth = 0.006; ctx.stroke(brim);
-  glow(ctx, rgba('#7dff7a', 0.9), px * 0.03, () => sparkle(ctx, 0.5, 0.3, 0.05, '#b8ffb0', 1));
+  // The slit, glowing at its edge, with the prey's glint caught inside.
+  const slit = new Path2D();
+  slit.moveTo(ex, 0.12);
+  slit.quadraticCurveTo(ex + 0.075, ey, ex, 0.96);
+  slit.quadraticCurveTo(ex - 0.075, ey, ex, 0.12);
+  glow(ctx, rgba('#eaff7a', 0.95), px * 0.05, () => { ctx.fillStyle = '#010401'; ctx.fill(slit); });
+  sparkle(ctx, ex, ey + 0.05, 0.026, '#ffffff', 0.95);
+  // The lid's shadow, heavier toward the nose, and a little rim light along the bottom lid.
+  ctx.fillStyle = linear(ctx, 0.3, 0.24, 0.38, 0.56, [rgba('#000000', 0.8), rgba('#000000', 0.35), rgba('#000000', 0)]);
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.fillStyle = linear(ctx, 0, 0.88, 0, 0.7, [rgba('#b8ff8a', 0.35), rgba('#b8ff8a', 0)]);
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.restore();
 
-  // Brows, eyes, nose, mouth and tusks.
-  for (const m of [1, -1]) {
-    ctx.save();
-    ctx.translate(0.5, 0); ctx.scale(m, 1); ctx.translate(-0.5, 0);
-    ctx.beginPath();
-    ctx.moveTo(0.35, 0.49); ctx.lineTo(0.48, 0.545); ctx.lineTo(0.47, 0.565); ctx.lineTo(0.36, 0.53); ctx.closePath();
-    ctx.fillStyle = '#0f3314'; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(0.375, 0.552); ctx.quadraticCurveTo(0.42, 0.55, 0.462, 0.583); ctx.quadraticCurveTo(0.41, 0.59, 0.375, 0.552);
-    glow(ctx, rgba('#e8ff6a', 0.95), px * 0.025, () => { ctx.fillStyle = '#fffbd0'; ctx.fill(); });
-    ctx.beginPath();
-    ctx.ellipse(0.475, 0.645, 0.012, 0.008, 0.4, 0, TAU);
-    ctx.fillStyle = '#123a17'; ctx.fill();
-    ctx.restore();
-  }
+  ctx.strokeStyle = '#020803'; ctx.lineWidth = 0.03; ctx.stroke(eye);
+  ctx.strokeStyle = rgba('#9dff8a', 0.55); ctx.lineWidth = 0.007; ctx.stroke(eye);
+  // Catchlight.
   ctx.beginPath();
-  ctx.moveTo(0.38, 0.68); ctx.quadraticCurveTo(0.5, 0.645, 0.62, 0.68); ctx.quadraticCurveTo(0.5, 0.78, 0.38, 0.68);
-  ctx.fillStyle = '#1a0b0b'; ctx.fill();
-  ctx.fillStyle = '#f6f4ea';
-  for (const m of [1, -1]) {
-    ctx.save();
-    ctx.translate(0.5, 0); ctx.scale(m, 1); ctx.translate(-0.5, 0);
-    ctx.beginPath();
-    ctx.moveTo(0.4, 0.705); ctx.quadraticCurveTo(0.39, 0.65, 0.405, 0.61); ctx.quadraticCurveTo(0.415, 0.66, 0.435, 0.715); ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(0.46, 0.665); ctx.lineTo(0.475, 0.69); ctx.lineTo(0.49, 0.663); ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
+  ctx.ellipse(0.4, 0.46, 0.034, 0.02, -0.5, 0, TAU);
+  ctx.fillStyle = rgba('#ffffff', 0.85); ctx.fill();
+  sparkle(ctx, 0.4, 0.46, 0.085, '#ffffff', 1, 0.25);
   return c;
 }
 

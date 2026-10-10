@@ -50,7 +50,7 @@ export const ASPECTS = [
       streak: { width: 0.7, time: 0.22, alpha: 0.7 },
       arrive: {
         flash: { size: 1.4, grow: 2.2, time: 0.5, alpha: 1 },
-        star: { size: 3.2, time: 0.55 },
+        star: { size: 3.2, time: 0.55, spin: 1.2 }, // spin: radians a second, either way
         sparks: { count: 20, speed: 8, lifetime: 0.6, size: 0.3, coneDeg: 180 },
         glints: { count: 12, speed: [2, 5], size: [0.16, 0.3], life: [0.8, 1.4] },
       },

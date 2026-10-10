@@ -85,8 +85,8 @@ export class DeathFx {
   }
 
   // A one-shot sprite growing from (w0, h0) to (w1, h1) and fading over `time`, after `delay`,
-  // mirrored across its length if `flipY`.
-  flare(texture, x, y, rotation, { delay = 0, time, w0, h0, w1, h1, alpha = 1, fade = 1, color0, color1 = color0, anchorX = 0.5, anchorY = 0.5, flipY = false }) {
+  // mirrored across its length if `flipY`, turning at `spin` radians a second.
+  flare(texture, x, y, rotation, { delay = 0, time, w0, h0, w1, h1, alpha = 1, fade = 1, color0, color1 = color0, anchorX = 0.5, anchorY = 0.5, flipY = false, spin = 0 }) {
     const sprite = new Sprite(texture);
     sprite.anchor.set(anchorX, anchorY);
     sprite.blendMode = 'add';
@@ -95,7 +95,7 @@ export class DeathFx {
     if (flipY) sprite.scale.y = -1; // sizing keeps the sign
     sprite.visible = false;
     this.flares.addChild(sprite);
-    this.live.push({ sprite, age: 0, delay, time, w0, h0, w1, h1, alpha, fade, color0, color1 });
+    this.live.push({ sprite, age: 0, delay, time, w0, h0, w1, h1, alpha, fade, color0, color1, spin });
   }
 
   update(dt) {
@@ -118,6 +118,7 @@ export class DeathFx {
       s.height = lerp(f.h0, f.h1, e);
       s.alpha = f.alpha * (1 - t) ** f.fade;
       s.tint = lerpColor(f.color0, f.color1, t);
+      if (f.spin) s.rotation += f.spin * dt;
     }
   }
 

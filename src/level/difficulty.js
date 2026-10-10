@@ -43,15 +43,18 @@ export function scaleConfig(base, floor) {
 }
 
 // Keeps the entries within [fromFloor, toFloor] and turns a { min, max } weight into a
-// number, rising linearly from min on fromFloor to max on toFloor (min if open-ended).
+// number: min on fromFloor, rising linearly to max on peakFloor, falling back to min on toFloor.
 function spawnableOn(entries, floor) {
   return entries
     .filter((e) => (e.fromFloor ?? 1) <= floor && floor <= (e.toFloor ?? Infinity))
     .map((e) => {
       if (typeof e.weight === 'number') return e;
       const from = e.fromFloor ?? 1;
-      const span = (e.toFloor ?? Infinity) - from;
-      const t = span > 0 && span < Infinity ? (floor - from) / span : 0;
+      const peak = e.peakFloor ?? from;
+      const to = e.toFloor ?? Infinity;
+      const t = floor < peak ? (floor - from) / (peak - from)
+        : floor > peak && to < Infinity ? (to - floor) / (to - peak)
+        : 1;
       return { ...e, weight: e.weight.min + (e.weight.max - e.weight.min) * t };
     });
 }

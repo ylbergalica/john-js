@@ -23,13 +23,31 @@ export const EXALTED_FX = {
   fadeIn: 0.15, // seconds for the effects to reach full strength
   fadeOut: 0.5, // seconds for them to die away once the state ends
   warnTime: 1.5, // the last seconds of the state, when the ribbons and outline flicker
-  // Shown only on entry: open over openTime, hold for holdTime, dissolve over fadeTime.
+  // Fallen-angel wings, shown only on entry: stretch open over openTime (the outer feathers up
+  // to `stagger` later), hold for holdTime, then fade over fadeTime, shedding feathers and
+  // folding back in by up to `foldBack` of the way (gone before they get there).
   wings: {
-    size: 1.4, openTime: 0.3, holdTime: 0.1, fadeTime: 0.3, flapSpeed: 3.2, flapDeg: 7,
-    boneRate: 320, membraneRate: 900, strandColor: 0xc8160c, strandAlpha: 0.45,
-    flameShare: 0.3, // fraction of bone particles that are flame tongues rather than mist
-    bone: { color: 0x9e100c, fade: 0x2a0000, size: [0.5, 0.8], grow: 1.4, life: [0.18, 0.32], alpha: 0.4 },
-    membrane: { color: 0x5e0410, fade: 0x160000, size: [0.8, 1.3], grow: 1.5, life: [0.2, 0.34], alpha: 0.3 },
+    size: 1.4, openTime: 0.5, holdTime: 0.05, fadeTime: 1, flapSpeed: 2.2, flapDeg: 7,
+    extend: 1.15, // how far past the open pose they stretch before turning around
+    // The hand trailing the stroke by up to `deg` (the rest of the wing by its reach, at most
+    // `max` times that), full once the spread moves faster than about `speed` per second;
+    // `smooth`: seconds the spread's speed is smoothed over.
+    drag: { deg: 34, speed: 0.6, max: 1.6, smooth: 0.06 },
+    stagger: 0.06, foldBack: 0.65,
+    droop: 0.22, // how far each feather's tip sags toward hanging straight down
+    flutter: { deg: 5, speed: 6 }, // each feather trembling on its own
+    // Normal blend: the vanes land dark, rims and shafts this. Each ripples like smoke toward
+    // its tip by up to `wave` of its length.
+    feather: { color: 0xd41e26, alpha: 0.75, wave: 0.08, waveSpeed: 6 },
+    // Glowing afterimages of the back `layers` feathers where they were `lags` seconds ago.
+    echo: { lags: [0.06, 0.13], alpha: [0.3, 0.15], color: 0xe0202a, layers: 3, widen: 1.2 },
+    wisp: { rate: 320, color: 0xb0141c, fade: 0x200000, size: [0.25, 0.45], life: [0.35, 0.6], alpha: 0.45 }, // smoke off the feather tips
+    boneRate: 220, glowRate: 600, strandColor: 0xc8160c, strandAlpha: 0.5,
+    flameShare: 0.3, // fraction of arm particles that are flame tongues rather than mist
+    bone: { color: 0x9e100c, fade: 0x2a0000, size: [0.35, 0.55], grow: 1.4, life: [0.18, 0.32], alpha: 0.4 },
+    glow: { color: 0x7a0812, fade: 0x160000, size: [0.4, 0.7], grow: 1.5, life: [0.2, 0.34], alpha: 0.35 }, // mist behind the feathers
+    // Loose feathers tumbling off, a trickle while held and a flurry as they dissolve.
+    shed: { rate: 60, hold: 0.15, color: 0xd41e26, fade: 0x3a0006, size: [0.2, 0.34], life: [0.9, 1.5], speed: [0.6, 1.6], alpha: 0.9 },
     drift: 0.35, // how much wing smoke streams back while the player moves
   },
   body: { rate: 85, radius: 0.36, speed: [1.4, 2.4], color: 0xc0180c, fade: 0x300000, size: [0.45, 0.7], life: [0.3, 0.55] },

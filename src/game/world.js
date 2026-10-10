@@ -91,25 +91,24 @@ export class World {
     const es = cfg.enemySpawn;
     const first = es.skipFirstRoom ? 1 : 0;
     const last = es.skipLastRoom ? rooms.length - 1 : rooms.length;
-    // → the adrenaline points the spawned enemy is expected to drop (0 if none spawned).
+    // → the adrenaline points the spawned enemy is sure to drop (0 if none spawned).
     const spawnIn = (room) => {
       const pos = randomFloorInRoom(grid, room);
       if (!pos) return 0;
       const key = pickWeighted(es.enemies).type;
       this.spawnEnemy(key, pos);
-      const t = ENEMY_TYPES[key];
-      return ((t.minAdrenalineDrops + t.maxAdrenalineDrops) / 2) * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
+      return ENEMY_TYPES[key].minAdrenalineDrops * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
     };
     // Every room gets its minimum, then enemies go into random rooms (up to each room's cap)
-    // until the floor's expected drops fill a whole meter times the surplus, so enemies that
-    // drop more adrenaline mean fewer enemies.
+    // until killing them all fills a whole meter even if each drops only its minimum, so
+    // enemies that drop more adrenaline mean fewer enemies.
     const counts = new Map();
     const spawnCounted = (i) => { counts.set(i, (counts.get(i) ?? 0) + 1); return spawnIn(rooms[i]); };
     let supply = 0;
     for (let i = first; i < last; i++) {
       for (let n = 0; n < es.minEnemiesPerRoom; n++) supply += spawnCounted(i);
     }
-    const budget = this.adrenaline.capacity * es.adrenalineSurplus;
+    const budget = this.adrenaline.capacity;
     for (let tries = 0; supply < budget && tries < 200; tries++) {
       const open = [];
       for (let i = first; i < last; i++) if ((counts.get(i) ?? 0) < es.maxEnemiesPerRoom) open.push(i);

@@ -34,13 +34,12 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 5, peakFloor: 7 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
-    // in a room) until the floor's expected adrenaline drops reach adrenalineSurplus times a
-    // full meter (slack for orbs missed or enemies skipped). Per-type drops are in enemies.js.
+    // in a room) until killing them all fills a whole meter even if each drops only its
+    // minAdrenalineDrops. Per-type drops are in enemies.js.
     minEnemiesPerRoom: 2,
     maxEnemiesPerRoom: 6,
     skipFirstRoom: true,
     skipLastRoom: true,
-    adrenalineSurplus: 1.5,
   },
   chaserCount: 1,
   chasers: [

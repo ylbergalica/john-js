@@ -8,9 +8,7 @@ export function scaleConfig(base, floor) {
   es.enemies = spawnableOn(es.enemies, floor);
   s.chasers = spawnableOn(s.chasers, floor);
 
-  // Enemy count follows the adrenaline budget; deeper floors ask for a little more of it,
-  // and rooms can hold more as they grow.
-  es.adrenalineSurplus = Math.min(es.adrenalineSurplus + floor * 0.05, 3);
+  // Enemy count follows the adrenaline budget; rooms can hold more as they grow.
   es.maxEnemiesPerRoom = Math.min(es.maxEnemiesPerRoom + F(floor * 0.4), 15);
   es.skipLastRoom = F(floor * 0.07) < 1;
   es.skipFirstRoom = F(floor * 0.05) < 1;

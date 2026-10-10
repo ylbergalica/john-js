@@ -1,5 +1,6 @@
-// Finds the nearest floor-tile centre where a body of a given radius fits (no walls,
-// no solid bodies). Used by the blink/teleport aspects.
+// Finds where a body of a given radius fits (no walls, no solid bodies): the desired
+// spot itself if it's clear, else the nearest floor-tile centre. Used by the
+// blink/teleport aspects.
 export class TeleportResolver {
   constructor(world, body) {
     this.world = world;
@@ -13,17 +14,19 @@ export class TeleportResolver {
     return this.search(desired, Math.max(1, Math.ceil(maxDistance)), (c) => distSq(c, origin) <= maxDistance * maxDistance);
   }
 
-  // Nearest valid spot to `desired` anywhere on the map.
-  findNearestUnlimited(desired) {
+  // Nearest valid spot to `desired` anywhere on the map. `radius` overrides the body's
+  // own (the Anchor checks the full-size player while it's shrunk).
+  findNearestUnlimited(desired, radius) {
     const { width, height } = this.world.level.grid;
-    return this.search(desired, Math.max(width, height), () => true);
+    return this.search(desired, Math.max(width, height), () => true, radius);
   }
 
-  search(desired, maxRing, accept) {
+  search(desired, maxRing, accept, radius = this.body.radius) {
     const grid = this.world.level.grid;
-    const r = this.body.radius * 0.95;
+    const r = radius * 0.95;
     const fits = (c) => accept(c) && this.world.physics.isCircleFree(c.x, c.y, r, this.body);
     const dx0 = Math.floor(desired.x), dy0 = Math.floor(desired.y);
+    if (grid.isFloor(dx0, dy0) && fits(desired)) return { x: desired.x, y: desired.y };
     if (grid.isFloor(dx0, dy0)) {
       const c = { x: dx0 + 0.5, y: dy0 + 0.5 };
       if (fits(c)) return c;

@@ -1,12 +1,13 @@
 // Anchor: throw an anchor; once it settles, activate again to shrink, teleport to it
 // with a knockback shockwave, and regrow. Walking over a settled anchor picks it up.
-import { Graphics, Sprite } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
 import { Body } from '../engine/physics.js';
-import { clamp01, lerp, isZero, norm } from '../engine/math.js';
+import { clamp01, lerp, isZero, norm, randRange, TAU } from '../engine/math.js';
 import { PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
+import { RING_RADIUS } from '../render/sprites.js';
 import { TeleportResolver } from '../level/teleport.js';
 
 export class AnchorAspect extends Aspect {
@@ -19,8 +20,10 @@ export class AnchorAspect extends Aspect {
     this.teleport = null; // { phase: 'shrink' | 'grow', elapsed, from, to, duration }
   }
 
+  get shrinking() { return this.teleport?.phase === 'shrink'; }
+
   tryActivate() {
-    if (this.teleport) return false;
+    if (this.shrinking) return false;
     if (this.state === 'stowed') return this.throwAnchor();
     if (this.state !== 'settled') return false;
     this.beginTeleport();
@@ -28,7 +31,8 @@ export class AnchorAspect extends Aspect {
   }
 
   step(dt) {
-    if (this.teleport) { this.stepTeleport(dt); return; }
+    if (this.teleport) this.stepTeleport(dt);
+    if (this.shrinking) return;
     if (this.state === 'flying') this.stepSettle(dt);
     else if (this.state === 'settled') this.tryPickUp();
   }
@@ -74,10 +78,13 @@ export class AnchorAspect extends Aspect {
     this.world.sound('anchorPickup');
   }
 
+  // The player can't be hit from the moment they start shrinking until they land.
   beginTeleport() {
     this.player.teleporting = true;
+    this.player.intangible = true;
     this.player.body.stop();
     this.world.sound('warp');
+    this.departFx(this.player.body.pos);
     this.teleport = { phase: 'shrink', elapsed: 0, from: 1, to: this.data.teleportDotScale, duration: this.data.teleportWindUpTime };
   }
 
@@ -90,23 +97,52 @@ export class AnchorAspect extends Aspect {
 
     if (t.phase === 'shrink') {
       const target = { ...this.anchor.body.pos };
-      const dest = this.resolver.findNearestUnlimited(target);
+      const dest = this.resolver.findNearestUnlimited(target, PLAYER.radius);
       if (dest) {
         this.player.body.teleport(dest.x, dest.y);
         this.player.body.stop();
       }
+      this.arriveFx(this.player.body.pos);
       this.world.add(new WindPulse(this.world, target, this.data));
       this.world.sound('shockwave');
       this.stow();
+      // Back in control the moment they land; the regrow is only for show.
+      this.player.teleporting = false;
+      this.player.intangible = false;
       this.teleport = { phase: 'grow', elapsed: 0, from: this.player.sizeScale, to: 1, duration: this.data.teleportRecoverTime };
     } else {
       this.endTeleport();
     }
   }
 
+  // Blue light pinches in on the player as they shrink away, and blooms where they land.
+  // Borrows the death effects' flares and glints.
+  departFx({ x, y }) {
+    const D = this.data.fx.depart, fx = this.world.deathFx, { color, hot } = this.data.fx;
+    fx.flare(tex.mist, x, y, 0, {
+      time: this.data.teleportWindUpTime, w0: D.flash.size, h0: D.flash.size, w1: D.flash.size * D.flash.shrink, h1: D.flash.size * D.flash.shrink,
+      alpha: D.flash.alpha, color0: hot, color1: color,
+    });
+    fx.scatter(fx.stars, D.glints, x, y, 0.2, hot, { fade: color });
+  }
+
+  arriveFx(to) {
+    const F = this.data.fx, fx = this.world.deathFx, { color, hot } = F;
+    const A = F.arrive;
+    fx.flare(tex.mist, to.x, to.y, 0, {
+      time: A.flash.time, w0: A.flash.size, h0: A.flash.size, w1: A.flash.size * A.flash.grow, h1: A.flash.size * A.flash.grow,
+      alpha: A.flash.alpha, color0: hot, color1: color,
+    });
+    fx.flare(tex.glint, to.x, to.y, Math.random() * Math.PI / 2, {
+      time: A.star.time, w0: A.star.size, h0: A.star.size, w1: A.star.size * 0.2, h1: A.star.size * 0.2, fade: 1.5, color0: hot, color1: color,
+    });
+    fx.scatter(fx.stars, A.glints, to.x, to.y, 0.2, hot, { fade: color });
+  }
+
   endTeleport() {
     this.setScale(1);
     this.player.teleporting = false;
+    this.player.intangible = false;
     this.teleport = null;
   }
 
@@ -137,7 +173,6 @@ class AnchorObject extends Entity {
     this.sprite.anchor.set(0.5);
     this.size = data.anchorSize;
     this.sprite.width = this.sprite.height = this.size;
-    this.sprite.tint = data.anchorTint;
     this.sprite.visible = false;
     world.layers.pickups.addChild(this.sprite);
   }
@@ -151,10 +186,8 @@ class AnchorObject extends Entity {
     if (!this.sprite.visible) return;
     const p = this.body.lerpPos(alpha);
     this.sprite.position.set(p.x, p.y);
-    // Slow shimmer: the crystal breathes and sways a little.
-    const t = this.world.time;
-    this.sprite.width = this.sprite.height = this.size * (1 + 0.05 * Math.sin(t * 3));
-    this.sprite.rotation = 0.08 * Math.sin(t * 1.3);
+    // Slow shimmer: the crystal breathes, always standing upright.
+    this.sprite.width = this.sprite.height = this.size * (1 + 0.05 * Math.sin(this.world.time * 3));
   }
 
   dispose() {
@@ -163,17 +196,25 @@ class AnchorObject extends Entity {
   }
 }
 
-// Expanding ring that knocks back each enemy it sweeps over, once.
+// Expanding ring that knocks back each enemy it sweeps over, once. Drawn as a thick ring
+// of blue mist: two hazy layers turning opposite ways under a soft edge, shedding puffs.
 class WindPulse extends Entity {
   constructor(world, origin, data) {
     super(world);
     this.origin = origin;
     this.data = data;
+    this.look = data.fx.ring;
     this.elapsed = 0;
     this.radius = 0;
+    this.puffDebt = 0;
     this.knocked = new Set();
-    this.gfx = new Graphics();
-    world.layers.fx.addChild(this.gfx);
+    this.view = new Container();
+    this.view.position.set(origin.x, origin.y);
+    this.view.visible = false;
+    const layer = (texture, tint) => this.view.addChild(new Sprite({ texture, anchor: 0.5, blendMode: 'add', tint, rotation: Math.random() * TAU }));
+    this.haze = [layer(tex.mist_ring, this.look.color), layer(tex.mist_ring, this.look.color)];
+    this.edge = layer(tex.ring, this.look.edge);
+    world.layers.fx.addChild(this.view);
   }
 
   get progress() { return this.data.windDuration > 0 ? clamp01(this.elapsed / this.data.windDuration) : 1; }
@@ -189,16 +230,36 @@ class WindPulse extends Entity {
       this.knocked.add(e);
       e.applyKnockback(this.data.windForce, this.origin);
     }
+    this.shedPuffs(dt);
     if (this.progress >= 1) this.destroy();
   }
 
-  render() {
-    const g = this.gfx, t = this.progress, { x, y } = this.origin;
-    g.clear();
-    if (this.radius <= 0.01) return;
-    g.circle(x, y, this.radius).stroke({ width: this.data.windRingWidth, color: 0xffffff, alpha: 0.35 * (1 - t) });
-    g.circle(x, y, this.radius).stroke({ width: 0.05, color: 0xffffff, alpha: 0.8 * (1 - t) });
+  // Mist left lingering behind the wave, drifting gently outward.
+  shedPuffs(dt) {
+    const P = this.look.puffs, fx = this.world.deathFx;
+    this.puffDebt += P.rate * dt;
+    for (; this.puffDebt >= 1; this.puffDebt--) {
+      const a = Math.random() * TAU, c = Math.cos(a), s = Math.sin(a), speed = randRange(0.3, 1);
+      fx.mist.spawn({
+        x: this.origin.x + c * this.radius, y: this.origin.y + s * this.radius, vx: c * speed, vy: s * speed,
+        size: randRange(...P.size), life: randRange(...P.life), alpha: P.alpha * (1 - this.progress), grow: 1.6,
+        color: this.look.color, fade: 0x000000,
+      });
+    }
   }
 
-  dispose() { this.gfx.destroy(); }
+  render(alpha, dt) {
+    const L = this.look, t = this.progress;
+    const size = this.radius / RING_RADIUS, fade = Math.min(1, t * 8) * (1 - t);
+    this.view.visible = this.radius > 0.01;
+    this.haze.forEach((s, i) => {
+      s.width = s.height = size * (i ? 1.04 : 0.97);
+      s.alpha = L.alpha * fade;
+      s.rotation += (i ? -L.spin : L.spin) * dt;
+    });
+    this.edge.width = this.edge.height = size;
+    this.edge.alpha = L.edgeAlpha * fade;
+  }
+
+  dispose() { this.view.destroy({ children: true }); }
 }

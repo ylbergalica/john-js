@@ -43,6 +43,7 @@ export function sprites() {
     spark: spark(),
     glint: glint(),
     ring: ring(),
+    mist_ring: mistRing(),
     anchor_object: anchorObject(),
     crescent_slash: crescentSlash(),
     orb: orb(),
@@ -70,7 +71,7 @@ export function icons() {
 
 // Sprites drawn with a halo are this many times their visible body size.
 export const ORB_PAD = 2;
-// The ring sprite's bright band, as a fraction of its width.
+// The ring and mist ring sprites' band radius, as a fraction of their width.
 export const RING_RADIUS = 0.4;
 // The comet's head as a fraction of its length.
 export const COMET_HEAD = 0.9;
@@ -491,6 +492,26 @@ function ring(S = 256) {
     .forEach(([at, a]) => g.addColorStop(at, rgba('#ffffff', a)));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 1, 1);
+  return c;
+}
+
+// A thick ring of haze, white so it can be tinted: a broad soft band centred on
+// RING_RADIUS of the texture width, lumpy with overlapping puffs and blurred together.
+function mistRing(S = 512) {
+  const { c, ctx, px } = surface(S);
+  const rand = seededRandom(17);
+  const g = ctx.createRadialGradient(0.5, 0.5, 0, 0.5, 0.5, 0.5);
+  [[0, 0], [0.5, 0], [0.64, 0.12], [RING_RADIUS * 2, 0.4], [0.9, 0.12], [1, 0]]
+    .forEach(([at, a]) => g.addColorStop(at, rgba('#ffffff', a)));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.filter = `blur(${px * 0.012}px)`;
+  for (let i = 0; i < 48; i++) {
+    const a = ((i + rand()) / 48) * TAU, d = RING_RADIUS + lerp(-0.035, 0.03, rand()), r = lerp(0.035, 0.06, rand());
+    const x = 0.5 + Math.cos(a) * d, y = 0.5 + Math.sin(a) * d;
+    ctx.fillStyle = radial(ctx, x, y, r, [rgba('#ffffff', lerp(0.18, 0.35, rand())), rgba('#ffffff', 0)]);
+    ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  }
   return c;
 }
 
@@ -959,17 +980,17 @@ function crystal(ctx, { x, y, hw, hh, rot = 0, facets, rim, rimWidth, cross, cro
   ctx.restore();
 }
 
-// Drawn in greys: the Anchor tints it orange in game.
+// The Anchor's thrown crystal: the one on its icon, in its blues but standing upright.
 function anchorObject(S = 256) {
   const { c, ctx } = surface(S);
-  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.48, [rgba('#ffffff', 0.45), rgba('#ffffff', 0.12), rgba('#ffffff', 0)]);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.48, [rgba('#cfe0ff', 0.6), rgba('#6d8fff', 0.2), rgba('#6d8fff', 0)]);
   ctx.fillRect(0, 0, 1, 1);
   crystal(ctx, {
     x: 0.5, y: 0.5, hw: 0.25, hh: 0.36,
-    facets: ['#ffffff', '#c9c9c9', '#a2a2a2', '#e2e2e2'],
-    rim: '#3a3a3a', rimWidth: 0.035, cross: rgba('#ffffff', 0.95), crossWidth: 0.03,
+    facets: ['#5d84ff', '#2848f2', '#1b33c2', '#3d63ff'],
+    rim: '#0a1030', rimWidth: 0.028, cross: '#e8efff', crossWidth: 0.028,
   });
-  sparkle(ctx, 0.43, 0.38, 0.09, '#ffffff', 1, 0.2);
+  sparkle(ctx, 0.42, 0.37, 0.09, '#ffffff', 1, 0.3);
   return c;
 }
 

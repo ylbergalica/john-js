@@ -67,7 +67,7 @@ export class Projectile extends Entity {
       this.destroy();
       return;
     }
-    const p = this.world.livePlayer;
+    const p = this.world.hittablePlayer;
     if (!p || !this.overlapsCircle(p.body.pos.x, p.body.pos.y, p.body.radius)) return;
     if (p.tryParryIncoming(this) || this.dead) return;
     const dx = b.pos.x - p.body.pos.x, dy = b.pos.y - p.body.pos.y, l = Math.hypot(dx, dy) || 1;

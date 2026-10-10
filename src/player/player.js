@@ -20,6 +20,7 @@ export class Player extends Entity {
     this.movement = { x: 0, y: 0 };
     this.sizeScale = 1; // shrunk by the Anchor teleport
     this.teleporting = false; // set by aspects; locks out other actions
+    this.intangible = false; // set by aspects; enemy attacks pass through
 
     this.attacking = false;
     this.attackEndsAt = 0;

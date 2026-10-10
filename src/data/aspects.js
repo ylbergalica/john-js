@@ -14,10 +14,30 @@ export const ASPECTS = [
     id: 'anchor', displayName: 'Anchor', tier: AspectTier.Gift, icon: 'anchor_icon', activatable: true,
     quote: "Now you see me, now you don't.",
     description: 'Throw an anchor which you can teleport to at any time.',
-    throwImpulse: 20, settleSpeedThreshold: 0.2, settleGraceTime: 0.25, retrievalRadius: 0.45,
-    teleportWindUpTime: 0.5, teleportRecoverTime: 0.5, windRadius: 5, windDuration: 1, windForce: 20,
-    anchorMass: 1, anchorDamping: 5, anchorSize: 0.36 * 2, anchorRadius: 0.18, anchorTint: 0xd95732,
+    throwImpulse: 25, settleSpeedThreshold: 0.2, settleGraceTime: 0.25, retrievalRadius: 0.45,
+    teleportWindUpTime: 0.5, teleportRecoverTime: 0.5, windRadius: 5, windDuration: 1, windForce: 30,
+    anchorMass: 1, anchorDamping: 5, anchorSize: 0.36 * 2, anchorRadius: 0.18,
     teleportDotScale: 0.08, windRingWidth: 0.45,
+    // The look (src/aspects/anchor.js): blue light pinches in on you as you shrink away
+    // (over teleportWindUpTime) and blooms where you land, and the shockwave is a thick
+    // ring of blue mist. Sizes in world units, times in seconds, [min, max] picks at random.
+    fx: {
+      color: 0x3d63ff, hot: 0xcfe0ff,
+      depart: {
+        flash: { size: 1.6, shrink: 0.2, alpha: 0.8 },
+        glints: { count: 6, speed: [1, 2.5], size: [0.12, 0.22], life: [0.3, 0.5] },
+      },
+      arrive: {
+        flash: { size: 1.2, grow: 2, time: 0.45, alpha: 0.9 },
+        star: { size: 1.8, time: 0.4 },
+        glints: { count: 9, speed: [1.5, 3.5], size: [0.14, 0.26], life: [0.5, 0.9] },
+      },
+      ring: {
+        color: 0x4f7dff, alpha: 0.9, spin: 0.5, // two hazy layers turning opposite ways
+        edge: 0xa9c4ff, edgeAlpha: 0.45, // a soft leading edge
+        puffs: { rate: 40, size: [0.7, 1.3], life: [0.5, 0.9], alpha: 0.35 }, // mist shed behind the wave
+      },
+    },
   },
   {
     id: 'assassin', displayName: 'Predator', tier: AspectTier.Gift, icon: 'predator_icon', activatable: false,

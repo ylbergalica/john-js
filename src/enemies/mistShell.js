@@ -87,7 +87,7 @@ export class MistShell extends Entity {
   }
 
   afterPhysics() {
-    const p = this.world.livePlayer;
+    const p = this.world.hittablePlayer;
     if (!this.armed || !p || !this.overlapsCircle(p.body.pos.x, p.body.pos.y, p.body.radius)) return;
     if (p.tryParryIncoming(this) || !this.armed) return;
     const { x, y } = this.to, b = p.body.pos, dx = x - b.x, dy = y - b.y, l = Math.hypot(dx, dy) || 1;

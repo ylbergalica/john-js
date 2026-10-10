@@ -67,6 +67,8 @@ export class World {
   }
 
   get livePlayer() { return this.player && !this.player.dead ? this.player : null; }
+  // The player as enemy attacks see them: null while intangible, so attacks pass through.
+  get hittablePlayer() { const p = this.livePlayer; return p && !p.intangible ? p : null; }
   get isGameOver() { return this.gameOverAt !== Infinity; }
   get finished() { return this.time >= this.gameOverAt; }
   get hasRequiredCores() { return this.cores.collected >= this.cores.required; }

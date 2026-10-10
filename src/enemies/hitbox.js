@@ -93,7 +93,7 @@ export class EnemyHitbox {
 
   afterPhysics() {
     if (!this.active || this.enemy.dead) return;
-    const p = this.world.livePlayer;
+    const p = this.world.hittablePlayer;
     const touching = p && this.overlapsCircle(p.body.pos.x, p.body.pos.y, p.body.radius);
     if (this.continuous) {
       if (touching) this.strike(p);

@@ -66,8 +66,15 @@ export const ASPECTS = [
     id: 'crescent', displayName: 'Cleave', tier: AspectTier.Gift, icon: 'cleave_icon', activatable: false,
     quote: 'Every strike leaves a wake.',
     description: 'Connecting a hit sends a cleaving slash flying forward.',
-    damage: 1, speed: 25, travelDistance: 4.5, spawnForwardOffset: 0.5, enemyKnockbackForce: 9, cooldown: 0,
+    damage: 1, speed: 25, travelDistance: 6, spawnForwardOffset: 0.5, enemyKnockbackForce: 9, cooldown: 0,
     hitboxDepth: 0.36178464 * 1.5, hitboxWidth: 1.765077 * 1.5, spriteSize: 2 * 1.5, alpha: 1,
+    // The slash's trail (src/aspects/cleave.js): red motes shed from along its edge, `rate` a
+    // second, coasting `forward` behind it and up to `spread` sideways, cooling to `fade`;
+    // and it fades out over its last fadeTime. World units and seconds, [min, max] at random.
+    fx: {
+      fadeTime: 0.05,
+      motes: { rate: 70, size: [0.12, 0.24], life: [0.2, 0.4], forward: [1, 4], spread: 0.8, color: 0xd11a2a, fade: 0x4a0510, alpha: 0.75 },
+    },
   },
   {
     id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true,

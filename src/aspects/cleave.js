@@ -1,16 +1,22 @@
 // Cleave: each melee hit launches a slash that flies forward and damages every
-// enemy it passes through once.
+// enemy it passes through once. In flight it sheds a few red motes from along its edge.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
 import { Body, circleVsBox } from '../engine/physics.js';
-import { clamp01, norm } from '../engine/math.js';
+import { clamp01, lerp, norm, randRange } from '../engine/math.js';
 import { tex } from '../render/assets.js';
+import { Plume } from '../render/fx.js';
+import { CLEAVE_ARC } from '../render/sprites.js';
+
+const DEG = Math.PI / 180;
+const pick = ([min, max]) => randRange(min, max);
 
 export class CleaveAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     this.readyAt = 0;
+    this.motes = new Plume(player.world.layers.fx, tex.glint, { drag: 4 });
   }
 
   get cooldownFraction() {
@@ -27,18 +33,25 @@ export class CleaveAspect extends Aspect {
     const damage = this.data.damage * this.world.adrenaline.damageMultiplier;
     const o = this.data.spawnForwardOffset;
     this.world.sound('cleave');
-    this.world.add(new CleaveSlash(this.world, this.data, origin.x + dir.x * o, origin.y + dir.y * o, dir, damage));
+    this.world.add(new CleaveSlash(this, origin.x + dir.x * o, origin.y + dir.y * o, dir, damage));
     this.readyAt = this.now + Math.max(0, this.data.cooldown);
   }
 
   refreshCooldown() { this.readyAt = 0; }
+
+  render(_alpha, dt) { this.motes.update(dt); }
+
+  dispose() { this.motes.destroy(); }
 }
 
 class CleaveSlash extends Entity {
-  constructor(world, data, x, y, dir, damage) {
+  constructor(aspect, x, y, dir, damage) {
+    const world = aspect.world, data = aspect.data;
     super(world);
+    this.aspect = aspect;
     this.data = data;
     this.damage = damage;
+    this.dir = dir;
     this.angle = Math.atan2(dir.y, dir.x);
     this.hit = new Set();
     this.body = world.physics.add(new Body({ x, y, radius: 0.1, solid: false }));
@@ -68,9 +81,29 @@ class CleaveSlash extends Entity {
     }
   }
 
-  render(alpha) {
+  render(alpha, dt) {
     const p = this.body.lerpPos(alpha);
     this.sprite.position.set(p.x, p.y);
+    // A quick fade over the last stretch of flight instead of popping out.
+    const left = this.expiresAt - this.world.time, fade = this.data.fx.fadeTime;
+    this.sprite.alpha = this.data.alpha * (fade > 0 ? clamp01(left / fade) : 1);
+    this.shed(p, dt);
+  }
+
+  // Motes from random spots along the arc, left behind it with a little sideways drift.
+  shed(p, dt) {
+    const M = this.data.fx.motes, size = this.data.spriteSize;
+    const fx = this.dir.x, fy = this.dir.y; // forward; the arc's tips lie along (-fy, fx)
+    for (let i = Math.floor(M.rate * dt + Math.random()); i > 0; i--) {
+      const a = lerp(CLEAVE_ARC.from, CLEAVE_ARC.to, randRange(0.1, 0.9)) * DEG;
+      const x = (CLEAVE_ARC.cx + Math.cos(a) * CLEAVE_ARC.r - 0.5) * size, y = Math.sin(a) * CLEAVE_ARC.r * size;
+      const fwd = pick(M.forward), side = randRange(-M.spread, M.spread);
+      this.aspect.motes.spawn({
+        x: p.x + fx * x - fy * y, y: p.y + fy * x + fx * y,
+        vx: fx * fwd - fy * side, vy: fy * fwd + fx * side,
+        size: pick(M.size), life: pick(M.life), color: M.color, fade: M.fade, alpha: M.alpha,
+      });
+    }
   }
 
   dispose() {

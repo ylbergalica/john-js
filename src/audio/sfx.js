@@ -327,9 +327,13 @@ const SOUNDS = {
     tone(v, { freq: 2000, to: 300, dur: 0.14, vol: 0.14 });
     noise(v, { filter: 'highpass', freq: 4000, to: 1500, dur: 0.1, vol: 0.15 });
   },
+  // Cleave: a low, dark whoosh under a thin edge of air, a faint blade ring and a soft thump,
+  // kept quiet since it rides on top of every hit.
   cleave(v) {
-    noise(v, { freq: 2600, to: 700, q: 3, dur: 0.22, vol: 0.22, attack: 0.01 });
-    tone(v, { freq: 1300, to: 600, dur: 0.16, vol: 0.05 });
+    noise(v, { freq: 1500, to: 360, q: 1.6, dur: 0.2, vol: 0.14, attack: 0.012 });
+    noise(v, { filter: 'highpass', freq: 5200, to: 2800, dur: 0.07, vol: 0.035 });
+    tone(v, { type: 'triangle', freq: 740, to: 680, at: 0.01, dur: 0.16, vol: 0.022, attack: 0.006 });
+    tone(v, { freq: 150, to: 80, dur: 0.11, vol: 0.05 });
   },
   rift(v) {
     noise(v, { filter: 'highpass', freq: 1500, to: 6000, dur: 0.3, vol: 0.18, attack: 0.02 });

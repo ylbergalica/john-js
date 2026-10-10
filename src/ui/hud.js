@@ -54,6 +54,7 @@ export class Hud {
     this.cine = h('div', { class: 'cine' },
       h('div', { class: 'cine-vignette' }), h('div', { class: 'cine-bar top' }), h('div', { class: 'cine-bar bottom' }),
       h('div', { class: 'cine-black' }));
+    this.warpWash = h('div', { class: 'warp-wash' }); // white wash taking the exit (World.whiteout)
 
     this.pausePanel = h('div', { class: 'pause hidden interactive' },
       h('div', { class: 'pause-card' },
@@ -66,7 +67,7 @@ export class Hud {
     );
 
     this.el = h('div', { class: 'hud' },
-      this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.floorIntro,
+      this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.warpWash, this.floorIntro,
       h('div', { class: 'hud-cluster' },
         this.icons,
         this.healthWrap,
@@ -98,6 +99,7 @@ export class Hud {
 
     this.updateFloorIntro(world, session);
     this.updateCine(world.intro);
+    d.set(this.warpWash, 'opacity', world.whiteout.toFixed(3));
 
     const p = world.livePlayer;
     const px = HUD.pixelsPerHealthPoint;

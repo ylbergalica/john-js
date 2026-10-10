@@ -2,13 +2,15 @@
 // camera and render layers, and advances everything on the fixed simulation step.
 import { Container } from 'pixi.js';
 import { Physics } from '../engine/physics.js';
-import { randInt, pickWeighted, clamp, clamp01, lerp, dist } from '../engine/math.js';
+import { randInt, pickWeighted, clamp, clamp01, lerp, dist, smoothStep01, TAU } from '../engine/math.js';
 import { Camera } from '../render/camera.js';
 import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
 import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
-import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER } from '../data/config.js';
+import { tex } from '../render/assets.js';
+import { RING_RADIUS } from '../render/sprites.js';
+import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
@@ -17,10 +19,12 @@ import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
 import { Exit } from './pickups.js';
+import { ExitTrail } from './exitTrail.js';
 import { RunMode } from './session.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+const easeOutBack = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2; // overshoots, then settles
 
 export class World {
   constructor({ session, input }) {
@@ -54,6 +58,8 @@ export class World {
     this.hostileAttacks = new Set(); // enemy hitboxes/projectiles the player can parry
     this.player = null;
     this.level = null;
+    this.exit = null;
+    this.exitTrailAt = Infinity; // when to lay the trail to the exit (see guardianBurst)
     this.physics = new Physics();
     this.navFields = new Map();
     this.cores = { required: 0, collected: 0 };
@@ -61,6 +67,9 @@ export class World {
     this.floorStartedAt = 0;
     this.intro = null; // guardian intro in progress (see GUARDIAN_INTRO); the world is frozen meanwhile
     this.nextFloorRequested = false;
+    this.warp = null; // taking the exit (see EXIT_WARP); the world is frozen meanwhile
+    this.warpIn = null; // arriving on the floor after it, until the player has appeared
+    this.whiteout = 0; // the screen's white wash through a warp, 0…1 (drawn by the HUD)
     this.floorHeal = null; // health streaming in at the start of a floor (see carryHealth)
     this.gameOverAt = Infinity;
     this.respawnAt = Infinity; // playground: when the dead player comes back at the start
@@ -87,7 +96,7 @@ export class World {
 
     const cfg = scaleConfig(BASE_LEVEL_CONFIG, this.session.floor);
     const layout = this.buildLevel(generateLayout(cfg));
-    this.add(new Exit(this, layout.exit.x, layout.exit.y));
+    this.exit = this.add(new Exit(this, layout.exit.x, layout.exit.y));
 
     const { rooms, grid } = layout;
     const es = cfg.enemySpawn;
@@ -149,7 +158,8 @@ export class World {
   // camera moves smoothly at any frame rate; pausing (dt = 0) holds it.
   startIntro(guardian) {
     const panTime = clamp(dist(guardian.body.pos, this.player.body.pos) * GI.panPerUnit, GI.minPan, GI.maxPan);
-    this.intro = { guardian, t: 0, panTime, focus: 1, fade: 1 }; // focus: vignette strength, fade: black overlay
+    // focus: vignette strength, fade: black overlay (none when arriving through the exit's white)
+    this.intro = { guardian, t: 0, panTime, focus: 1, fade: this.warpIn ? 0 : 1, fadeIn: !this.warpIn };
     this.camera.snapTo(guardian.body.pos);
     sfx.play('guardian');
   }
@@ -161,7 +171,7 @@ export class World {
     if (it.t < GI.hold) {
       cam.snapTo(from);
       cam.zoom = lerp(1, GI.zoom, easeOut(it.t / GI.hold));
-      it.fade = 1 - clamp01(it.t / GI.fadeIn);
+      it.fade = it.fadeIn ? 1 - clamp01(it.t / GI.fadeIn) : 0;
       return;
     }
     const p = clamp01((it.t - GI.hold) / it.panTime), e = easeInOut(p);
@@ -180,6 +190,8 @@ export class World {
     for (const e of this.entities) e.destroy();
     this.entities = [];
     this.enemies = [];
+    this.exit = null;
+    this.exitTrailAt = Infinity;
     this.hostileAttacks.clear();
     this.navFields.clear();
     this.activeAttackers = 0;
@@ -212,6 +224,104 @@ export class World {
   }
 
   requestNextFloor() { this.nextFloorRequested = true; }
+
+  advanceFloor() {
+    this.session.floorCleared();
+    if (this.session.scalesDifficulty) this.session.floor++;
+    const health = this.player.health; // the player is rebuilt each floor
+    this.startFloor();
+    if (health > 0) this.carryHealth(health);
+  }
+
+  // ── taking the exit ──────────────────────────────────────────────
+  // The world holds still while the camera closes in on the exit and the player is drawn
+  // into it; the screen washes white, and the next floor fades in from it with the player
+  // appearing there (EXIT_WARP). Runs on render time, like the guardian intro.
+  enterExit() {
+    if (this.warp) return;
+    const p = this.player.body.pos, e = this.exit.pos;
+    this.warp = {
+      t: 0, cam: { x: this.camera.x, y: this.camera.y },
+      r0: dist(p, e), a0: Math.atan2(p.y - e.y, p.x - e.x), absorbed: false,
+    };
+    this.player.intangible = true;
+    sfx.play('exitEnter');
+  }
+
+  updateWarp(dt) {
+    const W = EXIT_WARP, wp = this.warp, cam = this.camera, e = this.exit.pos, p = this.player;
+    wp.t += dt;
+    const k = clamp01(wp.t / W.time), g = easeInOut(clamp01(wp.t / W.glide));
+    cam.snapTo({ x: lerp(wp.cam.x, e.x, g), y: lerp(wp.cam.y, e.y, g) });
+    cam.zoom = lerp(1, W.zoom, easeInOut(k));
+    // Drawn in: spiralling to the centre, faster and faster, shrinking away.
+    const a = clamp01(k / W.absorbAt), pull = a * a, r = wp.r0 * (1 - pull), ang = wp.a0 + pull * W.turns * TAU;
+    const b = p.body;
+    b.pos.x = b.prev.x = e.x + Math.cos(ang) * r;
+    b.pos.y = b.prev.y = e.y + Math.sin(ang) * r;
+    p.sizeScale = Math.max(0.001, 1 - pull);
+    p.alight = pull > 0.3;
+    if (dt > 0) p.view.recordTrail(); // the tail streams in after it (normally recorded each step)
+    this.exit.surge = Math.sin(clamp01(k / W.absorbAt) * Math.PI * 0.5) * (1 - clamp01((k - W.absorbAt) / (1 - W.absorbAt)) * 0.5);
+    if (a >= 1 && !wp.absorbed) {
+      wp.absorbed = true;
+      p.hidden = true;
+      this.flareAt(e, W.flare, EXIT_FX.color);
+      const sh = W.flare.shake;
+      cam.shake(sh.duration, sh.strength, sh.frequency);
+    }
+    this.whiteout = smoothStep01((k - W.whiteFrom) / (1 - W.whiteFrom));
+    if (wp.t < W.time + W.hold) return;
+    this.warp = null;
+    this.warpIn = { t: 0, arrived: null };
+    this.advanceFloor();
+    this.player.hidden = true;
+    this.player.sizeScale = 0.001;
+    if (!this.intro) cam.zoom = W.zoomIn;
+  }
+
+  // The new floor fades in from white (easing the camera out unless a guardian intro has
+  // it) and, once play can start, the player appears with a flare.
+  updateWarpIn(dt) {
+    const W = EXIT_WARP, wi = this.warpIn, p = this.player;
+    wi.t += dt;
+    this.whiteout = 1 - smoothStep01(wi.t / W.fadeIn);
+    if (!this.intro) this.camera.zoom = lerp(W.zoomIn, 1, easeInOut(clamp01(wi.t / W.fadeIn)));
+    if (wi.arrived === null && !this.intro && wi.t >= W.appearAt) {
+      wi.arrived = 0;
+      p.hidden = false;
+      this.flareAt(p.body.pos, W.arrive, EXIT_FX.color);
+    }
+    if (wi.arrived !== null) {
+      wi.arrived += dt;
+      p.sizeScale = Math.max(0.001, easeOutBack(clamp01(wi.arrived / W.arrive.time)));
+      p.alight = wi.arrived < W.arrive.time * 0.6; // forms out of light
+    }
+    if (wi.arrived >= W.arrive.time && wi.t >= W.fadeIn) {
+      this.warpIn = null;
+      this.whiteout = 0;
+      p.sizeScale = 1;
+      p.alight = false;
+    }
+  }
+
+  // A flash, a ring and sparks at `pos`: { flash, ring, time, sparks } (sizes in world units).
+  flareAt(pos, F, color) {
+    const time = F.time ?? 0.5, ring = F.ring / RING_RADIUS / 2;
+    this.deathFx.flare(tex.mist, pos.x, pos.y, 0, { time, w0: F.flash * 0.4, h0: F.flash * 0.4, w1: F.flash, h1: F.flash, color0: 0xffffff, color1: color });
+    this.deathFx.flare(tex.ring, pos.x, pos.y, 0, { time: time * 1.3, w0: 0.5, h0: 0.5, w1: ring, h1: ring, color0: 0xffffff, color1: color });
+    this.effects.burst(pos.x, pos.y, 0, { ...F.sparks, color });
+    this.effects.burst(pos.x, pos.y, 0, { ...F.sparks, count: Math.round(F.sparks.count / 2), color: 0xffffff });
+  }
+
+  // Once the floor's last guardian bursts, a trail to the exit is laid from wherever the
+  // player is EXIT_TRAIL.delay seconds later.
+  guardianBurst(guardian) {
+    if (!this.exit) return;
+    const another = (e) => e !== guardian && !e.dead && e instanceof Enemy && e.type.isChaser && !e.summoned;
+    if (this.entities.some(another)) return;
+    this.exitTrailAt = this.time + EXIT_TRAIL.delay;
+  }
 
   // Death ends a run (banking its coins); the playground just puts the player back at the
   // start after a moment.
@@ -328,7 +438,7 @@ export class World {
 
   // ── loop ─────────────────────────────────────────────────────────
   step(dt) {
-    if (this.intro) return;
+    if (this.intro || this.warp || (this.warpIn && this.warpIn.arrived === null)) return;
     this.time += dt;
     // Entities spawned during this step start stepping next step.
     const n = this.entities.length;
@@ -338,25 +448,28 @@ export class World {
     this.adrenaline.step(dt);
     this.stepFloorHeal(dt);
     if (this.time >= this.respawnAt) this.respawnPlayer();
+    if (this.time >= this.exitTrailAt) {
+      this.exitTrailAt = Infinity;
+      const p = this.livePlayer;
+      if (p) ExitTrail.lay(this, p.body.pos, this.exit.pos);
+    }
 
     compact(this.entities);
     compact(this.enemies);
 
     if (this.nextFloorRequested) {
       this.nextFloorRequested = false;
-      this.session.floorCleared();
-      if (this.session.scalesDifficulty) this.session.floor++;
-      const health = this.player.health; // the player is rebuilt each floor
-      this.startFloor();
-      if (health > 0) this.carryHealth(health);
+      this.advanceFloor();
     }
   }
 
   render(alpha, dt, screenW, screenH) {
     const cam = this.camera;
+    if (this.warp) this.updateWarp(dt);
     if (this.intro) this.updateIntro(dt, alpha);
+    if (this.warpIn) this.updateWarpIn(dt);
     cam.resize(screenW, screenH);
-    cam.update(dt, this.intro ? null : this.livePlayer?.body.lerpPos(alpha));
+    cam.update(dt, this.intro || this.warp ? null : this.livePlayer?.body.lerpPos(alpha));
     const view = cam.viewRect(2);
     for (const e of this.entities) if (!e.dead) e.render(alpha, dt, view);
     this.effects.update(dt);

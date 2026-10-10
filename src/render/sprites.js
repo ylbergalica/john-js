@@ -51,6 +51,8 @@ export function sprites() {
     core: core(),
     hexFlat: hexFlat(),
     hexPointed: hexPointed(),
+    exitPortal: exitPortal(),
+    hexFrame: hexFrame(),
     mist: mist(),
     flame: flame(),
     ribbon: ribbon(),
@@ -73,6 +75,8 @@ export function icons() {
 export const ORB_PAD = 2;
 // The ring and mist ring sprites' band radius, as a fraction of their width.
 export const RING_RADIUS = 0.4;
+// The hex frame sprite's outline width, as a fraction of its width.
+export const HEX_FRAME_INSET = 0.8;
 // The comet's head as a fraction of its length.
 export const COMET_HEAD = 0.9;
 
@@ -1119,6 +1123,37 @@ function hexPointed() {
     fill: (ctx, h) => radial(ctx, 0.5, h / 2, 0.6, ['#e6e6e6', '#bdbdbd', '#a4a4a4']),
     inner: '#d2d2d2', facet: rgba('#ffffff', 0.55), rim: '#ffffff', star: '#ffffff',
   });
+}
+
+// The opened exit: the same hex portal, bright and solid, lit from within by a star.
+function exitPortal() {
+  const c = hexCrystal(222, 256, false, {
+    fill: (ctx, h) => radial(ctx, 0.5, h / 2, 0.62, ['#ffffff', '#dfe6ff', '#8d9ff0']),
+    inner: '#e6ebff', facet: rgba('#6f82dc', 0.8), rim: '#ffffff', star: '#ffffff',
+  });
+  const ctx = c.getContext('2d'), h = 256 / 222;
+  ctx.save();
+  ctx.clip(hexPath(1, h, false));
+  ctx.fillStyle = radial(ctx, 0.5, h / 2, 0.26, [rgba('#ffffff', 0.7), rgba('#ffffff', 0)]);
+  ctx.fillRect(0, 0, 1, h);
+  ctx.restore();
+  sparkle(ctx, 0.5, h / 2, 0.16, '#ffffff');
+  return c;
+}
+
+// A glowing outline of the exit's hex, white so it can be tinted: the frames turning
+// around the opened exit and the ripples it sends out. The outline spans HEX_FRAME_INSET
+// of the texture's width.
+function hexFrame(W = 256) {
+  const H = Math.round((W * 256) / 222);
+  const { c, ctx, px } = surface(W, H, W);
+  const h = H / W, s = HEX_FRAME_INSET;
+  const p = new Path2D();
+  p.addPath(hexPath(1, h, false), new DOMMatrix().translate(0.5, h / 2).scale(s).translate(-0.5, -h / 2));
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.02;
+  glow(ctx, rgba('#ffffff', 0.9), px * 0.05, () => { ctx.stroke(p); ctx.stroke(p); });
+  return c;
 }
 
 // ---------------------------------------------------------------- aspect icons

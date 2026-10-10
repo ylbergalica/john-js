@@ -161,8 +161,8 @@ export class PlayerView {
     const since = player.now - player.lastHitAt;
     const flashing = since < HF.flashDuration;
     const blinking = !flashing && since < PLAYER.health.invincibilityDuration;
-    const visible = !blinking || Math.floor((since - HF.flashDuration) / Math.max(0.01, HF.blinkInterval)) % 2 === 1;
-    this.setFlash(flashing);
+    const visible = !player.hidden && (!blinking || Math.floor((since - HF.flashDuration) / Math.max(0.01, HF.blinkInterval)) % 2 === 1);
+    this.setFlash(flashing || player.alight);
     this.body.visible = visible;
     // The tail's ring warms with the outline, but the hurt flash stays white.
     const tailTint = this.flashing ? 0xffffff : this.tint;

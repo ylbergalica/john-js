@@ -172,6 +172,7 @@ export class Enemy extends Entity {
     this.rig?.onDeath();
     world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
     if (type.isChaser) world.shove(body.pos, DEATH_FX.guardian.push, this);
+    if (type.isChaser && !this.summoned) world.guardianBurst(this);
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
     for (let i = 0; i < drops; i++) {
       const o = randInsideUnitCircle();

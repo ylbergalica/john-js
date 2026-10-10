@@ -95,6 +95,7 @@ kbd {
 .cine-bar.top { top: 0; transform-origin: top; }
 .cine-bar.bottom { bottom: 0; transform-origin: bottom; }
 .cine-black { position: absolute; inset: 0; background: #000; opacity: var(--fade); }
+.warp-wash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, #ffffff 20%, #e6ebff 60%, #b4c2ff 100%); }
 .hud-cluster { transition: opacity 0.5s; }
 .hud.cinematic .hud-cluster { opacity: 0; }
 .hud.paused .fi, .hud.paused .fi * { animation-play-state: paused; }

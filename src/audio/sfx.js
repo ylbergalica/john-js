@@ -275,6 +275,11 @@ const SOUNDS = {
     arp(v, [523, 659, 784, 1047, 1319], 0.07, { type: 'triangle', dur: 0.5, vol: 0.13 });
     tone(v, { freq: 262, at: 0.28, dur: 0.8, vol: 0.12, attack: 0.05 });
   },
+  exitEnter(v) { // drawn into the exit: a rising rush and a climbing shimmer, swelling to the white
+    noise(v, { freq: 300, to: 5000, q: 2, dur: 1.3, vol: 0.2, attack: 0.9 });
+    tone(v, { freq: 196, to: 784, dur: 1.3, vol: 0.12, attack: 0.6 });
+    arp(v, [659, 784, 988, 1175, 1319, 1568, 1976], 0.11, { type: 'triangle', at: 0.2, dur: 0.5, vol: 0.06 });
+  },
   floor(v) {
     noise(v, { freq: 200, to: 3000, q: 1.5, dur: 0.6, vol: 0.18, attack: 0.3 });
     tone(v, { freq: 130, to: 260, dur: 0.7, vol: 0.18, attack: 0.2 });

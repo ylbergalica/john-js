@@ -6,6 +6,9 @@ import { join } from 'node:path';
 
 const CLIENT_ID = '1558818418444992612';
 const RETRY_MS = 15000;
+// The picture beside the status: an Art Asset uploaded under this key in the Developer
+// Portal (Rich Presence > Art Assets), from build/icon.png.
+const ICON = { large_image: 'icon', large_text: 'Starspite' };
 const Op = { Handshake: 0, Frame: 1, Close: 2, Ping: 3, Pong: 4 };
 
 const pipePath = (i) => process.platform === 'win32'
@@ -74,7 +77,7 @@ export const discord = {
   start() { tryPipe(0); },
   // `next` is a Discord activity ({ details, state, timestamps }), or null to clear it.
   setActivity(next) {
-    activity = next;
+    activity = next && { ...next, assets: ICON };
     pushActivity();
   },
   stop() {

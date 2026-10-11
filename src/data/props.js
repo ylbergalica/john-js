@@ -198,8 +198,11 @@ export const LOOT = {
 // clusters are instead a tight pile of `pile.size`, each pressed against another, none
 // more than `pile.reach` units from the first. A nook needs `open` tiles of floor out from
 // its walls, so props never narrow the way. Never within `clearOfStart` units of the start
-// or the exit.
+// or the exit. `hoard`: `chance` a floor that a corridor also gets a huge pile of `size`
+// props all of one kind (never one with a `maxPerFloor`), heaped out of one of its nooks (a
+// corner `cornerBias` of the time) up to `reach` units, spilling into a room if it must.
 export const PROP_SPAWN = {
+  hoard: { chance: 0.05, size: [30, 50], reach: 14, cornerBias: 0.85 },
   room: { clusters: [1, 1], clusterSize: [2, 3], cornerBias: 0.85, mixed: 0.4, pile: { chance: 0.5, size: [3, 5], reach: 1.6 } },
   corridor: { clusters: [1, 3], clusterSize: [1, 2], cornerBias: 0.6, mixed: 0.4, pile: null },
   spread: 1.1,

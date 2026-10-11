@@ -199,6 +199,21 @@ export function scatterProps(world, { rooms, grid, start, exit }) {
     const types = S.types.filter((e) => allowed(e.type));
     return types.length ? pickWeighted(types).type : null;
   };
+  const spawn = (t, pos) => { world.spawnProp(t, pos); placed[t] = (placed[t] ?? 0) + 1; };
+  // Heaps props up from `first`: each pressed up against one already down, none more than
+  // `reach` from the first, and only where `fits` allows.
+  const heapUp = (first, type, size, reach, nextType, fits = () => true) => {
+    const heap = [{ ...first, r: PROPS[type].radius }];
+    for (let tries = 0, t = nextType(); t && heap.length < size && tries < size * 15; tries++) {
+      const r = PROPS[t].radius, base = heap[randInt(0, heap.length)], a = Math.random() * TAU, d = base.r + r + randRange(0.02, 0.08);
+      const pos = { x: base.x + Math.cos(a) * d, y: base.y + Math.sin(a) * d };
+      if (Math.hypot(pos.x - first.x, pos.y - first.y) > reach || !fits(pos, r)) continue;
+      if (!world.physics.isCircleFree(pos.x, pos.y, r + 0.01)) continue;
+      spawn(t, pos);
+      heap.push({ ...pos, r });
+      t = nextType();
+    }
+  };
   const cluster = (area, { clusterSize, cornerBias, pile, mixed }) => {
     const type = pickType();
     if (!type) return;
@@ -207,20 +222,10 @@ export function scatterProps(world, { rooms, grid, start, exit }) {
     // A mixed patch picks each prop's type afresh; otherwise they're all the first's.
     const mix = Math.random() < mixed;
     const nextType = () => (mix ? pickType() : allowed(type) ? type : null);
-    const spawn = (t, pos) => { world.spawnProp(t, pos); placed[t] = (placed[t] ?? 0) + 1; };
     spawn(type, first.pos);
-    // A pile: each one pressed up against one already down, heaped out of the nook.
+    // A pile: heaped out of the nook.
     if (pile && Math.random() < pile.chance) {
-      const size = randInt(pile.size[0], pile.size[1] + 1), heap = [{ ...first.pos, r: PROPS[type].radius }];
-      for (let tries = 0, t = nextType(); t && heap.length < size && tries < size * 15; tries++) {
-        const r = PROPS[t].radius, base = heap[randInt(0, heap.length)], a = Math.random() * TAU, d = base.r + r + randRange(0.02, 0.08);
-        const pos = { x: base.x + Math.cos(a) * d, y: base.y + Math.sin(a) * d };
-        if (Math.hypot(pos.x - first.pos.x, pos.y - first.pos.y) > pile.reach) continue;
-        if (!world.physics.isCircleFree(pos.x, pos.y, r + 0.01)) continue;
-        spawn(t, pos);
-        heap.push({ ...pos, r });
-        t = nextType();
-      }
+      heapUp(first.pos, type, randInt(pile.size[0], pile.size[1] + 1), pile.reach, nextType);
       return;
     }
     // Otherwise the rest line up in the nooks beside the first, or huddle round it if there are none.
@@ -241,6 +246,21 @@ export function scatterProps(world, { rooms, grid, start, exit }) {
       t = nextType();
     }
   };
+
+  // Rarely, a hoard: a stretch of corridor heaped with a great many props of one kind (spilling
+  // out into a room if there's no more space), clear of the start and exit. Never of a kind
+  // capped per floor.
+  const H = S.hoard;
+  if (Math.random() < H.chance) {
+    const types = S.types.filter((e) => PROPS[e.type].maxPerFloor == null);
+    const type = pickWeighted(types).type;
+    const first = pickNook(world, nooks.corridors, PROPS[type].radius, avoid, H.cornerBias);
+    if (first) {
+      const fits = (p) => avoid.every((a) => Math.hypot(a.x - p.x, a.y - p.y) >= S.clearOfStart);
+      spawn(type, first.pos);
+      heapUp(first.pos, type, randInt(H.size[0], H.size[1] + 1), H.reach, () => type, fits);
+    }
+  }
 
   nooks.rooms.forEach((area) => {
     const count = randInt(S.room.clusters[0], S.room.clusters[1] + 1);

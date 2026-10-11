@@ -1,13 +1,15 @@
 // Wraith: dashing turns the player into a small, sharp shard of black mist. While mist they
-// pass through enemies and nothing hits them, and each enemy they pass through is cut once,
-// thrown aside from the dash's line. Still inside one as the dash runs out, the dash carries
-// on through it (up to lingerTime longer), so they're never left stuck in it.
+// pass through enemies, props and walls and nothing hits them, and each enemy or prop they pass
+// through is cut once (enemies thrown aside from the dash's line). Still inside one as the dash
+// runs out, the dash carries on through it (up to lingerTime longer); still in a wall after
+// that, they re-form at the nearest open spot (clearSpot), so they're never left stuck.
 // The body bursts into mist and the shard pops out of it; the shard, white-hot at the tip,
 // sheds black and white wisps and a few pale motes; as it ends the mist is drawn back in,
 // the shard collapses and the body swells back out of it (Player.bodyScale). Its rim and the
 // whites take the player's tint.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
+import { segmentPointDistSq } from '../engine/physics.js';
 import { EXALTED_FX, FIXED_DT, FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
@@ -15,6 +17,7 @@ import { Plume } from '../render/fx.js';
 import { RING_RADIUS } from '../render/sprites.js';
 
 const DEG = Math.PI / 180;
+const LAND_SEARCH = 8; // how far out clearSpot looks for open floor
 const WISP_DRAG = 3;
 const pick = ([min, max]) => randRange(min, max);
 const easeIn = (t) => t * t;
@@ -26,7 +29,7 @@ export class WraithAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     // While the player is mist: { dir, angle, born (render clock), lingerUntil (latest the dash
-    // can run on), hit: enemies cut this dash }.
+    // can run on), from: where it began, hit: enemies and props cut this dash }.
     this.form = null;
     this.reform = null; // { born, angle } while the shard collapses and the body swells back
     const { player: layer, playerBack, fx } = player.world.layers;
@@ -41,11 +44,12 @@ export class WraithAspect extends Aspect {
   onDash(dir) {
     const b = this.player.body;
     const lingerUntil = this.player.dashEndsAt + this.data.lingerTime;
-    this.form = { dir: { ...dir }, angle: Math.atan2(dir.y, dir.x), born: this.time, lingerUntil, hit: new Set() };
+    this.form = { dir: { ...dir }, angle: Math.atan2(dir.y, dir.x), born: this.time, lingerUntil, from: { ...b.pos }, hit: new Set() };
     this.reform = null;
     this.player.bodyScale = 1;
     this.player.shrouded = true;
-    b.ignores = new Set(this.world.enemies.map((e) => e.body));
+    b.collideWalls = false; // the player keeps it off while shrouded
+    b.ignores = new Set([...this.world.enemies, ...this.world.props].map((e) => e.body));
     this.used();
     this.burst(b.pos, this.form.angle);
   }
@@ -54,24 +58,26 @@ export class WraithAspect extends Aspect {
     const f = this.form, p = this.player;
     if (!f) return;
     if (!p.dashing) { this.end(); return; }
-    // Still inside an enemy as the dash runs out: carry on through it, up to lingerTime longer.
-    if (this.now < f.lingerUntil && this.insideEnemy()) p.dashEndsAt = Math.max(p.dashEndsAt, Math.min(f.lingerUntil, this.now + 1.5 * FIXED_DT));
+    // Still inside an enemy, prop or wall as the dash runs out: carry on through it, up to lingerTime longer.
+    if (this.now < f.lingerUntil && this.insideSomething()) p.dashEndsAt = Math.max(p.dashEndsAt, Math.min(f.lingerUntil, this.now + 1.5 * FIXED_DT));
   }
 
   afterPhysics() {
     const f = this.form;
     if (!f) return;
-    const p = this.player.body.pos, r = this.data.hitRadius;
-    for (const e of this.world.enemies) {
-      if (e.dead || f.hit.has(e) || (e.body.pos.x - p.x) ** 2 + (e.body.pos.y - p.y) ** 2 > (e.body.radius + r) ** 2) continue;
+    // Swept over the whole step, so nothing slips between one step's spot and the next.
+    const { pos: p, prev: q } = this.player.body, r = this.data.hitRadius;
+    for (const e of [...this.world.enemies, ...this.world.props]) {
+      if (e.dead || f.hit.has(e) || segmentPointDistSq(q.x, q.y, p.x, p.y, e.body.pos.x, e.body.pos.y) > (e.body.radius + r) ** 2) continue;
       f.hit.add(e);
       this.cut(e);
     }
   }
 
-  insideEnemy() {
+  insideSomething() {
     const b = this.player.body;
-    return this.world.enemies.some((e) => !e.dead && (e.body.pos.x - b.pos.x) ** 2 + (e.body.pos.y - b.pos.y) ** 2 < (e.body.radius + b.radius) ** 2);
+    if (this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) return true;
+    return [...this.world.enemies, ...this.world.props].some((e) => !e.dead && (e.body.pos.x - b.pos.x) ** 2 + (e.body.pos.y - b.pos.y) ** 2 < (e.body.radius + b.radius) ** 2);
   }
 
   // Thrown aside from the dash's line, as if it parted them.
@@ -81,7 +87,7 @@ export class WraithAspect extends Aspect {
     const src = { x: p.x + d.x * along, y: p.y + d.y * along };
     const hitPoint = enemy.closestPoint(p);
     enemy.takeDamage(this.data.damage * this.world.adrenaline.damageMultiplier, hitPoint, src, this.data.id);
-    if (!enemy.dead) enemy.applyKnockback(this.data.enemyKnockbackForce, src);
+    if (!enemy.dead && !enemy.isProp) enemy.applyKnockback(this.data.enemyKnockbackForce, src);
     const C = this.data.fx.cut;
     this.world.effects.playOnce(anims.hit_impact, hitPoint.x, hitPoint.y, f.angle, FX.hitImpactSize, C.impactTint);
     this.world.effects.burst(hitPoint.x, hitPoint.y, f.angle, C.sparks);
@@ -89,14 +95,35 @@ export class WraithAspect extends Aspect {
   }
 
   end() {
-    const angle = this.form.angle;
+    const { angle, from } = this.form, b = this.player.body;
     this.form = null;
     this.player.shrouded = false;
-    this.player.body.ignores = null;
+    b.ignores = null;
+    b.collideWalls = true; // the player turns it back off under noclip
+    const spot = this.clearSpot(b.pos, angle) ?? from;
+    if (spot !== b.pos) { b.pos.x = spot.x; b.pos.y = spot.y; b.stop(); }
     if (this.player.death) return;
     this.reform = { born: this.time, angle };
     this.player.bodyScale = this.data.fx.reform.from;
     this.gather(this.player.body.pos);
+  }
+
+  // `pos` if the player fits there clear of walls, else the nearest spot that is, or null if
+  // there's none within LAND_SEARCH. Of spots as near, those along the dash's line win (ahead
+  // first, then back), over ones off to the side.
+  clearSpot(pos, angle) {
+    const ph = this.world.physics, r = this.player.body.radius * 1.05;
+    if (!ph.circleHitsWall(pos.x, pos.y, r)) return pos;
+    for (let d = 0.1; d <= LAND_SEARCH; d += 0.1) {
+      const step = TAU / Math.max(8, Math.ceil((TAU * d) / 0.1));
+      for (let k = 0; k * step <= Math.PI / 2; k++) {
+        for (const a of [angle + k * step, angle - k * step, angle + Math.PI - k * step, angle + Math.PI + k * step]) {
+          const x = pos.x + Math.cos(a) * d, y = pos.y + Math.sin(a) * d;
+          if (!ph.circleHitsWall(x, y, r)) return { x, y };
+        }
+      }
+    }
+    return null;
   }
 
   // The body blowing apart into a cloud of black: a white flash, rays of light, a ring of
@@ -211,7 +238,7 @@ export class WraithAspect extends Aspect {
   light(color) { return lerpColor(color, EXALTED_FX.tint, this.player.view.exalted.glow); }
 
   dispose() {
-    if (this.form) { this.player.shrouded = false; this.player.body.ignores = null; }
+    if (this.form) { this.player.shrouded = false; this.player.body.ignores = null; this.player.body.collideWalls = true; }
     this.player.bodyScale = 1;
     this.sprite.destroy();
     this.wisps.destroy();

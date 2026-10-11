@@ -122,7 +122,9 @@ export const ASPECTS = [
     // While mist the player passes through enemies and nothing hits them; each enemy passed
     // through is cut once a dash, thrown aside from its line. Still inside one as the dash
     // runs out, it carries on through it, up to lingerTime longer, so they're never left stuck in it.
-    damage: 1, enemyKnockbackForce: 5, hitRadius: 0.45, lingerTime: 0.15,
+    // hitRadius: how far out from the player's centre it cuts, swept along the dash (the body's
+    // radius is 0.4).
+    damage: 1, enemyKnockbackForce: 5, hitRadius: 0.8, lingerTime: 0.15,
     // The look (src/aspects/wraith.js): the body bursts into mist and a small black shard of it
     // pops out, white-hot at the tip, rimmed in the player's tint, pointing along the dash and
     // shedding black and white wisps and a few pale motes; as the dash ends the mist is drawn

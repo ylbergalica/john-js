@@ -1,7 +1,8 @@
-// Destroyable props (PROPS): odds and ends of the void lying about the floors, smashed with
-// attacks for what's sealed inside. Each is a heavy body that can be nudged; every hit
-// flashes it, jolts and wobbles it and cracks it further, until it bursts into light and
-// shards of its shell, popping out its loot. Also places them on a floor (scatterProps).
+// Destroyable props (PROPS): odds and ends of the void lying about the floors, smashed by
+// anything of the player's that deals damage (attacks, aspects, the death blast) for what's
+// sealed inside. Each is a heavy body that can be nudged; every hit flashes it, jolts and
+// wobbles it and cracks it further, until it bursts into light and shards of its shell,
+// popping out its loot. Also places them on a floor (scatterProps).
 import { Container, Sprite } from 'pixi.js';
 import { Entity } from './entity.js';
 import { Body } from '../engine/physics.js';

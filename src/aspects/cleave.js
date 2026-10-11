@@ -1,5 +1,5 @@
 // Cleave: each melee hit launches a slash that flies forward and damages every
-// enemy it passes through once. In flight it sheds a few red motes from along its edge.
+// enemy and prop it passes through once. In flight it sheds a few red motes from along its edge.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
@@ -73,12 +73,12 @@ class CleaveSlash extends Entity {
   afterPhysics() {
     const b = this.body;
     const box = { x: b.pos.x, y: b.pos.y, hw: this.data.hitboxDepth / 2, hh: this.data.hitboxWidth / 2, angle: this.angle };
-    for (const e of this.world.enemies) {
+    for (const e of [...this.world.enemies, ...this.world.props]) {
       if (e.dead || this.hit.has(e) || !circleVsBox(e.body.pos.x, e.body.pos.y, e.body.radius, box)) continue;
       this.hit.add(e);
       const src = { ...b.pos };
       e.takeDamage(this.damage, e.closestPoint(src), src, this.data.id);
-      if (!e.dead) e.applyKnockback(this.data.enemyKnockbackForce, src);
+      if (!e.dead && !e.isProp) e.applyKnockback(this.data.enemyKnockbackForce, src);
     }
   }
 

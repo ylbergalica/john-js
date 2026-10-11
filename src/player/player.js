@@ -24,7 +24,7 @@ export class Player extends Entity {
     this.bodyScale = 1; // the drawn body's size alone (not its reach), eased by aspects re-forming it
     this.teleporting = false; // set by aspects; locks out other actions
     this.intangible = false; // set by aspects; enemy attacks pass through
-    this.shrouded = false; // turned to mist by an aspect: drawn as its form instead of the body, and enemy attacks pass through
+    this.shrouded = false; // turned to mist by an aspect: drawn as its form instead of the body, and enemy attacks and walls pass through
     this.hidden = false; // not drawn: gone into the exit, or not yet appeared on a new floor
     this.alight = false; // drawn solid white: dissolving into the exit's light
     this.shoved = null; // { vx, vy, at, time }: a push fading out on top of walking (see shove)
@@ -72,9 +72,9 @@ export class Player extends Entity {
 
   // ── step ─────────────────────────────────────────────────────────
   step(dt) {
+    this.body.collideWalls = !devFlags.noclip && !this.shrouded;
     if (this.death) { this.steer(0, 0, 0.2); this.death.step(dt); return; }
     const input = this.world.input, now = this.now;
-    this.body.collideWalls = !devFlags.noclip;
     this.movement = input.moveVector();
     const look = this.cursorWorld();
     const lx = look.x - this.body.pos.x, ly = look.y - this.body.pos.y;

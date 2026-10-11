@@ -146,10 +146,10 @@ export class PlayerDeath {
     w.sound(B.sound);
   }
 
-  // Damages every enemy within `radius` of (x, y) alike, more on deeper floors.
+  // Damages every enemy and prop within `radius` of (x, y) alike, more on deeper floors.
   blast(x, y, { radius, damage, perFloor }) {
     const src = { x, y }, w = this.world, amount = damage + perFloor * w.session.floor;
-    for (const e of [...w.enemies]) { // a guardian struck down leaves the list
+    for (const e of [...w.enemies, ...w.props]) { // a guardian struck down leaves the list
       if (e.dead || Math.hypot(e.body.pos.x - x, e.body.pos.y - y) - e.body.radius >= radius) continue;
       e.takeDamage(amount, e.closestPoint(src), src, DamageCause.Death);
     }

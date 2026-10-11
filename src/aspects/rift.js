@@ -1,6 +1,6 @@
 // Rift: a successful parry unfolds blades on both sides of the player for a moment.
-// Each enemy hit halves the damage of the next one, down to a floor. While out, the blades
-// shed motes; both take the player's tint, so they burn red while Exalted.
+// It cuts props too, but only enemy hits halve the damage of the next one, down to a floor.
+// While out, the blades shed motes; both take the player's tint, so they burn red while Exalted.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { ContactSet, circleVsBox } from '../engine/physics.js';
@@ -67,15 +67,15 @@ export class RiftAspect extends Aspect {
     if (!this.active) return;
     const b = this.player.body, s = this.player.sizeScale;
     const box = { x: b.pos.x, y: b.pos.y, hw: (this.data.hitboxDepth * s) / 2, hh: (this.data.hitboxWidth * s) / 2, angle: b.rotation };
-    const hits = this.world.enemies.filter((e) => !e.dead && circleVsBox(e.body.pos.x, e.body.pos.y, e.body.radius, box));
+    const hits = [...this.world.enemies, ...this.world.props].filter((e) => !e.dead && circleVsBox(e.body.pos.x, e.body.pos.y, e.body.radius, box));
     this.contacts.update(hits, (enemy) => this.hit(enemy, { x: box.x, y: box.y }));
   }
 
   hit(enemy, source) {
     if (enemy.dead) return;
     enemy.takeDamage(this.damage, enemy.closestPoint(source), source, this.data.id);
-    if (!enemy.dead) enemy.applyKnockback(this.data.enemyKnockbackForce, source);
-    this.damage = Math.max(this.minDamage, this.damage * 0.5);
+    if (!enemy.dead && !enemy.isProp) enemy.applyKnockback(this.data.enemyKnockbackForce, source);
+    if (!enemy.isProp) this.damage = Math.max(this.minDamage, this.damage * 0.5); // props don't wear the blades down
   }
 
   render(alpha, dt) {

@@ -4,6 +4,7 @@ import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { discord } from './discord.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const settingsPath = () => join(app.getPath('userData'), 'window.json');
@@ -67,7 +68,12 @@ app.on('second-instance', () => {
 });
 
 ipcMain.on('quit', () => app.quit());
+ipcMain.on('presence', (_e, activity) => discord.setActivity(activity));
 
 Menu.setApplicationMenu(null); // no File/Edit bar, and no Ctrl+R reload mid-run
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  discord.start();
+});
+app.on('will-quit', () => discord.stop());
 app.on('window-all-closed', () => app.quit());

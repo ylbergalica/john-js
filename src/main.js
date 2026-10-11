@@ -9,6 +9,7 @@ import { MenuScene } from './ui/menu.js';
 import { profile } from './meta/profile.js';
 import { h } from './ui/dom.js';
 import { sfx } from './audio/sfx.js';
+import { setPresence } from './ui/presence.js';
 import './style.css';
 
 const MAX_FRAME_TIME = 0.1; // clamp long stalls (tab switches, debugger) to one hitch
@@ -39,6 +40,7 @@ function show(next) {
 }
 
 function showMenu() {
+  setPresence('In the menus');
   show(() => new MenuScene(uiRoot, {
     onStartRun: () => startGame(RunMode.Run),
     onPlayground: () => startGame(RunMode.Playground),

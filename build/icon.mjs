@@ -1,11 +1,13 @@
 // Renders build/icon.html into build/icon.ico for electron-builder: one PNG entry per
-// size, each drawn at that size rather than scaled down. Run with `npm run icon`.
+// size, each drawn at that size rather than scaled down. Also writes build/icon.png at
+// HD_SIZE, for store pages and the Discord app. Run with `npm run icon`.
 import { app, BrowserWindow } from 'electron';
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const HD_SIZE = 1024;
 
 // ICO container: a 6-byte header, a 16-byte entry per image, then the PNGs themselves.
 function ico(images) {
@@ -32,6 +34,8 @@ app.whenReady().then(async () => {
   const urls = await win.webContents.executeJavaScript('SIZES.map((s) => [s, drawIcon(s).toDataURL()])');
   const images = urls.map(([size, url]) => [size, Buffer.from(url.split(',')[1], 'base64')]);
   writeFileSync(join(here, 'icon.ico'), ico(images));
-  console.log(`build/icon.ico: ${images.map(([s]) => s).join(', ')}`);
+  const hd = await win.webContents.executeJavaScript(`drawIcon(${HD_SIZE}).toDataURL()`);
+  writeFileSync(join(here, 'icon.png'), Buffer.from(hd.split(',')[1], 'base64'));
+  console.log(`build/icon.ico: ${images.map(([s]) => s).join(', ')}; build/icon.png: ${HD_SIZE}`);
   app.quit();
 });

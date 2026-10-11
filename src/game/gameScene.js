@@ -12,6 +12,7 @@ import { devFlags } from './devFlags.js';
 import { SpawnMenu } from '../ui/spawnMenu.js';
 import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
+import { setPresence } from '../ui/presence.js';
 
 const DEV = import.meta.env.DEV;
 
@@ -41,6 +42,9 @@ export class GameScene {
 
     input.reset();
     this.world.startFloor();
+    this.startedAt = Date.now();
+    this.presenceFloor = 0; // the floor Discord was last told about
+    if (playground) setPresence('In the playground', this.startedAt);
 
     this.listeners = new AbortController();
     const opts = { signal: this.listeners.signal };
@@ -66,6 +70,7 @@ export class GameScene {
       }
       if (steps === MAX_STEPS_PER_FRAME) this.accumulator = Math.min(this.accumulator, FIXED_DT);
       this.alpha = this.accumulator / FIXED_DT;
+      this.updatePresence();
       if (world.finished && !this.endRun()) return;
     }
     const frameDt = this.frozen ? 0 : dt;
@@ -74,6 +79,13 @@ export class GameScene {
       this.hud.update();
       this.devOverlay?.update(frameDt, this.alpha);
     }
+  }
+
+  updatePresence() {
+    const { mode, floor } = this.session;
+    if (mode !== RunMode.Run || floor === this.presenceFloor) return;
+    this.presenceFloor = floor;
+    setPresence(`Floor ${floor}`, this.startedAt);
   }
 
   // A run that ends in death opens the summary over the frozen world; the playground
@@ -88,6 +100,7 @@ export class GameScene {
     this.toolCorner.classList.add('hidden');
     this.devOverlay?.destroy();
     this.devOverlay = null;
+    setPresence(`Fell on floor ${this.session.floor}`);
     this.summary = new RunSummary(this.uiRoot, { session: this.session, onMenu: this.onExit });
     return true;
   }

@@ -165,4 +165,32 @@ export const ASPECTS = [
       },
     },
   },
+  {
+    id: 'astral', displayName: 'Astral Blades', tier: AspectTier.Prestige, icon: 'astral_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'The stars remember who struck first.',
+    description: 'Parrying conjures a blade of light that hunts down the attacker.',
+    // Each parry draws a blade out of the player for every level of the parry streak (up to
+    // the streak's cap), a moment apart: `stagger` seconds at a streak of 2, closing evenly to
+    // the second figure at the cap. Each glides out to its own spot on an arc
+    // `arcDeg` wide behind the player (from the enemy parried), `distance` out, easing to a
+    // stop over settleTime while turning to point at it; launchDelay after it appeared it
+    // flies at it (or, if it's dead, at whichever enemy is nearest the player) at `speed`,
+    // turning toward it at up to turnRate radians a second, through walls. It breaks on the
+    // first enemy it meets, cutting props on the way without stopping, and gives up after
+    // `lifetime` in flight.
+    damage: 2, enemyKnockbackForce: 4, hitRadius: 0.15,
+    stagger: [0.4, 0.1], arcDeg: 150, distance: [1.7, 2.2], settleTime: 1, launchDelay: 1,
+    speed: 20, turnRate: 10, aimRate: 8, lifetime: 4,
+    // The look (src/aspects/astral.js): a small sword-shaped silhouette of bright blue light,
+    // `length` long, growing out of the player over growTime as it leaves them, trailing a thin line
+    // of blue light `trail` seconds long, `width` at the head and tapering away. It bursts in a
+    // small blue flash where it strikes. World units and seconds.
+    fx: {
+      length: 0.5, color: 0x5aa8ff, grow: 0.12, growTime: 0.25,
+      trail: { time: 0.14, width: 0.13, alpha: 1, color: 0x62b4ff, core: 0xeaf6ff, coreWidth: 0.4 },
+      halo: { length: 2.2, width: 1.2, color: 0x3d9bff, alpha: 0.85 }, // a soft glow under the blade, in units of its length
+      launch: { size: 0.5, time: 0.16, alpha: 0.7 },
+      hit: { sparks: { count: 10, speed: 8, lifetime: 0.22, size: 0.28, coneDeg: 25, color: 0x8fb8ff }, impactTint: 0x8fb8ff },
+    },
+  },
 ];

@@ -578,6 +578,15 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 1500, to: 6000, dur: 0.3, vol: 0.18, attack: 0.02 });
     arp(v, [659, 988], 0.04, { type: 'triangle', dur: 0.35, vol: 0.09 });
   },
+  // Astral Blades: a soft glassy shimmer as each blade is drawn, and a thin rising zip as it flies.
+  astralDraw(v) {
+    noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 0.12, vol: 0.06, attack: 0.03 });
+    tone(v, { type: 'triangle', freq: 1760, to: 1980, dur: 0.2, vol: 0.035, attack: 0.01 });
+  },
+  astralLaunch(v) {
+    noise(v, { freq: 1200, to: 5200, q: 1.8, dur: 0.12, vol: 0.12, attack: 0.01 });
+    tone(v, { type: 'triangle', freq: 1320, to: 2640, dur: 0.1, vol: 0.03 });
+  },
   anchorThrow(v) {
     noise(v, { freq: 700, to: 300, q: 1.2, dur: 0.25, vol: 0.22, attack: 0.02 });
     tone(v, { type: 'triangle', freq: 320, to: 200, dur: 0.15, vol: 0.08 });

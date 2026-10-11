@@ -88,5 +88,12 @@ export const profile = {
     save.write();
   },
 
+  // Takes an aspect away again (for testing): unequipped and locked, so its tier's box can roll it.
+  lock(id) {
+    save.data.unlockedAspectIds = save.data.unlockedAspectIds.filter((a) => a !== id);
+    profile.unequip(id);
+    save.write();
+  },
+
   reset() { save.reset(); },
 };

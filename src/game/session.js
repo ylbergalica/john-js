@@ -14,7 +14,7 @@ export class RunSession {
     this.floor = 1;
     this.events = {
       enemyKilled: new Emitter(), // (enemy, cause) — see DamageCause
-      parried: new Emitter(),
+      parried: new Emitter(), // (attack)
       enemyDamaged: new Emitter(), // (enemy, damage, cause)
       playerDamaged: new Emitter(), // (player, damage after resistance, raw damage)
       adrenalineGained: new Emitter(), // (points added, points offered)

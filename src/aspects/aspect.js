@@ -32,7 +32,7 @@ export class Aspect {
   // never sends an aspect its own hits.
   onEnemyDamaged(_enemy, _damage, _cause) {}
   onEnemyKilled(_enemy, _cause) {}
-  onParry() {}
+  onParry(_attack) {} // the player parried `attack` (the first connect of a parry)
   refreshCooldown() {}
   dispose() {}
 }

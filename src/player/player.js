@@ -278,7 +278,7 @@ export class Player extends Entity {
       this.view.playParryConnect(contact, level);
       this.world.sound('parry', null, { pitch: P.comboPitchStep ** level, volume: 1 + P.comboVolumeStep * level, jitter: 0.005 });
       if (maxed) this.world.sound('parryCrown');
-      this.world.events.parried.emit();
+      this.world.events.parried.emit(attack);
       this.world.adrenaline.extend(ADRENALINE.extendPerParry);
     }
     return true;

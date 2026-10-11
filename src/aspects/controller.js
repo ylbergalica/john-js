@@ -15,7 +15,7 @@ export class AspectController {
     this.unsubscribe = [
       events.enemyDamaged.on((enemy, damage, cause) => this.others(cause, (a) => a.onEnemyDamaged(enemy, damage, cause))),
       events.enemyKilled.on((enemy, cause) => this.others(cause, (a) => a.onEnemyKilled(enemy, cause))),
-      events.parried.on(() => this.aspects.forEach((a) => a.onParry())),
+      events.parried.on((attack) => this.aspects.forEach((a) => a.onParry(attack))),
     ];
   }
 

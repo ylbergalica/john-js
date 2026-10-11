@@ -1,9 +1,10 @@
 // End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect stats),
 // slain enemies, slain guardians and achievements, then the total coins earned.
 // Everything is revealed step by step with counting numbers; any key or click skips
-// to the end. Tiles wrap, so long runs with many enemy types stay compact.
+// to the end. Tiles wrap, so long runs with many enemy types stay compact. An epilogue
+// (the first run's last word, Tutorial) rises in under the coins once it's all played out.
 import { h } from './dom.js';
-import { ENEMY_TYPES } from '../data/config.js';
+import { ENEMY_TYPES, TUTORIAL } from '../data/config.js';
 import { enemyIconUrls, iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
@@ -19,7 +20,7 @@ const times = (n) => `×${n}`;
 const countDuration = (n, max = 1) => Math.min(max, 0.3 + Math.abs(n) * 0.03);
 
 export class RunSummary {
-  constructor(root, { session, onMenu }) {
+  constructor(root, { session, onMenu, epilogue = null }) {
     const { stats, floor, adrenaline } = session;
     this.onMenu = onMenu;
     this.t = 0;
@@ -46,6 +47,7 @@ export class RunSummary {
         this.title,
         h('div', { class: 'rs-grid' }, run.el, enemies.el, guardians.el, achievements.el),
         coins,
+        epilogue ? h('p', { class: 'rs-epilogue', text: epilogue, style: `--d: ${TUTORIAL.epilogueDelay}s` }) : null,
         h('div', { class: 'rs-actions' }, h('button', { text: 'Main Menu', onclick: () => this.onMenu() })),
       ),
       h('div', { class: 'rs-hint', text: 'Click or press any key to skip' }),

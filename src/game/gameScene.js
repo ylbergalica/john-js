@@ -1,6 +1,7 @@
 // A run (or the playground): drives the world at a fixed rate with interpolated
-// rendering, and owns the HUD, pause state, the tool menus at the top left (spawning in
-// the playground, dev tools in dev builds) and, once a run ends in death, the run summary.
+// rendering, and owns the HUD, pause state, the tutorial (until a first death), the tool
+// menus at the top left (spawning in the playground, dev tools in dev builds) and, once a
+// run ends in death, the run summary.
 import { FIXED_DT, MAX_STEPS_PER_FRAME } from '../data/config.js';
 import { World } from './world.js';
 import { RunSession, RunMode } from './session.js';
@@ -14,6 +15,8 @@ import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
 import { FightMusic } from '../audio/music.js';
 import { setPresence } from '../ui/presence.js';
+import { Tutorial } from './tutorial.js';
+import { profile } from '../meta/profile.js';
 
 const DEV = import.meta.env.DEV;
 
@@ -32,6 +35,8 @@ export class GameScene {
     this.summary = null;
     this.hud = new Hud(uiRoot, this);
     this.devOverlay = DEV ? new DevOverlay(uiRoot, this) : null;
+    // Runs teach the game until one has ended in death (quitting doesn't count).
+    this.tutorial = mode === RunMode.Run && profile.runsFinished === 0 ? new Tutorial(this) : null;
 
     // Tool menus: one open at a time, and the world holds still while one is.
     const playground = mode === RunMode.Playground;
@@ -59,10 +64,11 @@ export class GameScene {
     window.addEventListener('blur', () => this.pause(), opts); // don't die while alt-tabbed
   }
 
-  get frozen() { return this.paused || !!this.menu; }
+  get frozen() { return this.paused || !!this.menu || !!this.tutorial?.holding; }
 
   frame(dt) {
     const world = this.world;
+    if (!this.summary) this.tutorial?.update(dt); // may hold the game (its card)
     if (this.summary) {
       this.summary.update(dt);
     } else if (!this.frozen) {
@@ -109,7 +115,7 @@ export class GameScene {
     this.devOverlay?.destroy();
     this.devOverlay = null;
     setPresence(`Fell on floor ${this.session.floor}`);
-    this.summary = new RunSummary(this.uiRoot, { session: this.session, onMenu: this.onExit });
+    this.summary = new RunSummary(this.uiRoot, { session: this.session, onMenu: this.onExit, epilogue: this.tutorial?.epilogue });
     return true;
   }
 
@@ -158,7 +164,7 @@ export class GameScene {
     this.paused = false;
     this.input.reset();
     this.hud.setPaused(false);
-    this.music.setPaused(false);
+    this.music.setPaused(!!this.tutorial?.holding);
     this.toolCorner.classList.remove('hidden');
   }
 
@@ -173,6 +179,7 @@ export class GameScene {
   destroy() {
     this.listeners.abort();
     this.music.destroy();
+    this.tutorial?.destroy();
     this.summary?.destroy();
     this.devOverlay?.destroy();
     this.toolCorner.remove();

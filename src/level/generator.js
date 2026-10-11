@@ -27,12 +27,15 @@ class Room {
 
 const rectsOverlap = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
-// → { grid, rooms, start, exit } with start/exit as floor-cell centres in world units.
-export function generateLayout(cfg) {
+// → { grid, rooms, start, exit } with start/exit as floor-cell centres in world units. The
+// start is in the first room and the exit in the last (where the guardians go); with
+// farEnds those two are the rooms farthest apart on foot.
+export function generateLayout(cfg, { farEnds = false } = {}) {
   const grid = new Grid(cfg.width, cfg.height);
   const rooms = [];
   generateRooms(grid, rooms, cfg);
   connectRooms(grid, rooms, cfg);
+  if (farEnds) putFarthestAtEnds(grid, rooms);
 
   const startCell = nearestFloorCell(grid, rooms[0].center);
   keepReachableFrom(grid, startCell);
@@ -160,30 +163,54 @@ function nearestFloorCell(grid, cell, room = null) {
   return cell;
 }
 
+// Steps over 4-connected floor from `start` to every cell: Int32Array, -1 where unreachable.
+function walkDistances(grid, start) {
+  const W = grid.width;
+  const dist = new Int32Array(grid.cells.length).fill(-1);
+  if (!grid.isFloor(start.x, start.y)) return dist;
+  const queue = new Int32Array(grid.cells.length);
+  let head = 0, tail = 0;
+  queue[tail++] = start.x + start.y * W;
+  dist[queue[0]] = 0;
+  while (head < tail) {
+    const cur = queue[head++];
+    for (const n of [cur + 1, cur - 1, cur + W, cur - W]) {
+      if (dist[n] >= 0 || grid.cells[n] !== 1) continue; // border is never floor, so no wrap-around
+      dist[n] = dist[cur] + 1;
+      queue[tail++] = n;
+    }
+  }
+  return dist;
+}
+
+// Reorders rooms so the two farthest apart on foot are first and last.
+function putFarthestAtEnds(grid, rooms) {
+  const cells = rooms.map((r) => nearestFloorCell(grid, r.center, r));
+  let a = 0, b = rooms.length - 1, best = -1;
+  cells.forEach((from, i) => {
+    const dist = walkDistances(grid, from);
+    cells.forEach((to, j) => {
+      const d = dist[to.x + to.y * grid.width];
+      if (j > i && d > best) { best = d; a = i; b = j; }
+    });
+  });
+  const [first, last] = [rooms[a], rooms[b]];
+  const rest = rooms.filter((r) => r !== first && r !== last);
+  rooms.splice(0, rooms.length, first, ...rest, last);
+}
+
 // Flood-fills 4-connected floor from `start` and turns every floor cell it can't reach
 // (within `region`, or the whole grid) back into wall.
 function keepReachableFrom(grid, start, region = null) {
   if (!grid.isFloor(start.x, start.y)) return;
   const W = grid.width;
-  const visited = new Uint8Array(grid.cells.length);
-  const queue = new Int32Array(grid.cells.length);
-  let head = 0, tail = 0;
-  queue[tail++] = start.x + start.y * W;
-  visited[queue[0]] = 1;
-  while (head < tail) {
-    const cur = queue[head++];
-    for (const n of [cur + 1, cur - 1, cur + W, cur - W]) {
-      if (visited[n] || grid.cells[n] !== 1) continue; // border is never floor, so no wrap-around
-      visited[n] = 1;
-      queue[tail++] = n;
-    }
-  }
+  const dist = walkDistances(grid, start);
   const x0 = region ? region.x : 0, x1 = region ? region.xMax : grid.width;
   const y0 = region ? region.y : 0, y1 = region ? region.yMax : grid.height;
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const i = x + y * W;
-      if (grid.cells[i] === 1 && !visited[i]) grid.cells[i] = 0;
+      if (grid.cells[i] === 1 && dist[i] < 0) grid.cells[i] = 0;
     }
   }
 }

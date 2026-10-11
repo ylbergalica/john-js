@@ -51,7 +51,7 @@ export class MenuScene {
       h('div', { class: 'rule menu-rule' }, '✦'),
       h('div', { class: 'main-buttons' },
         rise(h('button', { class: 'primary', text: 'Start Run', onclick: onStartRun })),
-        rise(h('button', { text: 'Playground', onclick: onPlayground })),
+        profile.runsFinished > 0 ? rise(h('button', { text: 'Playground', onclick: onPlayground })) : null, // once a run has ended in death
         rise(h('button', { text: 'Aspects', onclick: () => this.openAspects() })),
         window.desktop ? rise(h('button', { text: 'Quit', onclick: () => window.desktop.quit() })) : null,
       ),

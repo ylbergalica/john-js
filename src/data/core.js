@@ -41,6 +41,22 @@ export const GAME = { returnDelay: 1, floorIntroDuration: 3, playgroundRespawnDe
 // player. The glide takes `panPerUnit` seconds per unit of distance, within min/maxPan.
 export const GUARDIAN_INTRO = { floors: 5, fadeIn: 0.5, hold: 2, zoom: 1.15, panPerUnit: 0.03, minPan: 1.1, maxPan: 2 };
 
+// Runs teach the game until the first one ends in death (Tutorial). Times in seconds.
+export const TUTORIAL = {
+  introPace: 1.8, // the guardian intro's hold and pan take this many times longer
+  guardianCaptionAt: 0.6, // into the intro, the caption over the guardian
+  runCaption: 5, // the caption once play starts
+  cardDelay: 3, // the adrenaline meter stays full this long before the Exalted card
+  cardLead: 1, // the card's dark veil, alone, before its first line
+  cardStagger: 1.5, // between the card's lines
+  cardGuard: 0.3, // after its last line, before a key or click closes it
+  epilogueDelay: 0.6, // after the death screen has played out, the last word
+  guardian: 'warden', // the first floor's guardian, always
+  // Carved into the floor: letter height and line spacing in world units, how far from the
+  // player's start the controls go, and how long the essence carving takes to cut.
+  carving: { textSize: 0.46, lineHeight: 0.95, controlsDistance: [2.5, 9], essenceAhead: 4, cutTime: 1.2 },
+};
+
 // Coins a run earns (banked on death): `base` on floor 1, plus `perFloor` for each floor
 // after it. Kills don't grow: deeper floors already hold more enemies, and growing both
 // makes a run's coins snowball with depth. Achievements will name their own rewards.

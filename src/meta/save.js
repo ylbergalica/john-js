@@ -1,13 +1,14 @@
 // Persistent save in localStorage. Field names match the original save file, plus
 // killedEnemyTypes: enemy type keys killed in a run, which the playground can spawn, and
-// aspectFloors: aspect id → run floors cleared with it equipped (how much it's been used).
+// aspectFloors: aspect id → run floors cleared with it equipped (how much it's been used),
+// and runsFinished: runs ended in death; until there is one, every run teaches the game (Tutorial).
 // equippedAspectIds holds one entry per loadout slot, null where the slot is empty.
 import { MAX_EQUIPPED_ASPECTS } from '../data/config.js';
 
 const KEY = 'john.save';
 
 const emptySlots = () => Array(MAX_EQUIPPED_ASPECTS).fill(null);
-const defaults = () => ({ totalCoins: 0, unlockedAspectIds: [], equippedAspectIds: emptySlots(), killedEnemyTypes: [], aspectFloors: {} });
+const defaults = () => ({ totalCoins: 0, unlockedAspectIds: [], equippedAspectIds: emptySlots(), killedEnemyTypes: [], aspectFloors: {}, runsFinished: 0 });
 const stringSet = (list) => [...new Set(list.filter((id) => typeof id === 'string'))];
 const slotList = (list) => emptySlots().map((_, i) => (typeof list[i] === 'string' && list.indexOf(list[i]) === i ? list[i] : null));
 const countMap = (obj) => Object.fromEntries(
@@ -22,6 +23,7 @@ function sanitize(raw) {
     if (Array.isArray(raw.equippedAspectIds)) s.equippedAspectIds = slotList(raw.equippedAspectIds);
     if (Array.isArray(raw.killedEnemyTypes)) s.killedEnemyTypes = stringSet(raw.killedEnemyTypes);
     if (raw.aspectFloors && typeof raw.aspectFloors === 'object' && !Array.isArray(raw.aspectFloors)) s.aspectFloors = countMap(raw.aspectFloors);
+    if (Number.isFinite(raw.runsFinished)) s.runsFinished = Math.max(0, Math.floor(raw.runsFinished));
   }
   return s;
 }

@@ -41,6 +41,7 @@ export class World {
     this.levelView = new LevelView();
     this.layers = {
       level: this.levelView.root,
+      ground: new Container(), // carved into the floor (Tutorial)
       exit: new Container(),
       debris: new Container(), // shards of broken props, settling on the floor
       props: new Container(),
@@ -87,6 +88,9 @@ export class World {
     this.activeAttackers = 0;
     this.floorStartedAt = 0;
     this.intro = null; // guardian intro in progress (see GUARDIAN_INTRO); the world is frozen meanwhile
+    this.introPace = 1; // how many times longer the intro's hold and pan take (TUTORIAL.introPace)
+    this.guardianType = null; // the type every guardian spawns as, instead of the floor's pick (TUTORIAL.guardian)
+    this.farEnds = false; // the player starts and the guardians wait as far apart as the floor allows
     this.nextFloorRequested = false;
     this.warp = null; // taking the exit (see EXIT_WARP); the world is frozen meanwhile
     this.warpIn = null; // arriving on the floor after it, until the player has appeared
@@ -118,7 +122,7 @@ export class World {
     }
 
     const cfg = scaleConfig(BASE_LEVEL_CONFIG, this.session.floor);
-    const layout = this.buildLevel(generateLayout(cfg));
+    const layout = this.buildLevel(generateLayout(cfg, { farEnds: this.farEnds }));
     this.exit = this.add(new Exit(this, layout.exit.x, layout.exit.y));
 
     const { rooms, grid } = layout;
@@ -155,7 +159,7 @@ export class World {
     for (let i = 0; i < cfg.chaserCount; i++) {
       const pos = randomFloorInRoom(grid, rooms[rooms.length - 1]);
       if (!pos) continue;
-      this.spawnEnemy(pickWeighted(cfg.chasers).type, pos);
+      this.spawnEnemy(this.guardianType ?? pickWeighted(cfg.chasers).type, pos);
       chasers++;
     }
     this.cores = { required: chasers, collected: 0 };
@@ -181,9 +185,10 @@ export class World {
   // Opens on the floor's guardian, then glides to the player. Runs on render time, so the
   // camera moves smoothly at any frame rate; pausing (dt = 0) holds it.
   startIntro(guardian) {
-    const panTime = clamp(dist(guardian.body.pos, this.player.body.pos) * GI.panPerUnit, GI.minPan, GI.maxPan);
+    const pace = this.introPace;
+    const panTime = clamp(dist(guardian.body.pos, this.player.body.pos) * GI.panPerUnit, GI.minPan, GI.maxPan) * pace;
     // focus: vignette strength, fade: black overlay (none when arriving through the exit's white)
-    this.intro = { guardian, t: 0, panTime, focus: 1, fade: this.warpIn ? 0 : 1, fadeIn: !this.warpIn };
+    this.intro = { guardian, t: 0, hold: GI.hold * pace, panTime, focus: 1, fade: this.warpIn ? 0 : 1, fadeIn: !this.warpIn };
     this.camera.snapTo(guardian.body.pos);
     sfx.play('guardian');
   }
@@ -192,13 +197,13 @@ export class World {
     const it = this.intro, cam = this.camera;
     it.t += dt;
     const from = it.guardian.body.lerpPos(alpha), to = this.player.body.lerpPos(alpha);
-    if (it.t < GI.hold) {
+    if (it.t < it.hold) {
       cam.snapTo(from);
-      cam.zoom = lerp(1, GI.zoom, easeOut(it.t / GI.hold));
+      cam.zoom = lerp(1, GI.zoom, easeOut(it.t / it.hold));
       it.fade = it.fadeIn ? 1 - clamp01(it.t / GI.fadeIn) : 0;
       return;
     }
-    const p = clamp01((it.t - GI.hold) / it.panTime), e = easeInOut(p);
+    const p = clamp01((it.t - it.hold) / it.panTime), e = easeInOut(p);
     cam.snapTo({ x: lerp(from.x, to.x, e), y: lerp(from.y, to.y, e) });
     cam.zoom = lerp(GI.zoom, 1, e);
     it.focus = 1 - e;
@@ -223,6 +228,7 @@ export class World {
     this.effects.clear();
     this.deathFx.clear();
     this.debris.clear();
+    for (const c of this.layers.ground.removeChildren()) c.destroy({ children: true }); // a carving takes its own texture with it
     this.floorHeal = null;
     this.respawnAt = Infinity;
   }

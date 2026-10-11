@@ -72,8 +72,10 @@ export class RunSession {
     this.stats.coins[source] += n;
   }
 
-  // Death banks the run's coins; quitting from the pause menu forfeits them.
+  // Death banks the run's coins and counts the run; quitting from the pause menu forfeits
+  // them and doesn't count.
   bankCoins() {
+    if (!this.ended) profile.recordRunFinished();
     profile.bankCoins(this.pendingCoins);
     this.stats.coinsBanked += this.pendingCoins;
     this.pendingCoins = 0;

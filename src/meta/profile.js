@@ -90,6 +90,18 @@ export const profile = {
     save.write();
   },
 
+  // Runs ended in death; until the first, every run teaches the game (Tutorial).
+  get runsFinished() { return save.data.runsFinished; },
+  recordRunFinished() {
+    save.data.runsFinished++;
+    save.write();
+  },
+  // For testing: the next run teaches again.
+  forgetRuns() {
+    save.data.runsFinished = 0;
+    save.write();
+  },
+
   // Takes an aspect away again (for testing): unequipped and locked, so its tier's box can roll it.
   lock(id) {
     save.data.unlockedAspectIds = save.data.unlockedAspectIds.filter((a) => a !== id);

@@ -752,6 +752,12 @@ const LOOPS = {
 
 const NO_LOOP = { setLevel() {}, stop() {} };
 
+// The context and master bus, for the fight music (music.js) to play through, so muting
+// silences it too. Null until the first key or mouse press creates them.
+export function audioBus() {
+  return ctx ? { ctx, master } : null;
+}
+
 // ── public API ─────────────────────────────────────────────────────
 export const sfx = {
   get muted() { return muted; },

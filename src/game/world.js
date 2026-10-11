@@ -10,7 +10,7 @@ import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
-import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER, PROPS, STAR_PULSE } from '../data/config.js';
+import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, MUSIC, PICKUPS, PLAYER, PROPS, STAR_PULSE } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
@@ -18,6 +18,7 @@ import { scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
+import { AIState } from '../enemies/ai.js';
 import { Exit } from './pickups.js';
 import { Prop, scatterProps } from './props.js';
 import { Debris } from '../render/debris.js';
@@ -67,6 +68,10 @@ export class World {
         this.levelView.pulse(p.x, p.y, STAR_PULSE.parry + STAR_PULSE.parryPerStreak * (this.player.parryStreak - 1));
       }),
     ];
+    // Blows traded, for the fight music (see fightState).
+    this.lastBlowAt = -Infinity;
+    const blow = () => { this.lastBlowAt = this.time; };
+    this.offBlows = [this.events.enemyDamaged.on(blow), this.events.playerDamaged.on(blow), this.events.parried.on(blow)];
 
     this.entities = [];
     this.enemies = [];
@@ -483,6 +488,32 @@ export class World {
     return { pan: Math.max(-1, Math.min(1, dx / halfWidth)) * AUDIO.maxPan, volume: Math.max(0, Math.min(1, fade)) };
   }
 
+  // For the fight music: how many enemies are fighting the player and whether a guardian
+  // is among them, plus what shapes the music. Null while there's no fight to be had.
+  // Enemies merely nearby don't count: only while blows are traded (a hit either way, a
+  // parry, an enemy winding up or swinging at the player) within MUSIC.blowMemory seconds.
+  fightState() {
+    const p = this.livePlayer;
+    if (!p || this.intro || this.warp || this.warpIn) return null;
+    let enemies = 0, guardian = false;
+    for (const e of this.enemies) {
+      if (e.dead || e.dying || e.ai.state === AIState.Idle || e.ai.state === AIState.Dead) continue;
+      const range = e.type.isChaser ? MUSIC.guardianRange : e.type.ai.aggroRange;
+      if (dist(e.body.pos, p.body.pos) > range) continue;
+      if (e.ai.state === AIState.WindUp || e.ai.state === AIState.Attack) this.lastBlowAt = this.time;
+      if (e.type.isChaser) guardian = true;
+      else enemies++;
+    }
+    if (this.time - this.lastBlowAt > MUSIC.blowMemory) { enemies = 0; guardian = false; }
+    return {
+      enemies, guardian,
+      exalted: this.adrenaline.isExalted,
+      danger: p.healthFraction < MUSIC.dangerHealth,
+      mood: this.levelView.nebula.palette,
+      floor: this.session.floor,
+    };
+  }
+
   // ── loop ─────────────────────────────────────────────────────────
   step(dt) {
     if (this.intro || this.warp || (this.warpIn && this.warpIn.arrived === null)) return;
@@ -531,7 +562,7 @@ export class World {
   }
 
   destroy() {
-    for (const off of this.offStarPulses) off();
+    for (const off of [...this.offStarPulses, ...this.offBlows]) off();
     this.clearFloor();
     this.levelView.destroy();
     this.root.destroy({ children: true });

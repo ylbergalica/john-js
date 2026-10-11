@@ -9,6 +9,29 @@ export const CAMERA = { orthoSize: 10, followDamping: 1 };
 // `silentRange`; panned by horizontal offset, reaching `maxPan` at the screen edge.
 export const AUDIO = { fullVolumeRange: 8, silentRange: 24, maxPan: 0.6 };
 
+// Fight music (src/audio/music.js). It plays only while blows are traded: a hit either
+// way, a parry, or an enemy winding up or swinging at the player, the last within
+// `blowMemory` seconds. Enemies count while they're out of idle and within their aggro
+// range (a guardian within `guardianRange` units). The music ends on the next bar `linger`
+// seconds after the fighting stops. It fades in over `fadeIn` seconds and builds up with
+// `crowd` enemies, a guardian, or health under `dangerHealth` of max. Each floor plays
+// `tempoPerFloor` BPM faster, up to `maxTempoGain`, and a guardian fight `guardianTempo`
+// times faster still. `volume` is relative to the sound effects; `cutFade` is how fast it
+// dies with the player or into the exit.
+export const MUSIC = {
+  volume: 0.25,
+  fadeIn: 3,
+  guardianTempo: 1.2,
+  blowMemory: 5,
+  guardianRange: 16,
+  linger: 2,
+  crowd: 4,
+  dangerHealth: 0.3,
+  tempoPerFloor: 1,
+  maxTempoGain: 12,
+  cutFade: 1.2,
+};
+
 // returnDelay / playgroundRespawnDelay: seconds after the player's death has played out
 // (PLAYER_DEATH) until the run summary / the player is back.
 export const GAME = { returnDelay: 1, floorIntroDuration: 3, playgroundRespawnDelay: 0.5 };

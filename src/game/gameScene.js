@@ -12,6 +12,7 @@ import { devFlags } from './devFlags.js';
 import { SpawnMenu } from '../ui/spawnMenu.js';
 import { h } from '../ui/dom.js';
 import { sfx } from '../audio/sfx.js';
+import { FightMusic } from '../audio/music.js';
 import { setPresence } from '../ui/presence.js';
 
 const DEV = import.meta.env.DEV;
@@ -39,6 +40,12 @@ export class GameScene {
     uiRoot.append(this.toolCorner);
     this.spawnMenu = playground || DEV ? new SpawnMenu(this.toolCorner, this.world, { hotkey: playground ? 'Tab' : null }) : null;
     this.devMenu = DEV ? new DevMenu(this.toolCorner, this) : null;
+
+    // Fight music; kills and parries answer in it.
+    this.music = new FightMusic();
+    const { events } = this.session;
+    events.enemyKilled.on((e) => this.music.accent(e.type.isChaser ? 'guardianKill' : 'kill'));
+    events.parried.on(() => this.music.accent('parry', this.world.player?.parryStreak ?? 1));
 
     input.reset();
     this.world.startFloor();
@@ -73,6 +80,7 @@ export class GameScene {
       this.updatePresence();
       if (world.finished && !this.endRun()) return;
     }
+    if (!this.summary) this.music.update(world.fightState());
     const frameDt = this.frozen ? 0 : dt;
     world.render(this.alpha, frameDt, this.app.screen.width, this.app.screen.height);
     if (!this.summary) {
@@ -140,6 +148,7 @@ export class GameScene {
     this.paused = true;
     this.input.reset();
     this.hud.setPaused(true);
+    this.music.setPaused(true);
     this.toolCorner.classList.add('hidden');
     sfx.play('pause');
   }
@@ -149,6 +158,7 @@ export class GameScene {
     this.paused = false;
     this.input.reset();
     this.hud.setPaused(false);
+    this.music.setPaused(false);
     this.toolCorner.classList.remove('hidden');
   }
 
@@ -162,6 +172,7 @@ export class GameScene {
 
   destroy() {
     this.listeners.abort();
+    this.music.destroy();
     this.summary?.destroy();
     this.devOverlay?.destroy();
     this.toolCorner.remove();

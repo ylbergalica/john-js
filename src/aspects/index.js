@@ -7,6 +7,7 @@ import { RiftAspect } from './rift.js';
 import { WraithAspect } from './wraith.js';
 import { AstralAspect } from './astral.js';
 import { ThunderAspect } from './thunder.js';
+import { PhoenixAspect } from './phoenix.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -17,6 +18,7 @@ const ASPECT_TYPES = {
   wraith: WraithAspect,
   astral: AstralAspect,
   thunder: ThunderAspect,
+  phoenix: PhoenixAspect,
 };
 
 export function createAspect(player, data) {

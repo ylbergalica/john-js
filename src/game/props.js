@@ -71,7 +71,7 @@ export class Prop extends Entity {
     this.health -= damage;
     if (this.health <= 0) { this.shatter(dir); return; }
 
-    this.stage = Math.min(this.stages - 1, Math.floor(((T.health - this.health) / T.health) * this.stages + 1e-6));
+    this.crack();
     this.hit = { at: w.time, dir };
     this.flashUntil = w.time + FLASH_TIME;
     b.vel.x += dir.x * H.push; b.vel.y += dir.y * H.push;
@@ -82,6 +82,22 @@ export class Prop extends Entity {
     w.effects.burst(b.pos.x + dir.x * r, b.pos.y + dir.y * r, angle, { ...H.sparks, color: T.color });
     w.camera.shakeAtLeast(H.shake);
     w.sound(T.sounds.hit, b.pos, { pitch: 1 + 0.08 * this.stage });
+  }
+
+  // Damage that doesn't land as a blow (a burn): no jolt, flash, chips or sound, though it
+  // still cracks and, worn through, bursts (away from `source`).
+  sap(damage, source) {
+    if (this.dead || damage <= 0) return;
+    this.health -= damage;
+    if (this.health > 0) { this.crack(); return; }
+    const b = this.body.pos, dir = norm({ x: b.x - source.x, y: b.y - source.y });
+    this.shatter(dir.x === 0 && dir.y === 0 ? { x: 1, y: 0 } : dir);
+  }
+
+  // Cracked as far as the damage it has taken.
+  crack() {
+    const T = this.type;
+    this.stage = Math.min(this.stages - 1, Math.floor(((T.health - this.health) / T.health) * this.stages + 1e-6));
   }
 
   // Bursts like an enemy dying (DeathFx.explode) and flings its shell's shards out, a

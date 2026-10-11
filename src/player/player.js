@@ -25,6 +25,7 @@ export class Player extends Entity {
     this.teleporting = false; // set by aspects; locks out other actions
     this.intangible = false; // set by aspects; enemy attacks pass through
     this.shrouded = false; // turned to mist by an aspect: drawn as its form instead of the body, and enemy attacks and walls pass through
+    this.fieryDash = false; // set by aspects: dashes burst out as fire, their own look, instead of rings, mist and afterimages
     this.hidden = false; // not drawn: gone into the exit, or not yet appeared on a new floor
     this.alight = false; // drawn solid white: dissolving into the exit's light
     this.shoved = null; // { vx, vy, at, time }: a push fading out on top of walking (see shove)

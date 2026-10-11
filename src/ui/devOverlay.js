@@ -37,6 +37,7 @@ export class DevOverlay {
 
   // ── events ───────────────────────────────────────────────────────
   onEnemyDamaged(enemy, dmg) {
+    if (dmg <= 0) return; // a hit that deals nothing itself (Enemy.mark)
     this.totals.dealt += dmg;
     const left = Math.max(0, enemy.health);
     this.spawnFloat(enemy.body.pos, enemy.body.radius, `${fmt(dmg)}`, 'dealt');

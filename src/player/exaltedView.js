@@ -4,12 +4,12 @@
 // circling the player. Entering the state also sets off the screen ripple, a spark burst
 // and a smoke ring, and the burning sound loops for as long as the state lasts.
 // Driven from PlayerView.render, so it watches the adrenaline state for edges itself.
-import { Container, MeshSimple, Sprite } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import { EXALTED_FX as X, PLAYER_DEATH } from '../data/config.js';
 import { clamp01, lerp, randRange, seededRandom, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { FEATHER_ROWS } from '../render/sprites.js';
-import { Plume } from '../render/fx.js';
+import { Plume, Strand } from '../render/fx.js';
 import { sfx } from '../audio/sfx.js';
 
 const W = X.wings, THROES = PLAYER_DEATH.exalted.throes, DEG = Math.PI / 180;
@@ -496,42 +496,4 @@ export class ExaltedView {
     this.wings.destroy({ children: true });
     this.halo.destroy();
   }
-}
-
-// A tapered strip along a path of `n` points, as one mesh: by default an additive glowing
-// ribbon. The texture's u runs from `u0` at the first point to `u1` at the last (the
-// ribbon's alpha ramps up along u), and v from `v0` on one side to `v1` on the other.
-// Fill `pts` (x, y pairs) and `widths` (half-widths), then build().
-class Strand {
-  constructor(parent, n, u0, u1, color, zIndex = 0, { texture = tex.ribbon, blendMode = 'add', v0 = 0, v1 = 1 } = {}) {
-    this.n = n;
-    const uvs = new Float32Array(n * 4), idx = [];
-    for (let i = 0; i < n; i++) {
-      const u = lerp(u0, u1, i / (n - 1));
-      uvs.set([u, v0, u, v1], i * 4);
-    }
-    for (let i = 0; i < n - 1; i++) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
-    this.mesh = new MeshSimple({ texture, vertices: new Float32Array(n * 4), uvs, indices: new Uint32Array(idx) });
-    this.mesh.blendMode = blendMode;
-    this.mesh.tint = color;
-    this.mesh.zIndex = zIndex;
-    this.mesh.visible = false;
-    parent.addChild(this.mesh);
-    this.pts = new Float32Array(n * 2);
-    this.widths = new Float32Array(n);
-  }
-
-  // Offsets each point both ways along the path's normal.
-  build() {
-    const { n, pts, widths } = this, v = this.mesh.vertices;
-    for (let i = 0; i < n; i++) {
-      const i0 = Math.max(0, i - 1), i1 = Math.min(n - 1, i + 1);
-      const tx = pts[2 * i1] - pts[2 * i0], ty = pts[2 * i1 + 1] - pts[2 * i0 + 1];
-      const w = widths[i] / (Math.hypot(tx, ty) || 1);
-      v[4 * i] = pts[2 * i] - ty * w; v[4 * i + 1] = pts[2 * i + 1] + tx * w;
-      v[4 * i + 2] = pts[2 * i] + ty * w; v[4 * i + 3] = pts[2 * i + 1] - tx * w;
-    }
-  }
-
-  destroy() { this.mesh.destroy(); }
 }

@@ -40,7 +40,7 @@ export class DashView {
     this.dir = { x: 1, y: 0 };
     this.lastDrop = { x: 0, y: 0 }; // where the last afterimage fell
     this.ready = true;
-    this.veiled = false; // this dash's body was turned to something else by an aspect
+    this.veiled = false; // this dash has an aspect's own look: the body turned to something else, or bursting out as fire
     this.color = X.color;
     this.warmth = 0; // 0…1 Exalted glow, from the last render
   }
@@ -54,8 +54,8 @@ export class DashView {
     this.dir = { x: dir.x, y: dir.y };
     this.angle = Math.atan2(dir.y, dir.x);
     this.lastDrop = { x: p.x, y: p.y };
-    this.veiled = this.player.shrouded;
-    if (this.veiled) return; // an aspect has turned the body to something else, with its own look
+    this.veiled = this.player.shrouded || this.player.fieryDash;
+    if (this.veiled) return;
 
     const back = this.angle + Math.PI, bx = p.x - dir.x * r * 0.4, by = p.y - dir.y * r * 0.4;
     const L = X.launchRing;
@@ -109,7 +109,7 @@ export class DashView {
     this.warmth = warmth;
     this.color = lerpColor(X.color, EXALTED_FX.tint, warmth);
 
-    if (this.dashing && player.shrouded) {
+    if (this.dashing && this.veiled) {
       this.lastDrop = { x: p.x, y: p.y };
     } else if (this.dashing) {
       // Afterimages at even spacing along the path, however far it went this frame.

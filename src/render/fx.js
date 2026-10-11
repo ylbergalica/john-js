@@ -1,8 +1,9 @@
 // Cosmetic effects: pooled cone bursts of glowing sparks in one ParticleContainer, one-shot
 // sprite animations, the frame-animation helper used by sprites elsewhere, and Plume, a
-// pool of soft drifting particles for smoke and fire.
-import { Particle, ParticleContainer, Sprite } from 'pixi.js';
-import { randRange, lerpColor } from '../engine/math.js';
+// pool of soft drifting particles for smoke and fire, and Strand, a textured strip bent
+// along a path.
+import { MeshSimple, Particle, ParticleContainer, Sprite } from 'pixi.js';
+import { lerp, randRange, lerpColor } from '../engine/math.js';
 import { FX } from '../data/config.js';
 import { tex } from './assets.js';
 
@@ -219,4 +220,42 @@ export class Plume {
   }
 
   destroy() { this.container.destroy(); }
+}
+
+// A tapered strip along a path of `n` points, as one mesh: by default an additive glowing
+// ribbon. The texture's u runs from `u0` at the first point to `u1` at the last (the
+// ribbon's alpha ramps up along u), and v from `v0` on one side to `v1` on the other.
+// Fill `pts` (x, y pairs) and `widths` (half-widths), then build().
+export class Strand {
+  constructor(parent, n, u0, u1, color, zIndex = 0, { texture = tex.ribbon, blendMode = 'add', v0 = 0, v1 = 1 } = {}) {
+    this.n = n;
+    const uvs = new Float32Array(n * 4), idx = [];
+    for (let i = 0; i < n; i++) {
+      const u = lerp(u0, u1, i / (n - 1));
+      uvs.set([u, v0, u, v1], i * 4);
+    }
+    for (let i = 0; i < n - 1; i++) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
+    this.mesh = new MeshSimple({ texture, vertices: new Float32Array(n * 4), uvs, indices: new Uint32Array(idx) });
+    this.mesh.blendMode = blendMode;
+    this.mesh.tint = color;
+    this.mesh.zIndex = zIndex;
+    this.mesh.visible = false;
+    parent.addChild(this.mesh);
+    this.pts = new Float32Array(n * 2);
+    this.widths = new Float32Array(n);
+  }
+
+  // Offsets each point both ways along the path's normal.
+  build() {
+    const { n, pts, widths } = this, v = this.mesh.vertices;
+    for (let i = 0; i < n; i++) {
+      const i0 = Math.max(0, i - 1), i1 = Math.min(n - 1, i + 1);
+      const tx = pts[2 * i1] - pts[2 * i0], ty = pts[2 * i1 + 1] - pts[2 * i0 + 1];
+      const w = widths[i] / (Math.hypot(tx, ty) || 1);
+      v[4 * i] = pts[2 * i] - ty * w; v[4 * i + 1] = pts[2 * i + 1] + tx * w;
+      v[4 * i + 2] = pts[2 * i] + ty * w; v[4 * i + 3] = pts[2 * i + 1] - tx * w;
+    }
+  }
+
+  destroy() { this.mesh.destroy(); }
 }

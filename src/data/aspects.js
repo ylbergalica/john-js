@@ -244,4 +244,63 @@ export const ASPECTS = [
       shake: { duration: 0.12, strength: 0.08, frequency: 30 },
     },
   },
+  {
+    id: 'phoenix', displayName: 'Phoenix', tier: AspectTier.Prestige, icon: 'phoenix_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'Ash remembers the shape of wings.',
+    description: 'Dashing unfurls wings of fire that set alight whatever they touch.',
+    // Every dash bursts out as fire and unfurls a wing of it on each side of the player,
+    // `length` long (from the player's centre to its furthest flame). They sweep open over
+    // openTime and, from flapAt, flap forward over flapTime, turning flapDeg toward the dash
+    // and bending up to bendDeg further toward their tips, so they curl around in front; the
+    // moment they stop they flap back over foldTime, past where they opened by foldDeg and up
+    // to foldBendDeg more toward their tips, so they sweep back behind, folding at the player's
+    // back and sides as they shrink to foldScale of their size; from fadeAt, once folded, they go
+    // out over fadeTime. Each stroke speeds up over the first [0] of it and brakes to a stop over
+    // the last [1] of it (flapEase, foldEase). Every
+    // enemy and prop the wings or the dashing
+    // player (within bodyReach of its body) touch catches fire, up to burnUntil of the way
+    // through the fade: it burns for burnTime, taking `burn` damage in all, a little every
+    // step. Catching fire counts as a hit by the player (dealing nothing itself), and catching
+    // again only starts the burn over, counting again; the burn itself isn't a hit: no flinch,
+    // flash or knockback, so it interrupts nothing, and nothing that counts hits counts it.
+    length: 2.8, burn: 5, burnTime: 5, bodyReach: 0.2,
+    openTime: 0.07, flapAt: 0.03, flapTime: 0.18, flapEase: [0.3, 0.15], flapDeg: 35, bendDeg: 80,
+    foldTime: 0.17, foldEase: [0.15, 0.3], foldDeg: 30, foldBendDeg: 40, foldScale: 0.7, fadeAt: 0.36, fadeTime: 0.12, burnUntil: 0.5,
+    // The look (src/aspects/phoenix.js): nothing but fire in the shape of wings. Each is a
+    // blazing arm under a soft glow, trailing tongues of flame (an orange `outer` one with a
+    // hot `core` inside), rippling by up to `wave` of their length and flickering by `flicker`,
+    // all wreathed in flames licking off them that ride along with the player, and more left
+    // behind with embers. While the wings are out the player burns too. The dash bursts out
+    // in fire, and the wings burst into a flurry of it as they burn away. What burns
+    // flickers with flames, embers and a haze, dying down over its last `ebb`. World units and
+    // seconds, [min, max] picks at random; rates are per second, per wing for the wings.
+    fx: {
+      tongue: {
+        outer: { color: 0xff5a0c, width: 1.35, alpha: 0.85 }, core: { color: 0xffd270, width: 0.55, alpha: 0.9 },
+        wave: 0.16, waveSpeed: 26, flicker: 0.25,
+      },
+      arm: { color: 0xfff0b8, alpha: 0.9, width: [0.5, 0.16], glow: 0xff6a10, glowAlpha: 0.7, glowWidth: 3 },
+      under: { color: 0xff4a08, alpha: 0.8, size: 2.8 }, // a glow under each wing
+      flames: { rate: 950, color: 0xffb440, fade: 0xc8280a, size: [0.7, 1.3], life: [0.12, 0.24], speed: [0.5, 1.6], alpha: 0.9 },
+      trail: { rate: 110, color: 0xffb040, fade: 0x701004, size: [0.4, 0.7], life: [0.2, 0.35], speed: [0.3, 1.2], alpha: 0.55 },
+      embers: { rate: 70, color: 0xffe080, fade: 0xff3000, size: [0.07, 0.14], life: [0.4, 0.8], speed: [1.5, 4] },
+      body: { rate: 240, radius: 0.45, color: 0xffd060, fade: 0xc02008, size: [0.5, 0.85], life: [0.15, 0.3], speed: [1, 2.5], alpha: 0.9 },
+      launch: {
+        flames: { count: 26, speed: [3, 8], spreadDeg: 55, size: [0.5, 0.9], life: [0.18, 0.32] }, // out the back, in `flames` colours
+        sparks: { count: 16, speed: 10, lifetime: 0.3, size: 0.32, coneDeg: 40, color: 0xffa030 },
+        flash: { size: 1.4, time: 0.16, alpha: 0.7, color: 0xff7a18 },
+      },
+      dissolve: { flames: 25, embers: 30 }, // per wing, as they start going out
+      catch: {
+        flash: { size: 1.2, time: 0.2, alpha: 0.75, color: 0xff7a18 },
+        sparks: { count: 10, speed: 7, lifetime: 0.3, size: 0.3, coneDeg: 50, color: 0xffb040 },
+      },
+      burning: {
+        ebb: 1,
+        flames: { rate: 90, color: 0xffd060, fade: 0xa01a04, size: [0.6, 1], life: [0.3, 0.5], speed: [1.2, 2.4], alpha: 1 },
+        haze: { rate: 12, color: 0xff6a14, fade: 0x400400, size: [1.8, 2.4], life: [0.4, 0.7], alpha: 0.4 }, // sizes in units of its radius
+        embers: { rate: 9, color: 0xffd070, fade: 0xff2a00, size: [0.06, 0.12], life: [0.5, 0.9], speed: [1, 2.4] },
+      },
+    },
+  },
 ];

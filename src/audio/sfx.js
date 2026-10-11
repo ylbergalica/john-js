@@ -610,6 +610,19 @@ const SOUNDS = {
     noise(v, { filter: 'lowpass', freq: 5000, to: 1200, dur: 0.08, vol: 0.2, attack: 0.002 });
     tone(v, { freq: 110, to: 45, dur: 0.16, vol: 0.16 });
   },
+  // Phoenix: the wings thrown open with a deep whoomp of air and a roar of fire catching,
+  // crackling as it dies; and a short hissing fwoosh for everything that catches fire.
+  phoenix(v) {
+    noise(v, { filter: 'lowpass', freq: 300, to: 900, dur: 0.22, vol: 0.45, attack: 0.03 });
+    tone(v, { freq: 70, to: 45, dur: 0.25, vol: 0.3, attack: 0.02 });
+    noise(v, { freq: 600, to: 1600, q: 0.6, at: 0.02, dur: 0.45, vol: 0.22, attack: 0.05 });
+    noise(v, { filter: 'highpass', freq: 2500, to: 4000, at: 0.05, dur: 0.4, vol: 0.06, attack: 0.08 });
+    for (let i = 0; i < 6; i++) noise(v, { filter: 'highpass', freq: 3000 + Math.random() * 3000, at: 0.08 + Math.random() * 0.35, dur: 0.02, vol: 0.08 * Math.random() });
+  },
+  ignite(v) {
+    noise(v, { freq: 900, to: 2400, q: 0.7, dur: 0.18, vol: 0.14, attack: 0.02 });
+    noise(v, { filter: 'lowpass', freq: 400, to: 200, dur: 0.16, vol: 0.12, attack: 0.01 });
+  },
   anchorThrow(v) {
     noise(v, { freq: 700, to: 300, q: 1.2, dur: 0.25, vol: 0.22, attack: 0.02 });
     tone(v, { type: 'triangle', freq: 320, to: 200, dur: 0.15, vol: 0.08 });

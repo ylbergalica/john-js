@@ -101,6 +101,21 @@ export class Enemy extends Entity {
     if (this.health <= 0) this.die(cause);
   }
 
+  // A hit that deals nothing itself (setting it alight): no flinch, flash or sound, but it
+  // counts as a hit like any other.
+  mark(cause = null) {
+    if (this.dead || this.dying) return;
+    this.world.events.enemyDamaged.emit(this, 0, cause);
+  }
+
+  // Damage that isn't a hit (a burn eating away at it): no flinch, flash or sound, and no
+  // enemyDamaged, so nothing that counts hits counts it. Only a kill is announced.
+  sap(damage, cause = null) {
+    if (this.dead || this.dying || damage <= 0 || devFlags.noDamage) return;
+    this.health -= damage;
+    if (this.health <= 0) this.die(cause);
+  }
+
   onHurt(hitPoint, source) {
     this.flashUntil = this.world.time + this.type.flashDuration;
     const b = this.body;

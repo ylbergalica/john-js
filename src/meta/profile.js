@@ -21,6 +21,8 @@ export const profile = {
 
   getAspect: (id) => byId.get(id) ?? null,
   isUnlocked: (id) => save.data.unlockedAspectIds.includes(id),
+  // In the order they were unlocked.
+  unlockedAspects: () => save.data.unlockedAspectIds.map((id) => byId.get(id)).filter(Boolean),
   isEquipped: (id) => slots().includes(id),
   canEquipMore: () => profile.loadout().includes(null),
   // Aspect per loadout slot (null where empty); slot i is key i + 1 in a run.

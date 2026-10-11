@@ -2,7 +2,7 @@
 // boxes (confirm, then break them open), reveal unlocks, and show hover tooltips. Esc
 // backs out of open panels.
 import { h } from './dom.js';
-import { TIERS, HUD, MAX_EQUIPPED_ASPECTS, ASPECTS } from '../data/config.js';
+import { TIERS, HUD, MAX_EQUIPPED_ASPECTS } from '../data/config.js';
 import { iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
@@ -208,6 +208,7 @@ export class MenuScene {
     this.closeConfirm();
     const res = profile.buyTierBox(tier);
     if (!res.ok) { sfx.play('deny'); this.setStatus(res.reason); this.refresh(); return; }
+    this.unrevealed = res.aspect.id; // kept out of the collection until its card is shown
     this.closeShop();
     this.refresh();
     this.breaker = new BoxBreak(this.el, TIERS.find((t) => t.tier === tier), () => {
@@ -259,9 +260,10 @@ export class MenuScene {
     }
   }
 
+  // Highest tier first, and within a tier the latest unlocked first.
   refreshList() {
-    const unlocked = ASPECTS.filter((a) => profile.isUnlocked(a.id))
-      .sort((a, b) => a.tier - b.tier || a.displayName.localeCompare(b.displayName));
+    const unlocked = profile.unlockedAspects().filter((a) => a.id !== this.unrevealed)
+      .reverse().sort((a, b) => b.tier - a.tier);
     // Icons only; the tooltip carries the name and details, and a click equips or unequips.
     this.list.replaceChildren(...unlocked.map((a) => {
       const equipped = profile.isEquipped(a.id);
@@ -318,6 +320,7 @@ export class MenuScene {
     this.revealListeners?.abort();
     this.revealListeners = null;
     this.revealPanel.classList.add('hidden');
+    this.unrevealed = null;
     this.refresh();
   }
 

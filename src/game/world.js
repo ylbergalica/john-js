@@ -10,7 +10,7 @@ import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
-import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER, PROPS } from '../data/config.js';
+import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, PICKUPS, PLAYER, PROPS, STAR_PULSE } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
@@ -57,6 +57,16 @@ export class World {
     this.debris = new Debris(this.layers.debris, (x, y) => this.physics.isWall(x, y));
     this.camera = new Camera();
     this.ripple = new ScreenRipple(); // full-screen shockwave on entering Exalted
+    // Wall stars flare in rings from kills and parries.
+    this.offStarPulses = [
+      this.events.enemyKilled.on((e) => {
+        this.levelView.pulse(e.body.pos.x, e.body.pos.y, e.type.isChaser ? STAR_PULSE.guardianKill : STAR_PULSE.kill);
+      }),
+      this.events.parried.on(() => {
+        const p = this.player.body.pos;
+        this.levelView.pulse(p.x, p.y, STAR_PULSE.parry + STAR_PULSE.parryPerStreak * (this.player.parryStreak - 1));
+      }),
+    ];
 
     this.entities = [];
     this.enemies = [];
@@ -156,7 +166,7 @@ export class World {
   buildLevel(layout) {
     this.level = layout;
     this.physics = new Physics(layout.grid);
-    this.levelView.build(layout.grid);
+    this.levelView.build(layout.grid, layout.rooms, this.session.floor);
     this.player = this.add(new Player(this, layout.start.x, layout.start.y));
     this.camera.snapTo(layout.start);
     return layout;
@@ -521,6 +531,7 @@ export class World {
   }
 
   destroy() {
+    for (const off of this.offStarPulses) off();
     this.clearFloor();
     this.levelView.destroy();
     this.root.destroy({ children: true });

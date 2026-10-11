@@ -57,14 +57,66 @@ export const WALL_VISUAL = {
 };
 export const WALL_SPARKLES = {
   sparklesPerTile: 0.16,
+  // The sky fills in floor by floor: each floor adds this many per tile, up to the max.
+  sparklesPerFloor: 0.006,
+  maxSparklesPerTile: 0.3,
   edgePadding: 0.18,
-  randomSeed: 12345,
   sizeRange: { x: 0.04, y: 0.12 },
-  color: 0xffffff,
+  // Each star's colour, picked by weight (the enemySpawn format: deeper floors bring more
+  // colour into the sky).
+  colors: [
+    { color: 0xffffff, weight: 1 },
+    { color: 0xb8ccff, weight: { min: 0.08, max: 0.35 }, fromFloor: 1, peakFloor: 8 },
+    { color: 0xffe0a0, weight: { min: 0.04, max: 0.25 }, fromFloor: 2, peakFloor: 10 },
+    { color: 0xff9a88, weight: { min: 0.02, max: 0.15 }, fromFloor: 4, peakFloor: 12 },
+    { color: 0xd4b0ff, weight: { min: 0.02, max: 0.18 }, fromFloor: 6, peakFloor: 14 },
+  ],
   minAlpha: 0.15,
   maxAlpha: 1,
   twinkleSpeedRange: { x: 0.8, y: 2.4 },
   twinkleScaleAmount: 1,
+};
+
+// Wall stars flaring in a ring that spreads out from a kill or a parry.
+export const STAR_PULSE = {
+  speed: 24, // tiles per second the ring travels
+  width: 1.8, // tiles: the ring's thickness
+  swell: 1.4, // stars grow by this fraction of their size as the ring passes
+  // How far the ring travels, in tiles, fading as it goes.
+  kill: 11,
+  guardianKill: 34,
+  parry: 6,
+  parryPerStreak: 2.5, // added per parry-streak level
+};
+
+// Coloured clouds drifting in the space behind the wall stars. Each floor picks one of the
+// palettes (never the last floor's), and they grow denser and brighter floor by floor,
+// reaching their max on fullFloor.
+export const NEBULA = {
+  alpha: { min: 0.18, max: 0.45 },
+  coverage: { min: 0.25, max: 0.5 }, // share of the sky the clouds fill
+  fullFloor: 12,
+  scale: 0.045, // noise frequency per tile: lower means bigger clouds
+  drift: 0.012, // how fast the clouds roll, in noise units per second
+  palettes: [
+    [0x2f55e0, 0x9040d8], // blue, violet
+    [0x20a0b0, 0x2a50d8], // teal, blue
+    [0xd03a78, 0x6030c0], // rose, purple
+    [0xe0662a, 0xb02050], // ember, crimson
+    [0x2aa070, 0x2070b0], // jade, sea blue
+    [0xc09030, 0x983048], // gold, wine
+  ],
+};
+
+// The ground: brighter in open floor, dimmer against walls, and each room leaning a touch
+// toward one of the floor's nebula colours, blending through the corridors between them.
+export const FLOOR_LIGHT = {
+  edgeLight: 0.65, // × COLORS.floor right against a wall
+  centerLight: 1.4, // × COLORS.floor deep in open floor
+  poolRadius: 8, // tiles from a wall until centerLight
+  tint: { min: 0.3, max: 0.55 }, // how far a room leans toward its colour, floor 1 → NEBULA.fullFloor
+  tintSpread: 5, // tiles: how far a room's colour carries past its walls
+  pixelsPerTile: 4,
 };
 
 export const VOID_SPARKLES = {

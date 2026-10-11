@@ -33,10 +33,10 @@ export function randInsideUnitCircle() {
 }
 
 // entries: [{ weight, ...}] → one entry, chosen proportionally to weight (floats allowed).
-export function pickWeighted(entries) {
+export function pickWeighted(entries, rand = Math.random) {
   let total = 0;
   for (const e of entries) total += Math.max(0, e.weight);
-  let roll = Math.random() * total;
+  let roll = rand() * total;
   for (const e of entries) {
     roll -= Math.max(0, e.weight);
     if (roll < 0) return e;

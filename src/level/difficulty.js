@@ -43,7 +43,7 @@ export function scaleConfig(base, floor) {
 
 // Keeps the entries within [fromFloor, toFloor] and turns a { min, max } weight into a
 // number: min on fromFloor, rising linearly to max on peakFloor, falling back to min on toFloor.
-function spawnableOn(entries, floor) {
+export function spawnableOn(entries, floor) {
   return entries
     .filter((e) => (e.fromFloor ?? 1) <= floor && floor <= (e.toFloor ?? Infinity))
     .map((e) => {

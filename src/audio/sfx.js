@@ -620,6 +620,26 @@ const SOUNDS = {
   pause(v) {
     tone(v, { type: 'triangle', freq: 520, to: 340, dur: 0.1, vol: 0.1 });
   },
+  boxHit(v) { // a tier box's gem struck: a crunching knock, glass splintering, and the stone ringing
+    tone(v, { type: 'square', freq: 210, to: 80, dur: 0.09, vol: 0.13 });
+    noise(v, { filter: 'lowpass', freq: 3400, to: 350, dur: 0.11, vol: 0.45 });
+    for (let i = 0; i < 6; i++) {
+      noise(v, { freq: 2200 + Math.random() * 3500, q: 3, at: Math.random() * 0.09, dur: 0.012 + Math.random() * 0.018, vol: 0.05 + Math.random() * 0.07 });
+    }
+    tone(v, { type: 'triangle', freq: 1760, to: 1740, at: 0.005, dur: 0.45, vol: 0.06 });
+    tone(v, { freq: 2637, to: 2610, at: 0.005, dur: 0.3, vol: 0.03 });
+    tinkles(v, 3, { at: 0.04, spread: 0.25, vol: 0.03 });
+  },
+  boxShatter(v) { // ...and bursting: a deep boom, a sheet of glass exploding, shards raining down, light rushing out
+    tone(v, { freq: 95, to: 30, dur: 0.9, vol: 0.55 });
+    noise(v, { filter: 'lowpass', freq: 5000, to: 90, dur: 0.7, vol: 0.55 });
+    noise(v, { filter: 'highpass', freq: 5500, to: 2500, dur: 0.45, vol: 0.22 });
+    for (let i = 0; i < 14; i++) {
+      noise(v, { freq: 1500 + Math.random() * 4500, q: 3, at: Math.random() * 0.3, dur: 0.015 + Math.random() * 0.03, vol: 0.06 + Math.random() * 0.08 });
+    }
+    tinkles(v, 22, { at: 0.05, spread: 0.9, vol: 0.06 });
+    noise(v, { freq: 600, to: 6000, q: 0.8, at: 0.05, dur: 0.6, vol: 0.08, attack: 0.15 });
+  },
   unlock(v) {
     noise(v, { freq: 400, to: 5000, q: 1, dur: 0.5, vol: 0.15, attack: 0.3 });
     arp(v, [523, 659, 784, 1047], 0.09, { type: 'triangle', at: 0.3, dur: 0.7, vol: 0.13 });

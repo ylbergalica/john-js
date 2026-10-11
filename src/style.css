@@ -447,10 +447,11 @@ kbd {
 .box:disabled { opacity: 1; }
 .box-stage { position: relative; width: 128px; height: 128px; display: grid; place-items: center; }
 .box-mist { inset: -20px; --rise: -50px; --ember-rise: -74px; --peak: 1; transition: opacity 0.3s; opacity: 0.85; }
-.box-gem { position: relative; width: 96px; height: 96px; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--tier) 55%, transparent)); animation: gem-bob 3.2s ease-in-out infinite; transition: transform 0.35s var(--spring), filter 0.25s; }
+.box-gem { position: relative; width: 96px; height: 96px; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--tier) 55%, transparent)) brightness(1); animation: gem-bob 3.2s ease-in-out infinite; transition: transform 0.35s var(--spring), filter 0.25s; }
 @keyframes gem-bob { 50% { translate: 0 -6px; } }
 .box:hover:not(:disabled) .box-mist { opacity: 1; }
-.box:hover:not(:disabled) .box-gem { transform: scale(1.12) rotate(-4deg); filter: drop-shadow(0 0 22px var(--tier)) brightness(1.15); }
+/* Both filters in the same shape and colour notation: otherwise the glow flashes green mid-transition. */
+.box:hover:not(:disabled) .box-gem { transform: scale(1.12) rotate(-4deg); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--tier) 100%, transparent)) brightness(1.15); }
 .box-glint { position: absolute; width: 10px; height: 10px; opacity: 0; background: #fff; clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%); animation: glint 2.6s ease-in-out infinite; }
 .box-glint.g0 { top: 14px; right: 18px; }
 .box-glint.g1 { bottom: 20px; left: 16px; width: 7px; height: 7px; animation-delay: 0.9s; }
@@ -466,18 +467,78 @@ kbd {
 .box.sold-out .box-name { color: var(--dim); text-shadow: none; }
 .box.sold-out .box-price { color: var(--muted); font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-color: rgba(255, 255, 255, 0.12); }
 
-.reveal { position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; overflow: hidden; text-align: center; background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--tier) 24%, #000), rgba(0, 0, 0, 0.97) 55%); animation: fade 0.3s ease-out both; }
-.reveal-stage { position: relative; display: grid; place-items: center; margin: 10px 0 8px; }
+.reveal { position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 20px; overflow: hidden; text-align: center; background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--tier) 24%, #000), rgba(0, 0, 0, 0.97) 55%); animation: fade 0.3s ease-out both; }
+.reveal-stage { position: relative; display: grid; place-items: center; margin-bottom: 18px; }
 .reveal-mist { left: -130px; right: -130px; top: -90px; bottom: -50px; z-index: -1; --rise: -90px; --ember-rise: -170px; animation: fade 1.2s ease-out both; }
 @keyframes spin { to { transform: rotate(1turn); } }
-.reveal-kicker { color: var(--tier); animation: rise 0.5s var(--ease) 0.05s both; }
 .reveal-icon { width: 168px; height: 168px; border-radius: 16px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tier) 55%, transparent); animation: reveal-icon 0.9s var(--spring) 0.15s both; }
 @keyframes reveal-icon { from { opacity: 0; transform: scale(0.3) rotate(-14deg); filter: brightness(3) blur(6px); } }
 .reveal-name { font-size: 46px; text-transform: uppercase; --ls: 8px; letter-spacing: 8px; padding-left: 8px; --glow: var(--tier); --glow-soft: color-mix(in srgb, var(--tier) 45%, transparent); --title-color: #fff; animation-delay: 0.45s; }
 .reveal-quote { max-width: 560px; font-size: 18px; font-style: italic; color: #c8c8c8; animation: rise 0.6s var(--ease) 0.9s both; }
 .reveal-desc { max-width: 520px; font-size: 17px; line-height: 1.45; animation: rise 0.6s var(--ease) 1.05s both; }
-.reveal-continue { margin-top: 28px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); animation: fade 0.6s ease-out 1.6s both, breathe 2s ease-in-out 2.2s infinite; }
 @keyframes breathe { 50% { opacity: 0.4; } }
+
+/* Buying a box: a small card asking first, over the shop. */
+.confirm { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(3px); animation: fade 0.15s ease-out both; }
+.confirm-card {
+  position: relative; width: min(380px, 100%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 22px 22px; text-align: center; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--tier) 45%, transparent);
+  background: radial-gradient(ellipse 80% 55% at 50% 22%, color-mix(in srgb, var(--tier) 18%, transparent), transparent 70%), rgba(8, 8, 10, 0.97);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--tier) 22%, transparent), 0 14px 40px rgba(0, 0, 0, 0.7);
+  animation: confirm-in 0.3s var(--spring) both;
+}
+@keyframes confirm-in { from { opacity: 0; transform: scale(0.9) translateY(8px); } }
+.confirm-gem { width: 84px; height: 84px; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tier) 60%, transparent)); animation: gem-bob 3.2s ease-in-out infinite; }
+.confirm-name { font-size: 22px; text-transform: uppercase; letter-spacing: 6px; padding-left: 6px; color: var(--tier); text-shadow: 0 0 12px color-mix(in srgb, var(--tier) 60%, transparent); }
+.confirm-question { font-size: 16px; color: #ddd; }
+.confirm-actions { display: flex; gap: 10px; margin-top: 10px; width: 100%; }
+.confirm-actions button { flex: 1; }
+
+/* Breaking a box open: the gem, big, in its tier's mist, cracking a little more each hit.
+   --p is how close it is to breaking (0…1): the halo, mist, glow and trembling all build
+   with it. Cracks and the hit shine are masked to the gem's own outline. */
+.breaker { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center; overflow: hidden; cursor: pointer; background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--tier) calc(10% + var(--p) * 18%), #000), rgba(0, 0, 0, 0.97) 60%); animation: fade 0.3s ease-out both; }
+.breaker.broken { cursor: default; }
+.breaker-body { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.breaker-kicker { color: var(--tier); font-size: 13px; letter-spacing: 6px; padding-left: 6px; animation: rise 0.5s var(--ease) both; transition: opacity 0.3s; }
+.breaker.broken .breaker-kicker, .breaker.broken .breaker-hint { opacity: 0; }
+.breaker-stage { position: relative; width: min(320px, 70vw); aspect-ratio: 1; animation: breaker-in 0.6s var(--spring) both; }
+@keyframes breaker-in { from { opacity: 0; transform: scale(0.4) rotate(-10deg); } }
+.breaker-halo { position: absolute; inset: 0; border-radius: 50%; mix-blend-mode: plus-lighter; background: radial-gradient(circle, color-mix(in srgb, var(--tier) 60%, transparent), transparent 62%); opacity: calc(0.35 + var(--p) * 0.65); scale: calc(0.9 + var(--p) * 0.6); transition: opacity 0.2s, scale 0.25s var(--spring); animation: halo 2.4s ease-in-out infinite; }
+.breaker.broken .breaker-halo { opacity: 0; transition: opacity 0.6s; }
+.breaker-mist { inset: -60px -110px -30px; --rise: -120px; --ember-rise: -200px; opacity: calc(0.55 + var(--p) * 0.45); transition: opacity 0.3s; }
+.breaker.broken .breaker-mist { opacity: 0; transition: opacity 0.5s; }
+.breaker-gem { position: absolute; inset: 0; animation: tremble 0.09s steps(2) infinite; }
+@keyframes tremble {
+  0% { translate: calc(var(--p) * var(--p) * -2.5px) calc(var(--p) * var(--p) * 1.5px); }
+  50% { translate: calc(var(--p) * var(--p) * 2.5px) calc(var(--p) * var(--p) * -1.5px); }
+}
+.breaker-img { position: absolute; inset: 0; width: 100%; height: 100%; animation: gem-bob 3.2s ease-in-out infinite; filter: brightness(calc(1 + var(--p) * 0.3)) drop-shadow(0 0 calc(14px + var(--p) * 26px) color-mix(in srgb, var(--tier) 70%, transparent)); }
+.breaker-cracks, .breaker-shine { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; -webkit-mask: var(--gem) center / contain no-repeat; mask: var(--gem) center / contain no-repeat; animation: gem-bob 3.2s ease-in-out infinite; }
+.breaker-cracks { overflow: visible; filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 5px var(--tier)) brightness(calc(1 + var(--p) * 0.5)); }
+.breaker-cracks path { fill: none; stroke: color-mix(in srgb, var(--tier) 25%, #fff); stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: crack-run 0.12s ease-out both; }
+.breaker-cracks path.d0 { stroke-width: 1.2; }
+.breaker-cracks path.d1 { stroke-width: 0.75; }
+.breaker-cracks path.d2 { stroke-width: 0.45; }
+@keyframes crack-run { to { stroke-dashoffset: 0; } }
+.breaker-cracks .pit { fill: #fff; opacity: 0.85; }
+.breaker-shine { opacity: 0; mix-blend-mode: plus-lighter; background: radial-gradient(circle, #fff, color-mix(in srgb, var(--tier) 60%, #fff) 60%); }
+.breaker-fx { position: absolute; inset: 0; pointer-events: none; }
+.breaker-pop, .breaker-ring, .breaker-wave, .breaker-spark, .breaker-chip { position: absolute; pointer-events: none; }
+.breaker-pop { width: 70px; height: 70px; border-radius: 50%; mix-blend-mode: plus-lighter; background: radial-gradient(circle, #fff, color-mix(in srgb, var(--tier) 70%, #fff) 30%, transparent 70%); }
+.breaker-ring { width: 46px; height: 46px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--tier) 50%, #fff); box-shadow: 0 0 12px var(--tier), inset 0 0 8px var(--tier); }
+.breaker-wave { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 24px var(--tier), inset 0 0 24px var(--tier); }
+.breaker-spark { width: 14px; height: 2px; margin: -1px 0 0 -7px; border-radius: 2px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--tier) 40%, #fff), #fff); box-shadow: 0 0 6px var(--tier); }
+.breaker-chip { width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); background: linear-gradient(135deg, color-mix(in srgb, var(--tier) 40%, #fff), var(--tier) 55%, color-mix(in srgb, var(--tier) 50%, #000)); clip-path: polygon(50% 0, 100% 70%, 20% 100%); filter: drop-shadow(0 0 3px var(--tier)); }
+.breaker-shard { position: absolute; inset: 0; pointer-events: none; }
+.breaker-shard .breaker-gem { animation: none; visibility: visible !important; }
+.breaker-shard .breaker-img, .breaker-shard .breaker-cracks, .breaker-shard .breaker-shine { animation: none; }
+.breaker-shard .breaker-img { filter: brightness(1.35); } /* a drop-shadow here renders dark inside the clip */
+.breaker-shard .breaker-cracks path { animation: none; stroke-dashoffset: 0; }
+.breaker-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 45%, #fff, color-mix(in srgb, var(--tier) 60%, #fff) 35%, color-mix(in srgb, var(--tier) 40%, transparent) 75%); }
+.breaker-hint { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); opacity: 0; transition: opacity 0.5s; }
+.breaker-hint.show { opacity: 1; animation: breathe 2s ease-in-out 0.5s infinite; }
+.breaker-hint.gone { opacity: 0 !important; animation: none; transition: opacity 0.15s; }
 
 .tooltip { position: fixed; z-index: 10; width: 330px; padding: 14px 16px; background: rgba(8, 8, 10, 0.97); border: 1px solid rgba(255, 255, 255, 0.14); border-top: 2px solid var(--tier, #fff); border-radius: 8px; box-shadow: 0 0 30px color-mix(in srgb, var(--tier, #fff) 15%, transparent), 0 12px 34px rgba(0, 0, 0, 0.7); pointer-events: none; animation: fade 0.15s ease-out both; }
 .t-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }

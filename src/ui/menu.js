@@ -1,5 +1,6 @@
 // Main menu: start a run or the playground, manage the aspect loadout, buy tier
-// boxes, reveal unlocks, and show hover tooltips. Esc backs out of open panels.
+// boxes (confirm, then break them open), reveal unlocks, and show hover tooltips. Esc
+// backs out of open panels.
 import { h } from './dom.js';
 import { TIERS, HUD, MAX_EQUIPPED_ASPECTS, ASPECTS } from '../data/config.js';
 import { iconUrls } from '../render/assets.js';
@@ -7,11 +8,13 @@ import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
 import { coinIcon, keycap, easeOut, replay, mistFx } from './common.js';
 import { sky } from './sky.js';
+import { BoxBreak } from './boxBreak.js';
 
 const tierOf = (a) => TIERS.find((t) => t.tier === a.tier);
 const COIN_COUNT_TIME = 0.6; // seconds the coin counter takes to roll to a new balance
 const TOAST_TIME = 2.6;
 const REVEAL_GUARD = 0.6; // seconds before a key or click can dismiss an unlock
+const BREAKER_LINGER = 0.4; // seconds the broken box stays under the unlock card as it fades in
 const DRAG_START = 6; // pixels the pointer moves before a press on an aspect becomes a drag
 const CONTROLS = [
   ['WASD', 'Move'], ['Mouse', 'Aim'], ['LMB', 'Attack'], ['RMB', 'Parry'], ['Shift', 'Dash'],
@@ -89,7 +92,7 @@ export class MenuScene {
     // each holds that tier's aspects not yet unlocked.
     this.boxes = TIERS.map(({ tier, name, color }) => {
       const price = h('div', { class: 'box-price coin-amount' });
-      const button = h('button', { class: 'box', onclick: () => this.buyTierBox(tier) },
+      const button = h('button', { class: 'box', onclick: () => this.openConfirm(tier) },
         h('div', { class: 'box-stage' },
           mistFx('box-mist', { puffs: 24, embers: 10, x: [0.15, 0.85], y: [0.45, 0.9], size: [46, 84], dur: [2.2, 3.6], emberDur: [1.6, 2.8] }),
           h('img', { class: 'box-gem', src: iconUrls[`gem_${name.toLowerCase()}`], alt: '' }),
@@ -112,6 +115,9 @@ export class MenuScene {
       ),
     );
 
+    // Asked before a box is bought; a click outside the card cancels.
+    this.confirmPanel = h('div', { class: 'confirm interactive hidden', onclick: (e) => e.target === this.confirmPanel && this.closeConfirm() });
+    this.breaker = null;
     this.revealPanel = h('div', { class: 'reveal interactive hidden' });
     this.tooltip = h('div', { class: 'tooltip hidden' });
 
@@ -122,7 +128,7 @@ export class MenuScene {
     rise(hint);
 
     this.el = h('div', { class: 'menu-screen' },
-      sky(), main, hint, this.aspectsPanel, this.shopPanel, this.revealPanel, this.toast, this.tooltip,
+      sky(), main, hint, this.aspectsPanel, this.shopPanel, this.confirmPanel, this.revealPanel, this.toast, this.tooltip,
     );
     root.append(this.el);
 
@@ -158,7 +164,13 @@ export class MenuScene {
   }
 
   onKey(e) {
-    if (e.code !== 'Escape' || e.repeat || !this.revealPanel.classList.contains('hidden')) return;
+    if (e.repeat || this.breaker || !this.revealPanel.classList.contains('hidden')) return;
+    if (!this.confirmPanel.classList.contains('hidden')) {
+      if (e.code === 'Enter') this.confirmBuy();
+      else if (e.code === 'Escape') { this.closeConfirm(); sfx.play('click'); }
+      return;
+    }
+    if (e.code !== 'Escape') return;
     if (!this.shopPanel.classList.contains('hidden')) this.closeShop();
     else if (!this.aspectsPanel.classList.contains('hidden')) this.closeAspects();
     else return;
@@ -170,12 +182,40 @@ export class MenuScene {
   openShop() { this.hideTooltip(); this.shopPanel.classList.remove('hidden'); this.refresh(); }
   closeShop() { this.shopPanel.classList.add('hidden'); }
 
-  buyTierBox(tier) {
+  openConfirm(tier) {
+    const t = TIERS.find((x) => x.tier === tier);
+    this.hideTooltip();
+    this.confirmTier = tier;
+    this.confirmPanel.replaceChildren(h('div', { class: 'confirm-card' },
+      h('img', { class: 'confirm-gem', src: iconUrls[`gem_${t.name.toLowerCase()}`], alt: '' }),
+      h('div', { class: 'confirm-name', text: t.name }),
+      h('div', { class: 'confirm-question', text: `Request a random ${t.name} aspect?` }),
+      h('div', { class: 'box-price coin-amount' }, coinIcon(), String(profile.priceForTier(tier))),
+      h('div', { class: 'confirm-actions' },
+        h('button', { class: 'primary', text: 'Request', onclick: () => this.confirmBuy() }),
+        h('button', { text: 'Cancel', onclick: () => this.closeConfirm() }),
+      ),
+    ));
+    setTier(this.confirmPanel, t).classList.remove('hidden');
+  }
+
+  closeConfirm() { this.confirmPanel.classList.add('hidden'); }
+
+  // Buys the box (the aspect is unlocked and paid for now, so leaving mid-break loses
+  // nothing), then hands it over to be broken open.
+  confirmBuy() {
+    const tier = this.confirmTier;
+    this.closeConfirm();
     const res = profile.buyTierBox(tier);
     if (!res.ok) { sfx.play('deny'); this.setStatus(res.reason); this.refresh(); return; }
     this.closeShop();
     this.refresh();
-    this.openReveal(res.aspect);
+    this.breaker = new BoxBreak(this.el, TIERS.find((t) => t.tier === tier), () => {
+      const b = this.breaker;
+      this.breaker = null;
+      this.openReveal(res.aspect);
+      setTimeout(() => b.destroy(), BREAKER_LINGER * 1000);
+    });
   }
 
   toggleEquip(id) {
@@ -255,9 +295,7 @@ export class MenuScene {
   // Full-screen unlock card, built fresh so its entrance plays every time; the next
   // key press or click (after a short guard) dismisses it.
   openReveal(a) {
-    const tier = tierOf(a);
     this.revealPanel.replaceChildren(
-      h('div', { class: 'eyebrow reveal-kicker', text: `${tier.name} aspect unlocked` }),
       h('div', { class: 'reveal-stage' },
         mistFx('reveal-mist', { puffs: 30, embers: 22, x: [0.08, 0.92], y: [0.35, 0.95], size: [70, 140], dur: [2.6, 4.2], emberSize: [2, 4], emberDur: [1.8, 3.2] }),
         h('img', { class: 'reveal-icon', src: iconUrls[a.icon], alt: '' }),
@@ -265,7 +303,6 @@ export class MenuScene {
       h('div', { class: 'reveal-name title-in', text: a.displayName }),
       a.quote ? h('div', { class: 'reveal-quote', text: `"${a.quote}"` }) : null,
       h('div', { class: 'reveal-desc', text: a.description }),
-      h('div', { class: 'reveal-continue', text: 'Press any key to continue' }),
     );
     setTier(this.revealPanel, a).classList.remove('hidden');
     sfx.play('unlock');
@@ -374,6 +411,7 @@ export class MenuScene {
   destroy() {
     this.listeners.abort();
     this.revealListeners?.abort();
+    this.breaker?.destroy();
     clearTimeout(this.toastTimer);
     this.hideTooltip();
     this.el.remove();

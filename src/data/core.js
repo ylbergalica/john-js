@@ -1,6 +1,10 @@
 // Simulation, camera, audio, HUD and run-level settings.
 // World units: one tile = one unit; the camera shows 20 units vertically.
 
+// The demo build (`npm run build:demo` / `dev:demo`, mode "demo" reading .env.demo).
+// Demo-only changes check this, so the full game's build never has them.
+export const DEMO = import.meta.env.VITE_DEMO === 'true';
+
 export const FIXED_DT = 1 / 50; // simulation rate; responsiveness/damping values are tuned for it
 export const MAX_STEPS_PER_FRAME = 5;
 export const CAMERA = { orthoSize: 10, followDamping: 1 };

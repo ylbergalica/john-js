@@ -22,6 +22,14 @@ const CONTROLS = [
 ];
 
 const setTier = (el, a) => { el.style.setProperty('--tier', a ? tierOf(a).color : null); return el; };
+const discounted = (tier) => profile.priceForTier(tier) < profile.fullPriceForTier(tier);
+// A box's price; a discount strikes out the full price before it.
+const priceTag = (tier) => [
+  coinIcon(),
+  discounted(tier) ? h('s', { class: 'full-price', text: String(profile.fullPriceForTier(tier)) }) : null,
+  String(profile.priceForTier(tier)),
+].filter(Boolean);
+const demoBadge = (cls) => h('div', { class: cls, text: 'Demo discount' });
 
 export class MenuScene {
   constructor(root, { onStartRun, onPlayground }) {
@@ -100,6 +108,7 @@ export class MenuScene {
         ),
         h('div', { class: 'box-name', text: name }),
         price,
+        discounted(tier) ? demoBadge('demo-ribbon') : null,
       );
       button.style.setProperty('--tier', color);
       return { tier, button, price };
@@ -190,7 +199,8 @@ export class MenuScene {
       h('img', { class: 'confirm-gem', src: iconUrls[`gem_${t.name.toLowerCase()}`], alt: '' }),
       h('div', { class: 'confirm-name', text: t.name }),
       h('div', { class: 'confirm-question', text: `Request a random ${t.name} aspect?` }),
-      h('div', { class: 'box-price coin-amount' }, coinIcon(), String(profile.priceForTier(tier))),
+      discounted(tier) ? demoBadge('demo-tag') : null,
+      h('div', { class: 'box-price coin-amount' }, priceTag(tier)),
       h('div', { class: 'confirm-actions' },
         h('button', { class: 'primary', text: 'Request', onclick: () => this.confirmBuy() }),
         h('button', { text: 'Cancel', onclick: () => this.closeConfirm() }),
@@ -256,7 +266,7 @@ export class MenuScene {
       button.disabled = !profile.canBuyTier(tier);
       button.classList.toggle('sold-out', soldOut);
       button.classList.toggle('cant-afford', !soldOut && profile.coins < profile.priceForTier(tier));
-      price.replaceChildren(...(soldOut ? ['Sold out'] : [coinIcon(), String(profile.priceForTier(tier))]));
+      price.replaceChildren(...(soldOut ? ['Sold out'] : priceTag(tier)));
     }
   }
 

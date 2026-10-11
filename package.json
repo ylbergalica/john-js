@@ -9,10 +9,13 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --mode demo",
     "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview",
     "desktop": "vite build && electron .",
     "dist:win": "vite build && electron-builder --win",
+    "dist:win:demo": "vite build --mode demo && electron-builder --win -c.directories.output=release-demo -c.win.artifactName=${productName}-Demo-${version}-win.${ext}",
     "icon": "electron build/icon.mjs"
   },
   "devDependencies": {

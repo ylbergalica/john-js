@@ -1,7 +1,7 @@
 // Meta progression: banked coins, aspect unlocks (tier boxes), the equipped loadout and
 // the enemy types killed so far, and how much each aspect has been played with.
 // The save is the single source of truth.
-import { ASPECTS, TIERS, MAX_EQUIPPED_ASPECTS } from '../data/config.js';
+import { ASPECTS, TIERS, MAX_EQUIPPED_ASPECTS, DEMO } from '../data/config.js';
 import { randInt } from '../engine/math.js';
 import { save } from './save.js';
 
@@ -29,7 +29,9 @@ export const profile = {
   loadout: () => slots().map((id) => byId.get(id) ?? null),
   equippedAspects: () => profile.loadout().filter(Boolean),
 
-  priceForTier: (tier) => tierInfo(tier).price,
+  // What a box costs now, and without the demo's discount.
+  priceForTier: (tier) => (DEMO && tierInfo(tier).demoPrice) || tierInfo(tier).price,
+  fullPriceForTier: (tier) => tierInfo(tier).price,
   hasLockedInTier: (tier) => lockedInTier(tier).length > 0,
   canBuyTier: (tier) => profile.hasLockedInTier(tier) && profile.coins >= profile.priceForTier(tier),
 

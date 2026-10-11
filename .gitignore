@@ -140,3 +140,4 @@ dist
 
 # Desktop builds (electron-builder)
 release
+release-demo

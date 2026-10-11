@@ -3,9 +3,10 @@
 // aspectFloors: aspect id → run floors cleared with it equipped (how much it's been used),
 // and runsFinished: runs ended in death; until there is one, every run teaches the game (Tutorial).
 // equippedAspectIds holds one entry per loadout slot, null where the slot is empty.
-import { MAX_EQUIPPED_ASPECTS } from '../data/config.js';
+import { MAX_EQUIPPED_ASPECTS, DEMO } from '../data/config.js';
 
-const KEY = 'john.save';
+// The demo keeps its own save, so nothing bought at demo prices carries into the full game.
+const KEY = DEMO ? 'john.demo.save' : 'john.save';
 
 const emptySlots = () => Array(MAX_EQUIPPED_ASPECTS).fill(null);
 const defaults = () => ({ totalCoins: 0, unlockedAspectIds: [], equippedAspectIds: emptySlots(), killedEnemyTypes: [], aspectFloors: {}, runsFinished: 0 });

@@ -1,10 +1,11 @@
 // Aspects: equippable perks bought with coins, and their tiers. A tier's box takes `hits`
-// clicks to break open.
+// clicks to break open. The demo build (DEMO) sells a box at its `demoPrice`, shown as a
+// discount on the full price.
 
 export const AspectTier = { Gift: 0, Prestige: 1, Mythic: 2 };
 export const TIERS = [
-  { tier: AspectTier.Gift, name: 'Gift', price: 1000, hits: 5, color: 'var(--gift)' },
-  { tier: AspectTier.Prestige, name: 'Prestige', price: 5000, hits: 8, color: 'var(--prestige)' },
+  { tier: AspectTier.Gift, name: 'Gift', price: 1000, demoPrice: 100, hits: 5, color: 'var(--gift)' },
+  { tier: AspectTier.Prestige, name: 'Prestige', price: 5000, demoPrice: 300, hits: 8, color: 'var(--prestige)' },
   { tier: AspectTier.Mythic, name: 'Mythic', price: 15000, hits: 10, color: 'var(--mythic)' },
 ];
 export const MAX_EQUIPPED_ASPECTS = 3;

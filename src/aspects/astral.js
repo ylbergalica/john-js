@@ -3,13 +3,13 @@
 // the player (from the enemy parried), turning to point at that enemy, and eases to a stop;
 // a moment later it flies at it (or, if it's dead, at the enemy nearest the player), homing
 // in through walls, cutting props on the way and breaking on the first enemy it meets. It
-// trails a thin, tapering line of blue light.
+// trails a thin, tapering line of blue light; all of it crimson while the player is Exalted.
 import { Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
 import { segmentPointDistSq } from '../engine/physics.js';
 import { FIXED_DT, FX, PLAYER } from '../data/config.js';
-import { clamp, clamp01, deltaAngle, lerp, randRange } from '../engine/math.js';
+import { clamp, clamp01, deltaAngle, lerp, lerpColor, randRange } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { ASTRAL_BLADE } from '../render/sprites.js';
 
@@ -97,6 +97,9 @@ class AstralBlade extends Entity {
     this.trail.scale.set(1 / U);
     this.sprite = new Sprite({ texture: tex.astral_blade, anchor: 0.5 });
     this.sprite.visible = false;
+    // The crimson blade, faded in over the blue one while the player is Exalted.
+    this.exalted = new Sprite({ texture: tex.astral_blade_exalted, anchor: 0.5 });
+    this.exalted.visible = false;
     // A soft glow of light under the blade, so it stands out (added light is fine here: the
     // blade itself covers it).
     const H = this.data.fx.halo;
@@ -105,8 +108,14 @@ class AstralBlade extends Entity {
     this.halo.tint = H.color;
     this.halo.alpha = H.alpha;
     this.halo.visible = false;
-    world.layers.fx.addChild(this.halo, this.trail, this.sprite);
+    world.layers.fx.addChild(this.halo, this.trail, this.sprite, this.exalted);
   }
+
+  // How far its colours have turned to Exalted crimson, with the player's own glow.
+  get glow() { return this.aspect.player.view?.exalted.glow ?? 0; }
+
+  // `blue`, turned toward `crimson` while the player is Exalted.
+  tone(blue, crimson) { return lerpColor(blue, crimson, this.glow); }
 
   // The enemy it's after: its own while that lives, else whoever is nearest the player.
   aim() {
@@ -148,7 +157,8 @@ class AstralBlade extends Entity {
     this.flownAt = this.world.time;
     const t = this.aim(); // snaps true, in case it hadn't quite come round
     if (t) this.angle = Math.atan2(t.body.pos.y - y, t.body.pos.x - x);
-    this.world.deathFx.flare(tex.mist, x, y, 0, { time: L.time, w0: L.size, h0: L.size, w1: L.size * 0.3, h1: L.size * 0.3, alpha: L.alpha, color0: 0xffffff, color1: this.data.fx.color });
+    const F = this.data.fx;
+    this.world.deathFx.flare(tex.mist, x, y, 0, { time: L.time, w0: L.size, h0: L.size, w1: L.size * 0.3, h1: L.size * 0.3, alpha: L.alpha, color0: 0xffffff, color1: this.tone(F.color, F.exalted.color) });
     this.world.sound('astralLaunch', this.pos);
   }
 
@@ -188,19 +198,20 @@ class AstralBlade extends Entity {
   }
 
   hit(e, enemy) {
-    const d = this.data, H = d.fx.hit, w = this.world, dx = Math.cos(this.angle), dy = Math.sin(this.angle);
+    const d = this.data, H = d.fx.hit, E = d.fx.exalted, w = this.world, dx = Math.cos(this.angle), dy = Math.sin(this.angle);
     const src = { x: e.body.pos.x - dx * (e.body.radius + 1), y: e.body.pos.y - dy * (e.body.radius + 1) }; // straight back along its flight
     const hitPoint = e.closestPoint(src);
     e.takeDamage(d.damage * w.adrenaline.damageMultiplier, hitPoint, src, d.id);
     if (!enemy) return;
     if (!e.dead) e.applyKnockback(d.enemyKnockbackForce, src);
-    w.effects.playOnce(anims.hit_impact, hitPoint.x, hitPoint.y, this.angle, FX.hitImpactSize, H.impactTint);
-    w.effects.burst(hitPoint.x, hitPoint.y, this.angle, H.sparks);
+    w.effects.playOnce(anims.hit_impact, hitPoint.x, hitPoint.y, this.angle, FX.hitImpactSize, this.tone(H.impactTint, E.hit));
+    w.effects.burst(hitPoint.x, hitPoint.y, this.angle, { ...H.sparks, color: this.tone(H.sparks.color, E.hit) });
   }
 
   spend() {
     this.spentAt = this.world.time;
     this.sprite.visible = false;
+    this.exalted.visible = false;
     this.halo.visible = false;
   }
 
@@ -211,13 +222,18 @@ class AstralBlade extends Entity {
     const x = lerp(this.prev.x, this.pos.x, alpha), y = lerp(this.prev.y, this.pos.y, alpha);
     const angle = this.prevAngle + deltaAngle(this.prevAngle, this.angle) * alpha;
     if (!spent) {
-      const s = this.sprite, width = (F.length / ASTRAL_BLADE.length) * this.growth(now);
-      s.visible = true;
-      s.position.set(x, y);
-      s.rotation = angle;
-      s.width = width;
-      s.height = width * ASTRAL_BLADE.height;
+      const width = (F.length / ASTRAL_BLADE.length) * this.growth(now), glow = this.glow;
+      for (const [s, opacity] of [[this.sprite, 1 - glow], [this.exalted, glow]]) {
+        s.visible = opacity > 0;
+        s.alpha = opacity;
+        s.position.set(x, y);
+        s.rotation = angle;
+        s.width = width;
+        s.height = width * ASTRAL_BLADE.height;
+      }
       const h = this.halo, H = F.halo, size = F.length * this.growth(now);
+      h.tint = this.tone(H.color, F.exalted.halo);
+      h.alpha = lerp(H.alpha, F.exalted.haloAlpha, glow);
       h.visible = true;
       h.position.set(x, y);
       h.rotation = angle;
@@ -240,7 +256,7 @@ class AstralBlade extends Entity {
   // A ribbon through the trail's points, `width` at the head tapering to nothing at the tail
   // and fading with it, with a pale core down its middle.
   drawTrail(now, head) {
-    const T = this.data.fx.trail, g = this.trail;
+    const F = this.data.fx, T = F.trail, g = this.trail;
     g.clear();
     const pts = this.points.filter((p) => p.t <= now && now - p.t < T.time);
     if (head) pts.push(head);
@@ -251,7 +267,7 @@ class AstralBlade extends Entity {
       const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
       return { x: p.x, y: p.y, nx: -(b.y - a.y) / l, ny: (b.x - a.x) / l, k: clamp01(1 - (now - p.t) / T.time) };
     });
-    for (const [scale, color, alpha] of [[1, T.color, T.alpha], [T.coreWidth, T.core, T.alpha]]) {
+    for (const [scale, color, alpha] of [[1, this.tone(T.color, F.exalted.trail), T.alpha], [T.coreWidth, this.tone(T.core, F.exalted.core), T.alpha]]) {
       for (let i = 0; i < n - 1; i++) {
         const a = edge[i], b = edge[i + 1], wa = (T.width / 2) * scale * a.k, wb = (T.width / 2) * scale * b.k;
         g.poly([
@@ -265,6 +281,7 @@ class AstralBlade extends Entity {
   dispose() {
     this.trail.destroy();
     this.sprite.destroy();
+    this.exalted.destroy();
     this.halo.destroy();
   }
 }

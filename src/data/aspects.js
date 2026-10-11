@@ -184,13 +184,15 @@ export const ASPECTS = [
     // The look (src/aspects/astral.js): a small sword-shaped silhouette of bright blue light,
     // `length` long, growing out of the player over growTime as it leaves them, trailing a thin line
     // of blue light `trail` seconds long, `width` at the head and tapering away. It bursts in a
-    // small blue flash where it strikes. World units and seconds.
+    // small blue flash where it strikes. While the player is Exalted it all turns the dark
+    // crimson of `exalted`. World units and seconds.
     fx: {
       length: 0.5, color: 0x5aa8ff, grow: 0.12, growTime: 0.25,
       trail: { time: 0.14, width: 0.13, alpha: 1, color: 0x62b4ff, core: 0xeaf6ff, coreWidth: 0.4 },
       halo: { length: 2.2, width: 1.2, color: 0x3d9bff, alpha: 0.85 }, // a soft glow under the blade, in units of its length
       launch: { size: 0.5, time: 0.16, alpha: 0.7 },
       hit: { sparks: { count: 10, speed: 8, lifetime: 0.22, size: 0.28, coneDeg: 25, color: 0x8fb8ff }, impactTint: 0x8fb8ff },
+      exalted: { color: 0xff2a48, trail: 0xff3450, core: 0xffe4e8, halo: 0xff1438, haloAlpha: 1, hit: 0xff8090 },
     },
   },
 ];

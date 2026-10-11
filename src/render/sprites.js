@@ -48,6 +48,7 @@ export function sprites() {
     cleave_slash: cleaveSlash(),
     wraith_form: wraithForm(),
     astral_blade: astralBlade(),
+    astral_blade_exalted: astralBlade(ASTRAL_EXALTED),
     orb: orb(),
     comet: comet(),
     core: core(),
@@ -2140,13 +2141,17 @@ function astralPath(m = (x, y) => [x, y]) {
   return p;
 }
 
+// The blade's light: blue, and crimson while the player is Exalted, just as bright.
+const ASTRAL_BLUE = { glow: '#4fb0ff', under: '#6cbcff', body: '#8ccdff', core: ['#e6f4ff', '#f4faff'] };
+const ASTRAL_EXALTED = { glow: '#ff1438', under: '#ff3a54', body: '#ff5c72', core: ['#ffd8de', '#fff2f4'] };
+
 // Paints the blade (in its 1 × 0.36 box, placed by `m` as in astralPath) as nothing but bright
-// blue light: a soft halo, a solid blue body and a paler line of light down its middle, from
-// the pommel to near the point.
-function paintAstral(ctx, px, m = (x, y) => [x, y]) {
+// light in palette `c`: a soft halo, a solid body and a paler line of light down its middle,
+// from the pommel to near the point.
+function paintAstral(ctx, px, m = (x, y) => [x, y], c = ASTRAL_BLUE) {
   const path = astralPath(m);
-  glow(ctx, rgba('#4fb0ff', 1), px * 0.05, () => { ctx.fillStyle = '#6cbcff'; ctx.fill(path); ctx.fill(path); });
-  ctx.fillStyle = '#8ccdff';
+  glow(ctx, rgba(c.glow, 1), px * 0.05, () => { ctx.fillStyle = c.under; ctx.fill(path); ctx.fill(path); });
+  ctx.fillStyle = c.body;
   ctx.fill(path);
   const core = new Path2D();
   [[0.11, 0.158], [0.86, 0.168], [0.86, 0.192], [0.11, 0.202]].forEach(([x, y], i) => (i ? core.lineTo(...m(x, y)) : core.moveTo(...m(x, y))));
@@ -2154,15 +2159,15 @@ function paintAstral(ctx, px, m = (x, y) => [x, y]) {
   ctx.save();
   ctx.clip(path);
   ctx.filter = `blur(${px * 0.01}px)`;
-  ctx.fillStyle = linear(ctx, ...m(0.1, 0.18), ...m(0.9, 0.18), [rgba('#e6f4ff', 0.8), rgba('#f4faff', 1), rgba('#f4faff', 1), rgba('#f4faff', 0.2)]);
+  ctx.fillStyle = linear(ctx, ...m(0.1, 0.18), ...m(0.9, 0.18), [rgba(c.core[0], 0.8), rgba(c.core[1], 1), rgba(c.core[1], 1), rgba(c.core[1], 0.2)]);
   ctx.fill(core);
   ctx.restore();
 }
 
-// The blade Astral Blades draws (src/aspects/astral.js), pointing along +x.
-function astralBlade(W = 256) {
+// The blade Astral Blades draws (src/aspects/astral.js), pointing along +x, in `palette`.
+function astralBlade(palette = ASTRAL_BLUE, W = 256) {
   const { c, ctx, px } = surface(W, Math.round(W * ASTRAL_BLADE.height), W);
-  paintAstral(ctx, px);
+  paintAstral(ctx, px, undefined, palette);
   return c;
 }
 

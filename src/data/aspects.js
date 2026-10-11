@@ -115,4 +115,52 @@ export const ASPECTS = [
     // and seconds, [min, max] picks at random.
     motes: { rate: 40, size: [0.2, 0.4], life: [0.35, 0.7], outward: [0.3, 1.4], back: [0.4, 1.6], jitter: 0.4 },
   },
+  {
+    id: 'wraith', displayName: 'Wraith', tier: AspectTier.Gift, icon: 'wraith_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'Shackled by regret, unable to leave.',
+    description: 'Dashing turns you to mist that cuts through enemies.',
+    // While mist the player passes through enemies and nothing hits them; each enemy passed
+    // through is cut once a dash, thrown aside from its line. Still inside one as the dash
+    // runs out, it carries on through it, up to lingerTime longer, so they're never left stuck in it.
+    damage: 1, enemyKnockbackForce: 5, hitRadius: 0.45, lingerTime: 0.15,
+    // The look (src/aspects/wraith.js): the body bursts into mist and a small black shard of it
+    // pops out, white-hot at the tip, rimmed in the player's tint, pointing along the dash and
+    // shedding black and white wisps and a few pale motes; as the dash ends the mist is drawn
+    // back in, the shard collapses and the body swells back out of it. The whites warm with the
+    // rest of the player while Exalted. Sizes in world units, times in seconds, [min, max]
+    // picks at random.
+    fx: {
+      form: { length: 1.2, width: 0.5, from: 0.2, formTime: 0.08, flicker: 0.06 }, // pops out from `from` of its size over formTime, overshooting
+      wisps: { rate: 120, speed: [1, 2.5], spread: 1.5, size: [0.3, 0.55], grow: 1.8, life: [0.25, 0.45], alpha: 1, color: 0x000000, fade: 0x0d0a18 },
+      white: { share: 0.2, color: 0xffffff, fade: 0xa8a0d0, alpha: 0.85 }, // a share of every lot of wisps is pure white mist
+      tip: { rate: 220, speed: [0.3, 1.2], size: [0.15, 0.28], life: [0.12, 0.22] }, // white mist streaming off the shard's tip
+      haze: { share: 0.5, size: 1.6, alpha: 0.13, color: 0x6a5fa0, fade: 0x1a1530 }, // faint light under a share of the black wisps, so they show on the dark floor
+      motes: { rate: 30, speed: [0.5, 1.5], size: [0.08, 0.16], life: [0.25, 0.45], color: 0xd9d4ff },
+      // Turning to mist: the body blows apart into a cloud of black, in a white flash, rays of
+      // light and a ring of haze, mist blasted out all around and harder back the way it came,
+      // with a jolt of the camera.
+      burst: {
+        flash: { size: 0.6, grow: 1.5, time: 0.1, alpha: 0.8 },
+        ring: { from: 0.3, to: 1.3, time: 0.24, alpha: 0.55, color: 0x8a80c0 }, // band radius
+        core: { count: 4, speed: [0.5, 1.5], size: [0.7, 0.9], grow: 2.6, life: [0.25, 0.35] }, // black only
+        rays: { count: 16, speed: 12, lifetime: 0.22, size: 0.5, coneDeg: 180 },
+        around: { count: 22, speed: [4, 9], spreadDeg: 180, size: [0.35, 0.6], life: [0.25, 0.45] },
+        back: { count: 10, speed: [3, 6], spreadDeg: 50, size: [0.4, 0.7], life: [0.3, 0.5] },
+        shake: { duration: 0.08, strength: 0.05, frequency: 30 },
+      },
+      // Re-forming: wisps are drawn in from `radius` away (arriving as they fade) while the shard
+      // collapses over `collapse`, and the body swells from `from` of its size past full and
+      // settles over `time`, in a small white flash.
+      reform: {
+        time: 0.3, from: 0.15, collapse: 0.07,
+        wisps: { count: 24, radius: [0.8, 1.4], size: [0.35, 0.6], life: [0.15, 0.22] },
+        flash: { size: 0.5, grow: 2.4, time: 0.22, alpha: 0.9 },
+      },
+      cut: {
+        wisps: { count: 5, speed: [1.5, 3.5], spreadDeg: 35, size: [0.3, 0.5], life: [0.25, 0.4] }, // dragged on through the enemy
+        sparks: { count: 10, speed: 9, lifetime: 0.25, size: 0.3, coneDeg: 15, color: 0xd9d4ff },
+        impactTint: 0xd9d4ff,
+      },
+    },
+  },
 ];

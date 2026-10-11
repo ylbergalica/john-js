@@ -83,8 +83,8 @@ export class World {
 
   // The player while still in the fight: null once killed, through their death too.
   get livePlayer() { return this.player && !this.player.dead && !this.player.death ? this.player : null; }
-  // The player as enemy attacks see them: null while intangible, so attacks pass through.
-  get hittablePlayer() { const p = this.livePlayer; return p && !p.intangible ? p : null; }
+  // The player as enemy attacks see them: null while intangible or mist, so attacks pass through.
+  get hittablePlayer() { const p = this.livePlayer; return p && !p.intangible && !p.shrouded ? p : null; }
   get isGameOver() { return this.gameOverAt !== Infinity; }
   get finished() { return this.time >= this.gameOverAt; }
   get hasRequiredCores() { return this.cores.collected >= this.cores.required; }

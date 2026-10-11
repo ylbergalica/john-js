@@ -21,8 +21,10 @@ export class Player extends Entity {
     this.facing = { x: 0, y: 0 };
     this.movement = { x: 0, y: 0 };
     this.sizeScale = 1; // shrunk by the Anchor teleport
+    this.bodyScale = 1; // the drawn body's size alone (not its reach), eased by aspects re-forming it
     this.teleporting = false; // set by aspects; locks out other actions
     this.intangible = false; // set by aspects; enemy attacks pass through
+    this.shrouded = false; // turned to mist by an aspect: drawn as its form instead of the body, and enemy attacks pass through
     this.hidden = false; // not drawn: gone into the exit, or not yet appeared on a new floor
     this.alight = false; // drawn solid white: dissolving into the exit's light
     this.shoved = null; // { vx, vy, at, time }: a push fading out on top of walking (see shove)
@@ -219,6 +221,7 @@ export class Player extends Entity {
     this.dashReadyAt = now + D.dashCooldown;
     this.body.vel.x = d.x * D.dashSpeed;
     this.body.vel.y = d.y * D.dashSpeed;
+    this.aspects.onDash(d); // first, so the dash's look knows if an aspect has changed the body
     this.view.playDash(d);
     this.world.sound('dash');
     return true;

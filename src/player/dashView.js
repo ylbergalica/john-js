@@ -40,6 +40,7 @@ export class DashView {
     this.dir = { x: 1, y: 0 };
     this.lastDrop = { x: 0, y: 0 }; // where the last afterimage fell
     this.ready = true;
+    this.veiled = false; // this dash's body was turned to something else by an aspect
     this.color = X.color;
     this.warmth = 0; // 0…1 Exalted glow, from the last render
   }
@@ -53,6 +54,8 @@ export class DashView {
     this.dir = { x: dir.x, y: dir.y };
     this.angle = Math.atan2(dir.y, dir.x);
     this.lastDrop = { x: p.x, y: p.y };
+    this.veiled = this.player.shrouded;
+    if (this.veiled) return; // an aspect has turned the body to something else, with its own look
 
     const back = this.angle + Math.PI, bx = p.x - dir.x * r * 0.4, by = p.y - dir.y * r * 0.4;
     const L = X.launchRing;
@@ -71,6 +74,7 @@ export class DashView {
   end(p) {
     this.dashing = false;
     this.endedAt = this.time;
+    if (this.veiled) return; // and its own way back
     const s = this.player.sizeScale;
     this.kick(p.x + this.dir.x * DIAMETER * s * 0.4, p.y + this.dir.y * DIAMETER * s * 0.4, this.angle, X.brakePuffs, s);
   }
@@ -105,7 +109,9 @@ export class DashView {
     this.warmth = warmth;
     this.color = lerpColor(X.color, EXALTED_FX.tint, warmth);
 
-    if (this.dashing) {
+    if (this.dashing && player.shrouded) {
+      this.lastDrop = { x: p.x, y: p.y };
+    } else if (this.dashing) {
       // Afterimages at even spacing along the path, however far it went this frame.
       const step = X.afterimageSpacing * player.sizeScale;
       let dx = p.x - this.lastDrop.x, dy = p.y - this.lastDrop.y, d = Math.hypot(dx, dy);
@@ -122,8 +128,8 @@ export class DashView {
         this.world.effects.burst(p.x + nx * side - this.dir.x * behind, p.y + ny * side - this.dir.y * behind,
           this.angle + Math.PI, { ...X.streaks, color: this.color });
       }
-      if (warmth > 0) this.burn(p, dt, r);
     }
+    if (this.dashing && warmth > 0) this.burn(p, dt, (DIAMETER / 2) * player.sizeScale);
 
     for (const g of this.rings) this.updateRing(g, p);
     for (const pl of this.plumes) pl.update(dt);

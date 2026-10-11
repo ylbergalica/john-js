@@ -14,6 +14,7 @@ export class Body {
     this.solid = solid; // false = sensor: integrates but never collides
     this.collideWalls = collideWalls;
     this.enabled = true;
+    this.ignores = null; // a Set of bodies it passes through (still colliding with walls and the rest)
   }
 
   addImpulse(ix, iy) {
@@ -101,6 +102,7 @@ export class Physics {
   }
 
   resolvePair(a, b) {
+    if (a.ignores?.has(b) || b.ignores?.has(a)) return;
     const dx = b.pos.x - a.pos.x, dy = b.pos.y - a.pos.y;
     const r = a.radius + b.radius;
     const d2 = dx * dx + dy * dy;

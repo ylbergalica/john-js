@@ -144,7 +144,7 @@ export class PlayerView {
     this.exalted.render(p, dt);
     death?.render(dt);
     this.dash.render(p, dt, this.exalted.glow);
-    this.dash.shape(this.body, PLAYER.scale * player.sizeScale * (pose?.scale ?? 1));
+    this.dash.shape(this.body, PLAYER.scale * player.sizeScale * player.bodyScale * (pose?.scale ?? 1));
     this.tint = lerpColor(0xffffff, EXALTED_FX.tint, this.exalted.glow);
     const outline = lerpColor(B.outlineColor, EXALTED_FX.tint, this.exalted.glow);
     this.blob.outline.tint = death ? death.outline(outline) : outline;
@@ -159,8 +159,10 @@ export class PlayerView {
     this.parryAnim.update(dt);
 
     // Dying, the followers are drawn into the body and shrink with it as it caves in.
-    const pull = pose?.pull ?? 0, shrink = (pose?.scale ?? 1) * (1 - 0.5 * pull);
+    const pull = pose?.pull ?? 0, shrink = (pose?.scale ?? 1) * (1 - 0.5 * pull) * player.bodyScale;
     this.followers.forEach((fl, i) => {
+      // Turned to mist, the tail is held in the body, so it grows back out of it.
+      if (player.shrouded) { fl.x = p.x; fl.y = p.y; fl.vx.v = fl.vy.v = 0; }
       const target = this.trail[Math.min(this.trail.length - 1, (i + 1) * TRAIL_STRIDE)];
       fl.x = smoothDamp(fl.x, target.x, fl.vx, fl.smoothTime, dt);
       fl.y = smoothDamp(fl.y, target.y, fl.vy, fl.smoothTime, dt);
@@ -172,7 +174,7 @@ export class PlayerView {
     const since = player.now - player.lastHitAt;
     const flashing = since < HF.flashDuration;
     const blinking = !flashing && !death && since < PLAYER.health.invincibilityDuration;
-    const visible = !player.hidden && (!blinking || Math.floor((since - HF.flashDuration) / Math.max(0.01, HF.blinkInterval)) % 2 === 1);
+    const visible = !player.hidden && !player.shrouded && (!blinking || Math.floor((since - HF.flashDuration) / Math.max(0.01, HF.blinkInterval)) % 2 === 1);
     this.setFlash(flashing || player.alight || !!pose?.white);
     this.body.visible = visible;
     // The tail's ring warms with the outline (and, dying, flushes and heats with it), but

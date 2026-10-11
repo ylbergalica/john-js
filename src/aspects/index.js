@@ -4,6 +4,7 @@ import { CleaveAspect } from './cleave.js';
 import { FlashAspect } from './flash.js';
 import { PredatorAspect } from './predator.js';
 import { RiftAspect } from './rift.js';
+import { WraithAspect } from './wraith.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -11,6 +12,7 @@ const ASPECT_TYPES = {
   crescent: CleaveAspect,
   flash: FlashAspect,
   rift: RiftAspect,
+  wraith: WraithAspect,
 };
 
 export function createAspect(player, data) {

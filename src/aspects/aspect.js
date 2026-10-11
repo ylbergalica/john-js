@@ -13,6 +13,8 @@ export class Aspect {
   get cooldownFraction() { return 0; }
   // Whether it can fire right now: the HUD dims its icon while not, and flashes it when it comes back.
   get available() { return this.cooldownFraction <= 0; }
+  // A count it's building toward, shown on its HUD icon; null for none.
+  get counter() { return null; }
 
   // It fired: pops its HUD icon, and counts toward its summary stat if that's uses.
   used() {

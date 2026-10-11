@@ -196,4 +196,52 @@ export const ASPECTS = [
       exalted: { color: 0xff2a48, trail: 0xff3450, core: 0xffe4e8, halo: 0xff1438, haloAlpha: 1, hit: 0xff8090 },
     },
   },
+  {
+    id: 'thunder', displayName: 'Thunderclap', tier: AspectTier.Prestige, icon: 'thunder_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'The sky keeps count.',
+    description: 'Stringing hits together calls down thunder that leaps between foes.',
+    // Counts any damage to enemies but its own. Hits on chainHits different enemies (hitting
+    // one already in the chain again neither adds to it nor breaks it) call thunder out of the
+    // last enemy hit, back along the chain through every enemy in it. Any enemy within `reach`
+    // of the chain's lines is struck too, by a fork off the nearest point of it, and each fork
+    // stretches the area further, nearest enemy first, until maxTargets enemies are struck or
+    // no more are in reach. sameHits hits in a row on one enemy instead strike it alone for
+    // soloDamage, the thunder crawling out around it for soloTime, its arcs hitting every other
+    // enemy and prop they touch for arcDamage, once each. A chain's bolts hit every prop they
+    // touch for `damage` (sprouts don't hit anything). Touching: within hitRadius of the bolt.
+    // Either way the count starts over; there's no cooldown, but comboTime without a hit
+    // loses it. The HUD shows the chain so far. twitchDelay after it's all
+    // out it twitches once into a new shape, with a second clap of thunder, then holds still
+    // for `hold` and fades over `fade`.
+    chainHits: 4, sameHits: 5, comboTime: 6, reach: 7, maxTargets: 10,
+    damage: 2, soloDamage: 4, arcDamage: 1, hitRadius: 0.3, enemyKnockbackForce: 2,
+    speed: 150, minJumpTime: 0.01, // how fast it runs along a line, and the least any one jump takes
+    twitchDelay: 0.05, hold: 0.35, fade: 0.35, soloTime: 0.06, soloReach: 4.5, // how far out from the enemy alone its arcs crawl
+    // The look (src/aspects/thunder.js): thick jagged bolts, white-hot down the middle in a
+    // wide band of purple, under a soft purple glow, with thin forked sprouts off them, each
+    // laid down once where things are as it sets off. Every line is cut into pieces no longer
+    // than `step` and its midpoints knocked sideways by up to `rough` of each piece's length.
+    // Alone, `burst` arcs leap out at once and more follow, `rate` a second, from the enemy or a
+    // fork of an arc already out, up to soloReach away. World units and seconds, [min, max] at random.
+    fx: {
+      color: 0xa94dff, core: 0xffffff, glow: 0x7a2cff,
+      width: 0.21, coreWidth: 0.075, glowWidth: [0.8, 0.42], glowAlpha: [0.12, 0.22],
+      step: 0.28, rough: 0.42,
+      // Sprouts: off a share of a bolt's points, `width` of the bolt's and thinning to `taper` of
+      // that. A `share` of them are long, out to 5 units though mostly nearer the low end, with
+      // short twigs off them `twig` as wide as a short sprout.
+      sprouts: {
+        chance: 0.38, length: [0.3, 1], spreadDeg: [25, 70], width: 0.45, taper: 0.4, step: 0.14, rough: 0.5,
+        long: { share: 0.12, length: [1.5, 5], width: 0.6, twig: 0.8, step: 0.2, rough: 0.42 },
+      },
+      solo: { rate: 110, burst: 9, length: [1.2, 2.8], fork: 0.45, width: 0.75 },
+      strike: { size: 2.6, time: 0.32, alpha: 0.95 }, // the flash where it comes out
+      hit: {
+        flash: { size: 1.3, time: 0.22, alpha: 0.8 },
+        sparks: { count: 12, speed: 9, lifetime: 0.25, size: 0.3, coneDeg: 60, color: 0xc89bff },
+        impactTint: 0xc89bff,
+      },
+      shake: { duration: 0.12, strength: 0.08, frequency: 30 },
+    },
+  },
 ];

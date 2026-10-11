@@ -112,6 +112,13 @@ kbd {
 .aspect-icon.cooling img { filter: saturate(0.35) brightness(0.8); }
 .aspect-icon .cd { position: absolute; inset: 0; border-radius: 6px; }
 .aspect-icon kbd { position: absolute; z-index: 2; right: -7px; bottom: -7px; min-width: 16px; padding: 1px 4px 0; background: #111; text-shadow: none; }
+/* A count it's building toward (Aspect.counter): a black notch cut out of the icon's top right
+   corner, popping out of it as it climbs. */
+.aspect-icon .count { position: absolute; z-index: 2; right: 0; top: 0; min-width: 11px; padding: 2px 4px 3px 5px; border-radius: 0 6px 0 6px; background: #000;
+  font-size: 13px; font-weight: 700; line-height: 1; text-align: center; color: #fff; text-shadow: none; pointer-events: none; transform-origin: top right; }
+.aspect-icon .count:empty { display: none; }
+.aspect-icon .count.bump { animation: count-bump 0.35s ease-out; }
+@keyframes count-bump { 0% { transform: scale(1.4); } 100% { transform: scale(1); } }
 /* Fired: the icon pops and blazes starlight-white, settling over a lingering glow, as a
    ring bursts off it. */
 .aspect-icon.used { animation: proc-flash 0.8s ease-out; }

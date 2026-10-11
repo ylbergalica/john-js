@@ -1,4 +1,4 @@
-// In-run HUD: the floor intro, aspect cooldowns, health and adrenaline (bottom left),
+// In-run HUD: the floor intro, aspect cooldowns and counters, health and adrenaline (bottom left),
 // screen-edge effects (hurt, Exalted), the guardian intro's framing, and the pause menu.
 // Reads world state each frame and only touches the DOM on change.
 import { h, DomWriter } from './dom.js';
@@ -282,13 +282,15 @@ export class Hud {
       this.iconsFor = aspects;
       this.iconSlots = aspects.map((aspect) => {
         const overlay = h('div', { class: 'cd' });
+        const count = h('span', { class: 'count' });
         const el = h('div', { class: 'aspect-icon' },
           h('img', { src: iconUrls[aspect.data.icon], alt: aspect.data.displayName }),
           overlay,
           readyFx(),
+          count,
           aspect.data.activatable ? keycap(String(aspect.slot + 1)) : null,
         );
-        return { el, overlay, cooling: false, procs: aspect.procs };
+        return { el, overlay, count, counter: null, cooling: false, procs: aspect.procs };
       });
       this.icons.replaceChildren(...this.iconSlots.map((s) => s.el));
     }
@@ -306,6 +308,13 @@ export class Hud {
         replay(slot.el, 'used');
       }
       this.dom.set(slot.overlay, 'background', cooling ? `conic-gradient(${HUD.cooldownOverlay} ${pct}%, transparent ${pct}%)` : 'none');
+      // Its counter, popping as it climbs.
+      const counter = aspect.counter;
+      if (counter !== slot.counter) {
+        if (counter !== null && counter > (slot.counter ?? 0)) replay(slot.count, 'bump');
+        slot.counter = counter;
+        slot.count.textContent = counter ?? '';
+      }
     });
   }
 

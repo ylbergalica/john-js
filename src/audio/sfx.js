@@ -587,6 +587,29 @@ const SOUNDS = {
     noise(v, { freq: 1200, to: 5200, q: 1.8, dur: 0.12, vol: 0.12, attack: 0.01 });
     tone(v, { type: 'triangle', freq: 1320, to: 2640, dur: 0.1, vol: 0.03 });
   },
+  // Thunderclap (twice: as it strikes and as it twitches): a split-second crack tearing into a
+  // deep boom, then a long low rumble that rolls on in waves, all pushed hard into a soft
+  // clipper so it's loud and thick without peaking; and a smaller crack and
+  // thud on each enemy it leaps to.
+  thunder(v) {
+    const push = ctx.createGain();
+    push.gain.value = 1.5;
+    const grit = ctx.createWaveShaper();
+    grit.curve = drive();
+    const trim = ctx.createGain();
+    trim.gain.value = 0.8;
+    push.connect(grit).connect(trim).connect(v.out);
+    noise(v, { filter: 'lowpass', freq: 8000, to: 2000, dur: 0.18, vol: 0.7, attack: 0.002, out: push });
+    noise(v, { freq: 1400, to: 400, q: 0.7, at: 0.02, dur: 0.26, vol: 0.5, out: push });
+    tone(v, { freq: 65, to: 28, dur: 0.9, vol: 0.8, out: push });
+    noise(v, { filter: 'lowpass', freq: 520, to: 60, at: 0.04, dur: 1.8, vol: 0.75, attack: 0.05, hold: 0.35, out: push });
+    noise(v, { filter: 'lowpass', freq: 340, to: 70, at: 0.4, dur: 0.8, vol: 0.5, attack: 0.08, out: push });
+    noise(v, { filter: 'lowpass', freq: 280, to: 60, at: 0.85, dur: 0.9, vol: 0.35, attack: 0.1, out: push });
+  },
+  thunderZap(v) {
+    noise(v, { filter: 'lowpass', freq: 5000, to: 1200, dur: 0.08, vol: 0.2, attack: 0.002 });
+    tone(v, { freq: 110, to: 45, dur: 0.16, vol: 0.16 });
+  },
   anchorThrow(v) {
     noise(v, { freq: 700, to: 300, q: 1.2, dur: 0.25, vol: 0.22, attack: 0.02 });
     tone(v, { type: 'triangle', freq: 320, to: 200, dur: 0.15, vol: 0.08 });

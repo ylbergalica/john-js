@@ -2295,12 +2295,12 @@ function mixHex(a, b, t) {
 }
 
 // Shop gems, one per aspect tier, each a fancier cut than the last: a rhombus for Gift, a
-// long hexagon for Prestige and an eight-point star brilliant for Mythic (`notch` pulls
+// regular hexagon for Prestige and an eight-point star brilliant for Mythic (`notch` pulls
 // every other point in). Bevel facets lit from the top left around a bright table, a white
 // rim, a sheen and a glint. No backdrop.
 const GEM_CUTS = {
   gift: { color: '#5999ff', sides: 4, rx: 0.3, ry: 0.42, table: 0.45 },
-  prestige: { color: '#9459f2', sides: 6, rx: 0.32, ry: 0.42, table: 0.5 },
+  prestige: { color: '#9459f2', sides: 6, rx: 0.42, ry: 0.42, table: 0.5 },
   mythic: { color: '#ffae1f', sides: 16, rx: 0.43, ry: 0.43, table: 0.42, notch: 0.68 },
 };
 

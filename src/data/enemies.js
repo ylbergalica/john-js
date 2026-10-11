@@ -64,7 +64,7 @@ export const ENEMY_TYPES = {
       attacks: [{ ability: 'SeerOmen', weight: 0.6 }, { ability: 'SeerBolt', weight: 0.4 }] },
   },
   warden: {
-    name: 'Warden', maxHealth: 500, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
+    name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff, sfxPitch: 0.55,
     navFootprint: 3, // tiles; the Warden needs 3-wide passages
@@ -80,7 +80,7 @@ export const ENEMY_TYPES = {
   // An astral star-fighter: a delta wing with twin engines. Keeps its distance and attacks
   // from range more than the Warden does.
   seraph: {
-    name: 'Seraph', maxHealth: 450, damage: 9, radius: 0.9, mass: 100, linearDamping: 1,
+    name: 'Seraph', maxHealth: 600, damage: 9, radius: 0.9, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xb9a4ff, sfxPitch: 0.75,
     navFootprint: 3,

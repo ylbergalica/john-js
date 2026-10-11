@@ -67,7 +67,7 @@ export class Hud {
     this.adrenalineFill = h('div', { class: 'fill' });
     this.adrenaline = h('div', { class: 'bar adrenaline' }, this.adrenalineFill);
     this.adrenalineWrap = h('div', { class: 'adr' }, adrenalineFx(), this.adrenaline);
-    // Buffs held: their glyphs over the health bar, draining as they run out.
+    // Buffs held: their glyphs above the aspect icons, draining as they run out.
     this.buffPips = BUFF_KINDS.map((kind) => {
       const cd = h('div', { class: 'cd' });
       const el = h('div', { class: 'buff hidden', style: `--c: ${hex(BUFFS[kind].color)}` }, h('img', { src: iconUrls[`buff_${kind}`], alt: '' }), cd);
@@ -107,8 +107,8 @@ export class Hud {
     this.el = h('div', { class: 'hud' },
       this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.warpWash, this.floorIntro,
       h('div', { class: 'hud-cluster' },
-        this.icons,
         this.buffList,
+        this.icons,
         this.healthWrap,
         this.adrenalineWrap,
       ),

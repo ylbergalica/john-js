@@ -264,7 +264,7 @@ kbd {
 .hp.mended .bar.health .fill { animation: mended 0.5s ease-out; }
 @keyframes mended { 0% { filter: brightness(2) saturate(1.5); } }
 
-/* Buffs held (from broken props): their glyphs in a row over the health bar in a ring of
+/* Buffs held (from broken props): their glyphs in a row above the aspect icons in a ring of
    their colour, each draining as it runs out and blinking near the end; popping in when taken. */
 .buffs { display: flex; gap: 8px; }
 .buffs:not(:has(.buff:not(.hidden))) { display: none; }

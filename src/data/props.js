@@ -220,9 +220,9 @@ export const PROP_SPAWN = {
 // that takes, with a moment of invulnerability after.
 // While one holds the player shows it (`color`), and the HUD lists it with what's left.
 export const BUFFS = {
-  swift: { time: 10, speed: 1.3, color: 0x7fe8ff },
-  fury: { time: 10, damage: 1.5, color: 0xff5fc8 },
-  haste: { time: 10, cooldown: 0.6, color: 0xffe95a },
+  swift: { time: 30, speed: 1.3, color: 0x7fe8ff },
+  fury: { time: 30, damage: 1.5, color: 0xff5fc8 },
+  haste: { time: 30, cooldown: 0.6, color: 0xffe95a },
   ward: { color: 0xc8d4ff },
 };
 

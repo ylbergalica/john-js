@@ -68,9 +68,9 @@ export const ASPECTS = [
   },
   {
     id: 'crescent', displayName: 'Cleave', tier: AspectTier.Gift, icon: 'cleave_icon', activatable: false, stat: AspectStat.Hits,
-    quote: 'Every strike leaves a wake.',
-    description: 'Connecting a hit sends a cleaving slash flying forward.',
-    damage: 1, speed: 25, travelDistance: 6, spawnForwardOffset: 0.5, enemyKnockbackForce: 9, cooldown: 0,
+    quote: 'A system not based purely on strength is boring.',
+    description: 'Connecting a hit sends a flying slash forward.',
+    damage: 0.5, speed: 25, travelDistance: 6, spawnForwardOffset: 0.5, enemyKnockbackForce: 6, cooldown: 0,
     hitboxDepth: 0.36178464 * 1.5, hitboxWidth: 1.765077 * 1.5, spriteSize: 2 * 1.5, alpha: 1,
     // The slash's trail (src/aspects/cleave.js): red motes shed from along its edge, `rate` a
     // second, coasting `forward` behind it and up to `spread` sideways, cooling to `fade`;

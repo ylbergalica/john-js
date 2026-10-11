@@ -16,7 +16,7 @@ export const PLAYER = {
     playerKnockbackForce: 2,
     attackDuration: 0.1,
     cooldown: 0.7,
-    cooldownAfterHit: 0.5,
+    cooldownAfterHit: 0.35,
     // Capsule perpendicular to facing, centred attackRange ahead.
     hitboxDepth: 0.5 * 1.8 * 0.8,
     hitboxWidth: 1 * 1.9 * 0.8,

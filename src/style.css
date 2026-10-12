@@ -319,6 +319,10 @@ kbd {
 .tool-menu button.tool:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); color: var(--fg); box-shadow: none; }
 .tool .grow { flex: 1; }
 .tool kbd { min-width: 18px; padding: 1px 4px 0; }
+.tool .tool-icon { width: 16px; height: 16px; flex: none; color: var(--muted); transition: color 0.1s, filter 0.1s; }
+.tool .tool-icon svg { display: block; width: 100%; height: 100%; }
+.tool:hover .tool-icon { color: var(--fg); }
+.tool.on .tool-icon { color: #ffd76a; filter: drop-shadow(0 0 4px rgba(255, 215, 106, 0.6)); }
 .tool .check { width: 12px; height: 12px; flex: none; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 3px; transition: background 0.1s, box-shadow 0.1s; }
 .tool.on .check { background: #ffd76a; border-color: #ffd76a; box-shadow: 0 0 6px rgba(255, 215, 106, 0.7); }
 .tool-slider input[type=range] { display: block; width: calc(100% - 16px); margin: 2px 8px 4px; accent-color: #ffd76a; cursor: pointer; }

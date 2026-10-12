@@ -17,6 +17,7 @@ export class RunSession {
       parried: new Emitter(), // (attack)
       enemyDamaged: new Emitter(), // (enemy, damage, cause)
       playerDamaged: new Emitter(), // (player, damage after resistance, raw damage)
+      playerThreatened: new Emitter(), // (player, pendingHit): an attack has connected and lands in a moment (see Player.hitBy)
       adrenalineGained: new Emitter(), // (points added, points offered)
     };
     this.adrenaline = new Adrenaline(this.events);

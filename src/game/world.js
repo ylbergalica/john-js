@@ -41,7 +41,6 @@ export class World {
     this.levelView = new LevelView();
     this.layers = {
       level: this.levelView.root,
-      ground: new Container(), // carved into the floor (Tutorial)
       exit: new Container(),
       debris: new Container(), // shards of broken props, settling on the floor
       props: new Container(),
@@ -92,6 +91,7 @@ export class World {
     this.introPace = 1; // how many times longer the intro's hold and pan take (TUTORIAL.introPace)
     this.guardianType = null; // the type every guardian spawns as, instead of the floor's pick (TUTORIAL.guardian)
     this.farEnds = false; // the player starts and the guardians wait as far apart as the floor allows
+    this.startClearance = 0; // no enemy spawns closer than this to the player's start (TUTORIAL.startClearance)
     this.nextFloorRequested = false;
     this.warp = null; // taking the exit (see EXIT_WARP); the world is frozen meanwhile
     this.warpIn = null; // arriving on the floor after it, until the player has appeared
@@ -130,10 +130,16 @@ export class World {
     const es = cfg.enemySpawn;
     const first = es.skipFirstRoom ? 1 : 0;
     const last = es.skipLastRoom ? rooms.length - 1 : rooms.length;
+    const clear = (p) => Math.hypot(p.x - layout.start.x, p.y - layout.start.y) >= this.startClearance;
     // → the adrenaline points the spawned enemy is sure to drop (0 if none spawned).
     const spawnIn = (room) => {
-      const pos = randomFloorInRoom(grid, room);
-      if (!pos) return 0;
+      let pos = null;
+      for (let tries = 0; tries < 10 && !pos; tries++) {
+        pos = randomFloorInRoom(grid, room);
+        if (!pos) return 0;
+        if (!clear(pos)) pos = null;
+      }
+      if (!pos) return 0; // too near the start
       const key = pickWeighted(es.enemies).type;
       this.spawnEnemy(key, pos);
       return ENEMY_TYPES[key].minAdrenalineDrops * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
@@ -229,7 +235,6 @@ export class World {
     this.effects.clear();
     this.deathFx.clear();
     this.debris.clear();
-    for (const c of this.layers.ground.removeChildren()) c.destroy({ children: true }); // a carving takes its own texture with it
     this.floorHeal = null;
     this.respawnAt = Infinity;
   }

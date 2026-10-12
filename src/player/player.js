@@ -56,6 +56,7 @@ export class Player extends Entity {
     this.invincibleUntil = 0;
     this.lastHitAt = -Infinity;
     this.pendingHit = null; // { attack, damage, hitPoint, source, landsAt }: a hit about to land (see hitBy)
+    this.parryGuardUntil = 0; // until then, every hit that connects is parried (the Tutorial's parry lesson)
     this.hurtBy = null; // the attack that last hurt the player, while it can still hurt: it can't be parried
     this.death = null; // PlayerDeath once killed: out of the fight while it plays, then hidden
 
@@ -99,6 +100,7 @@ export class Player extends Entity {
     if (input.wasPressed('parry')) this.parryBuffer.press(now);
     if (this.parrying && now >= this.parryEndsAt) this.endParry();
     this.parryBuffer.consume(now, () => this.tryStartParry());
+    if (this.pendingHit && now < this.parryGuardUntil) this.parryPendingHit();
     if (this.pendingHit && now >= this.pendingHit.landsAt) this.landPendingHit();
 
     this.aspects.step(dt);
@@ -309,6 +311,22 @@ export class Player extends Entity {
   hitBy(attack, damage, hitPoint, source) {
     if (this.dead || this.death || this.pendingHit || this.now < this.invincibleUntil) return;
     this.pendingHit = { attack, damage, hitPoint, source, landsAt: this.now + H.hitCoyoteTime };
+    this.world.events.playerThreatened.emit(this, this.pendingHit);
+  }
+
+  // A parry, turned toward the hit about to land, that takes it whatever the player was doing
+  // (under parryGuardUntil). False if there's no such hit or it can't be parried.
+  parryPendingHit() {
+    const hit = this.pendingHit, b = this.body;
+    if (!hit || hit.attack === this.hurtBy) return false;
+    const to = Math.hypot(hit.source.x - b.pos.x, hit.source.y - b.pos.y) > 0.01 ? hit.source : hit.hitPoint;
+    this.facing = norm({ x: to.x - b.pos.x, y: to.y - b.pos.y });
+    b.rotation = Math.atan2(this.facing.y, this.facing.x);
+    if (this.attacking) this.endAttack();
+    if (this.parrying) { this.parrying = false; this.view.hideParry(); }
+    this.parryReadyAt = 0;
+    this.hurtBy = null;
+    return this.tryStartParry() && !this.pendingHit;
   }
 
   landPendingHit() {

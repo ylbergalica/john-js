@@ -1,5 +1,5 @@
 // A run (or the playground): drives the world at a fixed rate with interpolated
-// rendering, and owns the HUD, pause state, the tutorial (until a first death), the tool
+// rendering, and owns the HUD, pause state, the tutorial (until a run has shown it all), the tool
 // menus at the top left (spawning in the playground, dev tools in dev builds) and, once a
 // run ends in death, the run summary.
 import { FIXED_DT, MAX_STEPS_PER_FRAME } from '../data/config.js';
@@ -37,8 +37,8 @@ export class GameScene {
     this.hud = new Hud(uiRoot, this);
     this.devOverlay = DEV ? new DevOverlay(uiRoot, this) : null;
     this.devHitboxes = DEV ? new DevHitboxes(this.world) : null;
-    // Runs teach the game until one has ended in death (quitting doesn't count).
-    this.tutorial = mode === RunMode.Run && profile.runsFinished === 0 ? new Tutorial(this) : null;
+    // Runs teach the game until one has shown all of it.
+    this.tutorial = mode === RunMode.Run && !profile.tutorialDone ? new Tutorial(this) : null;
 
     // Tool menus: one open at a time, and the world holds still while one is.
     const playground = mode === RunMode.Playground;
@@ -70,14 +70,14 @@ export class GameScene {
 
   frame(dt) {
     const world = this.world;
-    if (!this.summary) this.tutorial?.update(dt); // may hold the game (its card)
+    if (!this.summary) this.tutorial?.update(dt); // may hold the game (a card or tip)
     if (this.summary) {
       this.summary.update(dt);
     } else if (!this.frozen) {
       if (DEV) dt *= devFlags.gameSpeed;
       this.accumulator += dt;
       let steps = 0;
-      while (this.accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
+      while (this.accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME && !this.frozen) { // a step can start a tutorial hold
         world.step(FIXED_DT);
         this.input.consumePresses();
         this.accumulator -= FIXED_DT;
@@ -94,6 +94,7 @@ export class GameScene {
     this.devHitboxes?.update();
     if (!this.summary) {
       this.hud.update();
+      this.tutorial?.follow(this.alpha);
       this.devOverlay?.update(frameDt, this.alpha);
     }
   }

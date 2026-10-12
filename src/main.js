@@ -57,7 +57,7 @@ if (import.meta.env.DEV) {
     addCoins(n = 10000) { profile.bankCoins(n); showMenu(); },
     lock(id) { profile.lock(id); showMenu(); },
     resetSave() { profile.reset(); showMenu(); },
-    tutorial() { profile.forgetRuns(); startGame(RunMode.Run); }, // a run as if it were the first
+    tutorial() { profile.forgetTutorial(); startGame(RunMode.Run); }, // a run as if it were the first
     get scene() { return scene; },
     start: startGame,
     // Steps the game manually (e.g. while the tab is in the background).

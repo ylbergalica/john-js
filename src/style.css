@@ -625,13 +625,52 @@ kbd {
 .run-summary.done .rs-epilogue { opacity: 1; animation: rise 0.9s var(--ease) both; animation-delay: var(--d); }
 
 /* ── Tutorial (the first run) ── */
-/* Captions in the upper half, over the guardian intro and as play starts; they land like
-   titles and leave like the floor title (--dur). */
-.tut-caption { position: absolute; left: 0; right: 0; top: 31%; display: flex; justify-content: center; pointer-events: none; }
+/* Captions across the middle, just under the centre so they don't cover the guardian or the
+   player there: a dark band fading out to the sides between two faint rules, over the guardian
+   intro and as play starts. They land like titles and leave like the floor title (--dur). */
+.tut-caption { position: absolute; left: 0; right: 0; top: calc(50% + 10vh); display: flex; justify-content: center; pointer-events: none; }
 .tut-cap { animation: intro-out 0.6s ease-in both; animation-delay: calc(var(--dur) - 0.6s); }
-.tut-cap-text { font-size: 28px; text-transform: uppercase; white-space: nowrap; --ls: 7px; letter-spacing: 7px; padding-left: 7px; --ls-from: 26px; --glow: rgba(255, 255, 255, 0.7); --glow-soft: rgba(255, 255, 255, 0.22); --title-color: #ececec; animation: title-in 1.1s var(--ease) both; }
-.tut-cap.run .tut-cap-text { font-size: 34px; }
-.hud.paused .tut-cap, .hud.paused .tut-cap * { animation-play-state: paused; }
+.tut-cap-band { position: relative; padding: 20px 14vw 18px; background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.62) 22%, rgba(0, 0, 0, 0.62) 78%, transparent); animation: fade 0.5s ease-out both; }
+.tut-cap-band::before, .tut-cap-band::after { content: ''; position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3) 30%, rgba(255, 255, 255, 0.3) 70%, transparent); animation: grow 0.9s var(--ease) both; }
+.tut-cap-band::before { top: 0; }
+.tut-cap-band::after { bottom: 0; }
+.tut-cap-text { font-size: min(32px, 3vw); text-transform: uppercase; white-space: nowrap; --ls: 6px; letter-spacing: 6px; padding-left: 6px; --ls-from: 24px; --glow: rgba(255, 255, 255, 0.8); --glow-soft: rgba(255, 255, 255, 0.3); --title-color: #f2f2f2; animation: title-in 1.1s var(--ease) both; }
+.tut-cap.run .tut-cap-text { font-size: min(40px, 3.6vw); }
+.hud.paused .tut-cap, .hud.paused .tut-cap *, .hud.paused .tut-cap-band::before, .hud.paused .tut-cap-band::after { animation-play-state: paused; }
+/* Tips off the player's top right (placed by Tutorial.follow), stacked upward, a short line
+   leading back to the player; each rises in, lingers and fades (.out). */
+.tut-tips { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; pointer-events: none; text-shadow: none; }
+.tut-tips:not(:empty)::after { content: ''; position: absolute; left: 0; bottom: 0; width: 15px; height: 1px; background: rgba(255, 255, 255, 0.35); transform-origin: left center; transform: rotate(135deg); }
+.tut-tip { display: flex; flex-direction: column; gap: 8px; padding: 11px 15px; font-size: 16px; letter-spacing: 0.5px; color: #e8e8e8; white-space: nowrap; background: rgba(8, 9, 18, 0.88); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 6px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55); transform-origin: bottom left; animation: tip-in 0.45s var(--ease) both; }
+.tut-tip.out { animation: tip-out 0.5s ease-in both; }
+@keyframes tip-in { from { opacity: 0; transform: translate(-8px, 8px) scale(0.92); } }
+@keyframes tip-out { to { opacity: 0; transform: translateY(-6px); } }
+.hud.paused .tut-tip, .hud.paused .tut-tip * { animation-play-state: paused; }
+.tut-tip-row { display: flex; align-items: center; gap: 10px; }
+.tut-tip-icon { display: inline-flex; justify-content: center; width: 40px; }
+.tut-tip kbd { padding: 3px 6px 2px; font-size: 11px; }
+.tut-mouse svg { display: block; width: 15px; height: 21px; color: #d6d6d6; }
+.tut-orb { width: 9px; height: 9px; border-radius: 50%; background: #ff2a1a; box-shadow: 0 0 8px 2px rgba(202, 0, 0, 0.8); }
+/* The Exalted tip holds the game: larger, edged in the Exalted red. */
+.tut-tip.hold { max-width: 300px; padding: 14px 18px 12px; font-size: 17px; line-height: 1.45; white-space: normal; border-color: rgba(255, 60, 40, 0.5); box-shadow: 0 0 26px rgba(202, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.6); }
+.tut-tip.hold b { font-weight: normal; text-transform: uppercase; letter-spacing: 1px; color: #ff2a1a; text-shadow: 0 0 10px rgba(255, 40, 20, 0.6); }
+/* The parry lesson: the held world dimmed by the shadow of a capsule of light around the
+   player and their attacker (placed by Tutorial.placeSpot), its rim softened inward. */
+.tut-spot { position: absolute; left: 0; top: 0; border-radius: 9999px; pointer-events: none; box-shadow: 0 0 0 300vmax rgba(0, 0, 0, 0.72), inset 0 0 60px 24px rgba(0, 0, 0, 0.72); animation: fade 0.35s ease-out both; }
+.tut-spot.out { animation: tut-fade-out 0.35s ease-in both; }
+@keyframes tut-fade-out { to { opacity: 0; } }
+.tut-tip.parry { max-width: none; white-space: nowrap; border-color: rgba(255, 255, 255, 0.36); box-shadow: 0 0 24px rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.6); }
+.tut-tip-lead { font-size: 18px; color: #fff; }
+.tut-tip.parry .tut-tip-row { color: #cfcfcf; }
+.tut-tip.parry .tut-mouse svg { width: 17px; height: 24px; }
+/* Once it can be let go, the right button pulses: the click it waits for. */
+.tut-tip.parry.ready .tut-mouse { animation: tut-press 1.1s ease-in-out infinite; color: #fff; }
+@keyframes tut-press { 50% { transform: scale(1.15); filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9)); } }
+/* "Press anything to continue": faint, once a hold has stood long enough (.ready). */
+.tut-continue { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); visibility: hidden; }
+.ready > .tut-continue { visibility: visible; animation: fade 0.8s ease-out both, breathe 2.4s ease-in-out 0.8s infinite; }
+@keyframes breathe { 50% { opacity: 0.45; } }
+.tut-card .tut-continue { position: absolute; left: 0; right: 0; bottom: 12%; text-align: center; font-size: 13px; letter-spacing: 3px; }
 /* The Exalted card: a dark veil over the whole held game, its lines rising in by turn (--d). */
 .tut-card { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; text-shadow: none; background: rgba(0, 0, 0, 0.88); animation: fade 0.3s ease-out both; }
 .tut-band { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 64px; padding: 40px 20px; text-align: center; }

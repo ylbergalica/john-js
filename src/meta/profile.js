@@ -92,15 +92,21 @@ export const profile = {
     save.write();
   },
 
-  // Runs ended in death; until the first, every run teaches the game (Tutorial).
+  // Runs ended in death.
   get runsFinished() { return save.data.runsFinished; },
   recordRunFinished() {
     save.data.runsFinished++;
     save.write();
   },
+  // Until a run has shown every tutorial screen, every run teaches the game (Tutorial).
+  get tutorialDone() { return save.data.tutorialDone; },
+  completeTutorial() {
+    save.data.tutorialDone = true;
+    save.write();
+  },
   // For testing: the next run teaches again.
-  forgetRuns() {
-    save.data.runsFinished = 0;
+  forgetTutorial() {
+    save.data.tutorialDone = false;
     save.write();
   },
 

@@ -13,6 +13,7 @@ import { Entity } from '../game/entity.js';
 import { FIXED_DT, FX } from '../data/config.js';
 import { clamp01, lerp, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
+import { hurtDistance } from '../game/hurtbox.js';
 
 const DEG = Math.PI / 180;
 const U = 32; // bolts are drawn at this many units to the world unit, then scaled back down
@@ -128,7 +129,7 @@ class Thunder extends Entity {
         const p = e.body.pos;
         for (const b of this.bolts) {
           const a = this.at(b.from), c = this.at(b.to);
-          const near = nearest(a.x, a.y, c.x, c.y, p.x, p.y), gap = Math.sqrt(near.d2) - e.body.radius;
+          const near = nearest(a.x, a.y, c.x, c.y, p.x, p.y), gap = hurtDistance(e, lerp(a.x, c.x, near.t), lerp(a.y, c.y, near.t));
           if (gap <= d.reach && (!best || gap < best.gap)) best = { e, b, t: near.t, gap };
         }
       }
@@ -208,19 +209,20 @@ class Thunder extends Entity {
   sweep(b) {
     const d = this.data, w = this.world, mult = w.adrenaline.damageMultiplier;
     b.swept = true;
-    const touching = (body) => {
-      const near = closestOn(b.line, body.pos);
-      return near.d2 <= (body.radius + d.hitRadius) ** 2 ? near : null;
+    // Measured from the bolt's point nearest its centre.
+    const touching = (t) => {
+      const near = closestOn(b.line, t.body.pos);
+      return hurtDistance(t, near.x, near.y) <= d.hitRadius ? near : null;
     };
     for (const prop of w.props) {
-      const near = !prop.dead && !this.cut.has(prop) && touching(prop.body);
+      const near = !prop.dead && !this.cut.has(prop) && touching(prop);
       if (!near) continue;
       this.cut.add(prop);
       prop.takeDamage((this.solo ? d.arcDamage : d.damage) * mult, prop.closestPoint(near), near);
     }
     if (!this.solo) return;
     for (const e of w.enemies) {
-      const near = alive(e) && !this.struck.has(e) && touching(e.body);
+      const near = alive(e) && !this.struck.has(e) && touching(e);
       if (near) this.strike({ enemy: e }, near, d.arcDamage);
     }
   }

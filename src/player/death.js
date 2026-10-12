@@ -9,6 +9,7 @@ import { clamp01, lerp, lerpColor, randInsideUnitCircle, randRange, TAU } from '
 import { tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
 import { DamageCause } from '../game/damage.js';
+import { hurtDistance } from '../game/hurtbox.js';
 
 const R = PLAYER.blob.radius * PLAYER.scale; // the body's radius in world units
 const GHOST_PAD = 1 / 0.9; // the ghost texture's ring spans 0.9 of its width
@@ -150,7 +151,7 @@ export class PlayerDeath {
   blast(x, y, { radius, damage, perFloor }) {
     const src = { x, y }, w = this.world, amount = damage + perFloor * w.session.floor;
     for (const e of [...w.enemies, ...w.props]) { // a guardian struck down leaves the list
-      if (e.dead || Math.hypot(e.body.pos.x - x, e.body.pos.y - y) - e.body.radius >= radius) continue;
+      if (e.dead || hurtDistance(e, x, y) >= radius) continue;
       e.takeDamage(amount, e.closestPoint(src), src, DamageCause.Death);
     }
   }

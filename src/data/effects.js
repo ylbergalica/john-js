@@ -151,6 +151,12 @@ export const ATTACK_FX = {
   body: {
     stretch: 0.16, afterimageInterval: 0.03, afterimageLife: 0.22, afterimageAlpha: 0.55,
     sparks: { count: 2, speed: 4, lifetime: 0.25, size: 0.22, coneDeg: 25 },
+    // A charge that hurts only across its front burns only across that arc: full inside it,
+    // fading away over `fadeDeg` degrees across its sides. Its glow then takes the enemy's
+    // own shape (`halo`): its silhouette blurred by `blur` of its size (`passes` times over,
+    // to strengthen it), with `pad` of its size spare on each side, at `alpha`.
+    arcMask: { fadeDeg: 24 },
+    halo: { pad: 0.25, blur: 0.06, passes: 2, alpha: 0.9 },
   },
   // Struck areas. Box zones sweep a bright band from near to far edge as they strike;
   // circles ring outward.

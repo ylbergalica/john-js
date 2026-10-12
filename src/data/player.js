@@ -23,15 +23,21 @@ export const PLAYER = {
     visualSize: 2 * 0.8,
   },
   parry: {
-    parryDuration: 0.17,
+    parryDuration: 0.21,
     parryCooldown: 1,
+    // The hitbox and its look reach `size` times as far from the player's centre, covering
+    // the same angle.
+    size: 1.25,
     hitboxForward: 0.7 - 0.4 * 0.8,
     hitboxDepth: 0.5 * 1.85 * 0.8,
-    hitboxWidth: 1 * 0.8,
+    hitboxWidth: 1.3,
     shakeDuration: 0.08,
     shakeStrength: 0.08,
     shakeFrequency: 45,
-    clipLength: 0.125, // the parry animation is stretched to the parry window
+    // The parry animation is stretched over the parry window and then fadeTime more, over
+    // which (unless it connected) it fades out as it finishes its sweep.
+    clipLength: 0.125,
+    fadeTime: 0.12,
     // Successful parries within comboWindow seconds of each other build a streak (capped
     // at comboMax); each level adds bonus damage and grows the shake, sound and sparks.
     comboWindow: 3,
@@ -66,10 +72,13 @@ export const PLAYER = {
       shake: { duration: 0.12, strength: 0.12, frequency: 30 },
     },
   },
+  // hitCoyoteTime: the player's own grace on being hit. A hit lands this long after it
+  // connects, and a parry started in that time takes the attack instead, as if it had been
+  // in time (see Player.hitBy).
   // floorHeal: fraction of max health restored on each new floor, streamed in once play starts
   // (after any guardian intro): floorHealDelay seconds of astral build-up on the health bar,
   // then filling over floorHealDuration.
-  health: { maxHealth: 10, invincibilityDuration: 1, floorHeal: 0.2, floorHealDelay: 0.5, floorHealDuration: 1.4 },
+  health: { maxHealth: 10, invincibilityDuration: 1, hitCoyoteTime: 0.05, floorHeal: 0.2, floorHealDelay: 0.5, floorHealDuration: 1.4 },
   hitFeedback: { flashDuration: 0.1, blinkInterval: 0.08, shakeDuration: 0.2, shakeStrength: 1, shakeFrequency: 10 },
   blob: {
     radius: 0.5, waveAmplitude: 0.023, waveCount: 9, resolution: 120, waveSpeed: 1,

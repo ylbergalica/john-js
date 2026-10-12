@@ -1,7 +1,8 @@
 // Player logic: movement, aiming, melee attack, dash, parry, health and death.
 // All timing uses timestamps on the world's simulation clock.
 import { Entity } from '../game/entity.js';
-import { Body, ContactSet, circleVsCapsule } from '../engine/physics.js';
+import { Body, ContactSet } from '../engine/physics.js';
+import { hurtBySegment } from '../game/hurtbox.js';
 import { norm, isZero } from '../engine/math.js';
 import { PLAYER, PARTICLES, ADRENALINE } from '../data/config.js';
 import { InputBuffer } from './inputBuffer.js';
@@ -54,6 +55,8 @@ export class Player extends Entity {
     this.health = this.maxHealth;
     this.invincibleUntil = 0;
     this.lastHitAt = -Infinity;
+    this.pendingHit = null; // { attack, damage, hitPoint, source, landsAt }: a hit about to land (see hitBy)
+    this.hurtBy = null; // the attack that last hurt the player, while it can still hurt: it can't be parried
     this.death = null; // PlayerDeath once killed: out of the fight while it plays, then hidden
 
     this.view = new PlayerView(this);
@@ -92,9 +95,11 @@ export class Player extends Entity {
     if (this.dashing && now >= this.dashEndsAt) this.dashing = false;
     this.dashBuffer.consume(now, () => this.tryStartDash());
 
+    if (this.hurtBy && !this.world.hostileAttacks.has(this.hurtBy)) this.hurtBy = null;
     if (input.wasPressed('parry')) this.parryBuffer.press(now);
     if (this.parrying && now >= this.parryEndsAt) this.endParry();
     this.parryBuffer.consume(now, () => this.tryStartParry());
+    if (this.pendingHit && now >= this.pendingHit.landsAt) this.landPendingHit();
 
     this.aspects.step(dt);
     this.buffs.step();
@@ -123,7 +128,7 @@ export class Player extends Entity {
   afterPhysics() {
     if (this.attacking) {
       const cap = this.attackCapsule();
-      const struck = (e) => !e.dead && circleVsCapsule(e.body.pos.x, e.body.pos.y, e.body.radius, cap);
+      const struck = (e) => !e.dead && hurtBySegment(e, cap.ax, cap.ay, cap.bx, cap.by, cap.r);
       const hits = [...this.world.enemies.filter(struck), ...this.world.props.filter(struck)];
       this.attackContacts.update(hits, (e) => (e.isProp ? this.onAttackProp(e) : this.onAttackHit(e)));
     }
@@ -210,7 +215,8 @@ export class Player extends Entity {
     return { ax: cx + f.y * half, ay: cy - f.x * half, bx: cx - f.y * half, by: cy + f.x * half, r, cx, cy };
   }
   attackCapsule() { return this.capsuleAt(A.attackRange, A.hitboxDepth, A.hitboxWidth); }
-  parryCapsule() { return this.capsuleAt(P.hitboxForward, P.hitboxDepth, P.hitboxWidth); }
+
+  parryCapsule() { return this.capsuleAt(P.hitboxForward * P.size, P.hitboxDepth * P.size, P.hitboxWidth * P.size); }
 
   // ── dash ─────────────────────────────────────────────────────────
   tryStartDash() {
@@ -230,14 +236,18 @@ export class Player extends Entity {
 
   // ── parry ────────────────────────────────────────────────────────
   tryStartParry() {
-    const now = this.now;
+    const now = this.now, b = this.body;
     if (this.attacking || this.parrying || this.teleporting || now < this.parryReadyAt) return false;
+    // No parrying while still inside the attack that hurt the player.
+    if (this.hurtBy?.overlapsCircle(b.pos.x, b.pos.y, b.radius)) return false;
     this.parrying = true;
     this.parryEndsAt = now + P.parryDuration;
     this.parrySucceeded = false;
     this.parriedThisWindow.clear();
     this.view.playParry();
     this.world.sound('parryStart');
+    // A hit about to land is parried as if the parry had been in time.
+    if (this.pendingHit && this.tryParry(this.pendingHit.attack)) this.pendingHit = null;
     this.parryOverlapping(); // attacks already inside the window count immediately
     return true;
   }
@@ -245,8 +255,9 @@ export class Player extends Entity {
   endParry() {
     this.parrying = false;
     this.parriedThisWindow.clear();
-    this.view.hideParry();
-    if (!this.parrySucceeded) this.parryReadyAt = this.now + P.parryCooldown;
+    if (this.parrySucceeded) return; // its look already gave way to the connect
+    this.view.fadeParry();
+    this.parryReadyAt = this.now + P.parryCooldown;
   }
 
   parryOverlapping() {
@@ -262,7 +273,9 @@ export class Player extends Entity {
     return this.tryParry(attack);
   }
 
+  // The attack that hurt the player passes through their parries.
   tryParry(attack) {
+    if (attack === this.hurtBy) return false;
     if (this.parriedThisWindow.has(attack)) return true;
     const contact = attack.closestPoint(this.parryCapsule());
     // The window's first connect extends the streak before attack.parry() reads the bonus damage.
@@ -290,6 +303,21 @@ export class Player extends Entity {
   parryBonusDamage(base) { return Math.max(0, this.parryStreak - 1) * P.comboDamageFraction * base; }
 
   // ── health ───────────────────────────────────────────────────────
+  // An enemy attack connects (having beaten any parry). The hit lands H.hitCoyoteTime later,
+  // unless a parry started by then takes the attack instead (see tryStartParry). Nothing
+  // else can hit the player meanwhile.
+  hitBy(attack, damage, hitPoint, source) {
+    if (this.dead || this.death || this.pendingHit || this.now < this.invincibleUntil) return;
+    this.pendingHit = { attack, damage, hitPoint, source, landsAt: this.now + H.hitCoyoteTime };
+  }
+
+  landPendingHit() {
+    const { attack, damage, hitPoint, source } = this.pendingHit;
+    this.pendingHit = null;
+    this.hurtBy = this.world.hostileAttacks.has(attack) ? attack : null;
+    this.takeDamage(damage, hitPoint, source);
+  }
+
   takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {
     if (this.dead || this.death || this.now < this.invincibleUntil) return;
     // A ward takes the hit instead, with the moment of invulnerability a hit would give.

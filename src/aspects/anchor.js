@@ -9,6 +9,7 @@ import { PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
 import { TeleportResolver } from '../level/teleport.js';
+import { hurtDistance } from '../game/hurtbox.js';
 
 export class AnchorAspect extends Aspect {
   constructor(player, data) {
@@ -228,7 +229,7 @@ class WindPulse extends Entity {
     for (const e of this.world.enemies) {
       if (e.dead || this.knocked.has(e)) continue;
       const d2 = (e.body.pos.x - this.origin.x) ** 2 + (e.body.pos.y - this.origin.y) ** 2;
-      if (d2 > (this.radius + e.body.radius) ** 2 || d2 < inner * inner) continue;
+      if (hurtDistance(e, this.origin.x, this.origin.y) > this.radius || d2 < inner * inner) continue;
       this.knocked.add(e);
       e.applyKnockback(this.data.windForce, this.origin);
     }

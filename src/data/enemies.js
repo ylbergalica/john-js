@@ -1,4 +1,6 @@
-// Enemy types: stats, drops, visuals and AI. Chasers are the floor bosses.
+// Enemy types: stats, drops, visuals and AI. Chasers are the floor bosses. A `hurtbox`
+// (convex polygon in the enemy's frame, +x forward) is where it can be struck, if not its
+// round body (see game/hurtbox.js).
 
 const AI_DEFAULTS = {
   aggroRange: 12, orbitRadius: 4, attackEngageRange: 0,
@@ -12,7 +14,7 @@ const AI_DEFAULTS = {
 
 export const ENEMY_TYPES = {
   goblin: {
-    name: 'Goblin', maxHealth: 7, damage: 1, radius: 0.5 * 0.9, mass: 3, linearDamping: 1,
+    name: 'Goblin', maxHealth: 5, damage: 1, radius: 0.5 * 0.9, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3ddc84, sfxPitch: 1.2,
     visual: { kind: 'sprite', outline: 'goblin_idle', void: 'goblin_idle_void', size: 1.5 * 0.9, sparkleCount: 20 },
@@ -20,7 +22,7 @@ export const ENEMY_TYPES = {
       attacks: [{ ability: 'GoblinThrow', weight: 1 }] },
   },
   striker: {
-    name: 'Striker', maxHealth: 10, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
+    name: 'Striker', maxHealth: 7, damage: 1, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffad3b, sfxPitch: 1,
     visual: { kind: 'sprite', outline: 'striker_idle', void: 'striker_idle_void', size: 1.5, sparkleCount: 22 },
@@ -31,7 +33,7 @@ export const ENEMY_TYPES = {
   // heavy, it steps into every blow: a wide swing, or an overhead slam down a long strip.
   // The maul is its own sprite, swung by the attacks (`rig`, see maulerRig.js).
   mauler: {
-    name: 'Mauler', maxHealth: 17, damage: 1.5, radius: 0.52, mass: 5, linearDamping: 1,
+    name: 'Mauler', maxHealth: 13, damage: 1.5, radius: 0.52, mass: 5, linearDamping: 1,
     knockbackResistance: 0.2, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd2742f, sfxPitch: 0.8,
     visual: { kind: 'sprite', outline: 'mauler_idle', void: 'mauler_idle_void', size: 1.47, sparkleCount: 22, rig: 'maul' },
@@ -44,7 +46,7 @@ export const ENEMY_TYPES = {
   // lunges with them in a dash much like the player's. The arms are their own sprites,
   // moved by the attacks (`rig`, see shadeRig.js).
   shade: {
-    name: 'Shade', maxHealth: 13, damage: 1.3, radius: 0.5, mass: 3, linearDamping: 1,
+    name: 'Shade', maxHealth: 10, damage: 1.3, radius: 0.5, mass: 3, linearDamping: 1,
     knockbackResistance: 0.1, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x9aa1ad, sfxPitch: 1.05,
     visual: { kind: 'sprite', outline: 'shade_idle', void: 'shade_idle_void', size: 1.62, sparkleCount: 22, rig: 'blades' },
@@ -56,7 +58,7 @@ export const ENEMY_TYPES = {
   // than itself: one it throws up out of sight to come down where the player is heading,
   // the other it hurls straight at them.
   seer: {
-    name: 'Seer', maxHealth: 10, damage: 1.3, radius: 0.47, mass: 3, linearDamping: 1,
+    name: 'Seer', maxHealth: 9, damage: 1.3, radius: 0.47, mass: 3, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x3d63ff, sfxPitch: 0.9,
     visual: { kind: 'sprite', outline: 'seer_idle', void: 'seer_idle_void', size: 1.45, sparkleCount: 20 },
@@ -64,11 +66,12 @@ export const ENEMY_TYPES = {
       attacks: [{ ability: 'SeerOmen', weight: 0.6 }, { ability: 'SeerBolt', weight: 0.4 }] },
   },
   warden: {
-    name: 'Warden', maxHealth: 1000, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
+    name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xc8cfff, sfxPitch: 0.55,
     navFootprint: 3, // tiles; the Warden needs 3-wide passages
     visual: { kind: 'hexagon', width: 2, height: 0.890625 * 2, color: 0xffffff },
+    hurtbox: [[1, 0], [0.5, 0.89], [-0.5, 0.89], [-1, 0], [-0.5, -0.89], [0.5, -0.89]], // its hexagon
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 4, attackEngageRange: 3.5, moveSpeed: 2, orbitSpeed: 1, repositionSpeed: 1, maxTurnSpeed: 2.5,
       attacks: [
         { ability: 'WardenDash', weight: 0.25 },
@@ -80,11 +83,12 @@ export const ENEMY_TYPES = {
   // An astral star-fighter: a delta wing with twin engines. Keeps its distance and attacks
   // from range more than the Warden does.
   seraph: {
-    name: 'Seraph', maxHealth: 750, damage: 9, radius: 0.9, mass: 100, linearDamping: 1,
+    name: 'Seraph', maxHealth: 600, damage: 9, radius: 0.9, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xb9a4ff, sfxPitch: 0.75,
     navFootprint: 3,
     visual: { kind: 'sprite', outline: 'seraph_idle', void: 'seraph_idle_void', size: 2.2, sparkleCount: 30 },
+    hurtbox: [[0.88, 0], [-0.77, 0.7], [-0.77, -0.7]], // nose and wingtips, leaving out the tail
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 6, attackEngageRange: 8, moveSpeed: 2.5, orbitSpeed: 1.6, repositionSpeed: 1.6,
       turnSmoothTime: 0.2,
       attacks: [

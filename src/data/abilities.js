@@ -4,6 +4,8 @@
 // Every attack flashes a parry cue just before it can hurt (ATTACK_FX.cue), where it comes
 // from: a held weapon's head, a throw's muzzle, a laser's nose, missiles' engines, or else
 // `cueAt` body radii ahead (default 1, the enemy's front).
+// Dashes hurt only across the front `hitboxArcDeg` of their hitbox, as seen from its centre,
+// so running into a dashing enemy's side or back is safe.
 
 const clearPath = (size, offset) => ({ requireClearAttackPath: true, attackPathCastSize: size, attackPathOriginOffset: offset });
 
@@ -17,17 +19,20 @@ export const ABILITIES = {
   StrikerDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 5, windUpTime: 0.5, lockTime: 0.2, duration: 0.4, recoveryTime: 0.1,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.25),
-    dashForce: 30, hitboxRadius: 0.55,
+    dashForce: 30, hitboxRadius: 0.55, hitboxArcDeg: 150,
   },
   // The Mauler's maul. Both lunge `stepDistance` along the locked aim over `stepTime` as
   // they strike; `maul` says how the maul moves with them (maulerRig.js).
-  // Swing: the maul crosses the front in `swingTime` as the Mauler lunges. The Mauler is the
-  // hitbox (a charge, parried like one): a circle `hitboxRadius` around a point
-  // `hitboxForward` ahead, hurting for `duration`.
+  // Swing: the maul crosses the front in `swingTime` as the Mauler lunges. The maul is the
+  // hitbox (a charge, parried like one), hurting for `duration` as it sweeps across: from
+  // `maulHit.reach[0]` to `[1]` along it from the grip, `maulHit.radius` either side (both
+  // grown with the maul), at `maulHit.samples` points of its sweep each step so it can't
+  // pass over the player between steps.
   MaulerSwing: {
     type: 'swing', tell: 'swing', cooldown: 2.2, range: 2.5, windUpTime: 0.62, lockTime: 0.22, duration: 0.18, recoveryTime: 0.25,
     damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
-    hitboxRadius: 0.85, hitboxForward: 0.3, swingTime: 0.12, stepDistance: 1.3, stepTime: 0.15, parryKnockback: 15,
+    swingTime: 0.12, stepDistance: 1.3, stepTime: 0.15, parryKnockback: 15,
+    maulHit: { reach: [0.3, 0.8], radius: 0.3, samples: 4 },
     strikeSound: 'heave', maul: 'swing',
   },
   // Slam: the maul comes down `landTime` after the strike, `impactAt` ahead (where the maul's
@@ -89,14 +94,14 @@ export const ABILITIES = {
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),
-    dashForce: 700, hitboxRadius: 1.1,
+    dashForce: 700, hitboxRadius: 1.1, hitboxArcDeg: 150,
   },
   WardenGroundPound: {
     type: 'groundPound', tell: 'pound', cooldown: 6, range: 4, windUpTime: 1.5, duration: 0.3, recoveryTime: 1,
     damageMultiplier: 1.3, parryStunTime: 0.6, requireClearAttackPath: false, radius: 3.5, cueAt: 0,
   },
   WardenPunch: {
-    type: 'punch', tell: 'punch', cooldown: 1.5, range: 4, windUpTime: 0.5, duration: 0.15, recoveryTime: 0.3,
+    type: 'punch', tell: 'punch', cooldown: 1.5, range: 4, windUpTime: 0.8, duration: 0.15, recoveryTime: 0.3,
     damageMultiplier: 0.6, parryStunTime: 0.4, ...clearPath({ x: 1, y: 1 }, 0.2),
     hitboxSize: 2.2, forwardOffset: 1.6, stepForce: 550,
   },
@@ -109,7 +114,7 @@ export const ABILITIES = {
   SeraphDash: {
     type: 'dash', tell: 'charge', cooldown: 2.5, range: 6, windUpTime: 0.6, duration: 0.85, recoveryTime: 0.4,
     damageMultiplier: 0.8, parryStunTime: 1, ...clearPath({ x: 1.6, y: 1.6 }, 0.4),
-    dashForce: 640, hitboxRadius: 1, // carries ~3.7 units, a little short of the Warden's ~4.4
+    dashForce: 640, hitboxRadius: 1, hitboxArcDeg: 150, // carries ~3.7 units, a little short of the Warden's ~4.4
   },
   // Flies at `speed` along its locked aim until it hits a wall (or `duration` runs out).
   SeraphRam: {
@@ -122,10 +127,10 @@ export const ABILITIES = {
   // (135 = 45° behind to either side). `launchPoint`: the right engine, in the enemy's
   // local units (+x forward); the left mirrors it. They fly through walls, steering at most
   // `turnRate` rad/s from `homingDelay` until `homingTime` after launch, then straight on
-  // until `projectileLifetime`.
+  // until `projectileLifetime`. A parried missile only hurts the Seraph: no `parryStunTime`, no stagger.
   SeraphMissiles: {
     type: 'missiles', tell: 'missiles', cooldown: 5, range: 10, windUpTime: 0.8, duration: 0, recoveryTime: 0.5,
-    damageMultiplier: 1, parryStunTime: 0.8, ...clearPath({ x: 0.6, y: 0.6 }, 0.3),
+    damageMultiplier: 1, parryStunTime: 0, ...clearPath({ x: 0.6, y: 0.6 }, 0.3),
     launchPoint: { x: -0.9, y: 0.45 }, launchAngleDeg: 135,
     projectileSpeed: 10, projectileLifetime: 7, projectileSize: 0.35, turnRate: 2, homingDelay: 0, homingTime: 4,
     passesWalls: true,

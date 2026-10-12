@@ -23,6 +23,7 @@ export class Projectile extends Entity {
     this.homingFrom = world.time + (opts.homingDelay ?? 0);
     this.homingUntil = world.time + (opts.homingTime ?? Infinity);
     this.spawnedAt = world.time;
+    this.parried = false;
     this.expiresAt = world.time + opts.lifetime;
     this.body = world.physics.add(new Body({ x, y, radius: opts.size / 2, solid: false }));
     this.body.rotation = Math.atan2(opts.dir.y, opts.dir.x);
@@ -47,15 +48,17 @@ export class Projectile extends Entity {
     this.dir = fromAngle(b.rotation);
   }
 
+  worldShape() { return { type: 'circle', x: this.body.pos.x, y: this.body.pos.y, r: this.body.radius }; }
   overlapsCircle(x, y, r) { return circleVsCircle(x, y, r, this.body.pos.x, this.body.pos.y, this.body.radius); }
   overlapsCapsule(cap) { return circleVsCapsule(this.body.pos.x, this.body.pos.y, this.body.radius, cap); }
   closestPoint() { return { x: this.body.pos.x, y: this.body.pos.y }; }
 
+  // Also once it has struck and gone (a late parry, see Player.hitBy).
   parry() {
-    if (!this.dead) {
-      this.sourceAbility.onParry();
-      this.destroy();
-    }
+    if (this.parried) return false;
+    this.parried = true;
+    this.sourceAbility.onParry();
+    this.destroy();
     return true;
   }
 
@@ -72,7 +75,7 @@ export class Projectile extends Entity {
     if (p.tryParryIncoming(this) || this.dead) return;
     const dx = b.pos.x - p.body.pos.x, dy = b.pos.y - p.body.pos.y, l = Math.hypot(dx, dy) || 1;
     const hitPoint = { x: p.body.pos.x + (dx / l) * p.body.radius, y: p.body.pos.y + (dy / l) * p.body.radius };
-    p.takeDamage(this.damage, hitPoint, { ...b.pos });
+    p.hitBy(this, this.damage, hitPoint, { ...b.pos });
     this.destroy();
   }
 

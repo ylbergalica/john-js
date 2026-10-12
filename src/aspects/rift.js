@@ -3,7 +3,8 @@
 // While out, the blades shed motes; both take the player's tint, so they burn red while Exalted.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
-import { ContactSet, circleVsBox } from '../engine/physics.js';
+import { ContactSet } from '../engine/physics.js';
+import { hurtByBox } from '../game/hurtbox.js';
 import { randRange } from '../engine/math.js';
 import { FX } from '../data/config.js';
 import { anims, tex } from '../render/assets.js';
@@ -67,7 +68,7 @@ export class RiftAspect extends Aspect {
     if (!this.active) return;
     const b = this.player.body, s = this.player.sizeScale;
     const box = { x: b.pos.x, y: b.pos.y, hw: (this.data.hitboxDepth * s) / 2, hh: (this.data.hitboxWidth * s) / 2, angle: b.rotation };
-    const hits = [...this.world.enemies, ...this.world.props].filter((e) => !e.dead && circleVsBox(e.body.pos.x, e.body.pos.y, e.body.radius, box));
+    const hits = [...this.world.enemies, ...this.world.props].filter((e) => !e.dead && hurtByBox(e, box));
     this.contacts.update(hits, (enemy) => this.hit(enemy, { x: box.x, y: box.y }));
   }
 

@@ -9,7 +9,7 @@
 // whites take the player's tint.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
-import { segmentPointDistSq } from '../engine/physics.js';
+import { hurtByCircle, hurtBySegment } from '../game/hurtbox.js';
 import { EXALTED_FX, FIXED_DT, FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
@@ -68,7 +68,7 @@ export class WraithAspect extends Aspect {
     // Swept over the whole step, so nothing slips between one step's spot and the next.
     const { pos: p, prev: q } = this.player.body, r = this.data.hitRadius;
     for (const e of [...this.world.enemies, ...this.world.props]) {
-      if (e.dead || f.hit.has(e) || segmentPointDistSq(q.x, q.y, p.x, p.y, e.body.pos.x, e.body.pos.y) > (e.body.radius + r) ** 2) continue;
+      if (e.dead || f.hit.has(e) || !hurtBySegment(e, q.x, q.y, p.x, p.y, r)) continue;
       f.hit.add(e);
       this.cut(e);
     }
@@ -77,7 +77,7 @@ export class WraithAspect extends Aspect {
   insideSomething() {
     const b = this.player.body;
     if (this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) return true;
-    return [...this.world.enemies, ...this.world.props].some((e) => !e.dead && (e.body.pos.x - b.pos.x) ** 2 + (e.body.pos.y - b.pos.y) ** 2 < (e.body.radius + b.radius) ** 2);
+    return [...this.world.enemies, ...this.world.props].some((e) => !e.dead && hurtByCircle(e, b.pos.x, b.pos.y, b.radius));
   }
 
   // Thrown aside from the dash's line, as if it parted them.

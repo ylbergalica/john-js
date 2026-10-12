@@ -15,6 +15,7 @@ import { MaulerRig } from './maulerRig.js';
 import { ShadeRig } from './shadeRig.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
+import { closestOnHurtbox } from '../game/hurtbox.js';
 
 const RIGS = { maul: MaulerRig, blades: ShadeRig };
 
@@ -83,11 +84,8 @@ export class Enemy extends Entity {
     for (const a of this.abilities.values()) a.hitbox?.afterPhysics();
   }
 
-  closestPoint(p) {
-    const b = this.body;
-    const d = norm({ x: p.x - b.pos.x, y: p.y - b.pos.y });
-    return { x: b.pos.x + d.x * b.radius, y: b.pos.y + d.y * b.radius };
-  }
+  // Where a blow from `p` lands: the nearest point of its hurtbox.
+  closestPoint(p) { return closestOnHurtbox(this, p); }
 
   // `cause`: what dealt the hit (a DamageCause or an aspect id).
   takeDamage(damage, hitPoint = null, source = null, cause = null) {

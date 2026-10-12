@@ -306,16 +306,50 @@ function swingFrames(def, S = 256) {
 // ---------------------------------------------------------------- parry
 
 // A thin crescent on a circle centred off to the left; it sweeps from bottom to top.
-const PARRY_ARC = { cx: 0.051, cy: 0.5, r: 0.559, width: 0.06 };
-const PARRY_WINDOWS = [[64, 30], [60, 0], [54, -30], [45, -50], [10, -56], [-25, -60]]; // [tail, head] degrees
+const PARRY_ARC = { cx: 0.051, cy: 0.5, r: 0.559, width: 0.045 };
+// Its head (degrees; 0 is straight ahead along the aim) sweeps up from `head[0]` to
+// `head[1]` along the timing curve `ease` (gentle at both ends, quick between), and its tail
+// follows from `tail[0]` to `tail[1]` along the same curve run backwards, hanging back
+// before catching up. So the crescent starts short, stretches out and draws back in behind
+// the head as it fades (PLAYER.parry.fadeTime). The tail's path mirrors the head's across
+// the aim, so the sweep is symmetrical about it: each frame is the mirror image of its
+// counterpart from the other end. The star at its head grows from `star` of its full size
+// to full halfway, then shrinks back. `PARRY_FRAMES` frames, played over the same time
+// whatever their number (see PlayerView).
+const PARRY_SWEEP = { head: [48, -62], tail: [62, -48], ease: [0.5, 0.02, 0.18, 1], star: 0.5 };
+const PARRY_FRAMES = 12;
+const PARRY_STAR = 0.068; // the solid star at its head, shrinking as it sweeps
+// Room around the parry's art (a fraction of it, each side) so the star at the head isn't
+// cut off at the top.
+export const PARRY_PAD = 0.08;
+
+// A cubic Bézier timing curve through (0, 0), (x1, y1), (x2, y2), (1, 1), as in CSS.
+function cubicBezier(x1, y1, x2, y2) {
+  const at = (a, b, s) => 3 * (1 - s) ** 2 * s * a + 3 * (1 - s) * s * s * b + s ** 3;
+  return (t) => {
+    let lo = 0, hi = 1, s = t;
+    for (let i = 0; i < 30; i++) {
+      s = (lo + hi) / 2;
+      if (at(x1, x2, s) < t) lo = s; else hi = s;
+    }
+    return at(y1, y2, s);
+  };
+}
 
 function parryFrames(S = 256) {
-  return PARRY_WINDOWS.map(([from, to], i) => {
-    const { c, ctx, px } = surface(S);
+  const { head, tail, ease: [x1, y1, x2, y2], star } = PARRY_SWEEP;
+  const headEase = cubicBezier(x1, y1, x2, y2), tailEase = cubicBezier(1 - x2, 1 - y2, 1 - x1, 1 - y1);
+  return Array.from({ length: PARRY_FRAMES }, (_, j) => {
+    const t = j / (PARRY_FRAMES - 1);
+    const to = lerp(head[0], head[1], headEase(t));
+    const from = lerp(tail[0], tail[1], tailEase(t));
+    const starSize = lerp(star, 1, smoothStep01(1 - Math.abs(2 * t - 1)));
+    const { c, ctx, px } = surface(Math.round(S * (1 + 2 * PARRY_PAD)), undefined, S);
+    ctx.translate(PARRY_PAD, PARRY_PAD);
     const path = arcBlade({ ...PARRY_ARC, from, to, profile: (s) => s ** 0.6 });
     paintSlash(ctx, px, path, polar(PARRY_ARC.cx, PARRY_ARC.cy, from, PARRY_ARC.r), polar(PARRY_ARC.cx, PARRY_ARC.cy, to, PARRY_ARC.r));
     const [hx, hy] = polar(PARRY_ARC.cx, PARRY_ARC.cy, to, PARRY_ARC.r + 0.04);
-    sparkle(ctx, hx, hy, 0.05 - i * 0.004, '#ffffff', 1 - i * 0.12, i * 0.3);
+    sparkle(ctx, hx, hy, PARRY_STAR * starSize, '#ffffff', 1, 1.5 * t);
     return c;
   });
 }

@@ -8,6 +8,7 @@ export const devFlags = {
   noDamage: false, // nothing the player does damages enemies
   noclip: false, // the player walks through walls, 3× as fast
   allEnemies: false, // every enemy type is spawnable, killed or not
+  hitboxes: false, // draws every hitbox (devHitboxes.js)
   gameSpeed: 1, // scales the world's clock (gameScene.js); 0 freezes it
 };
 

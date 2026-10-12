@@ -33,13 +33,14 @@ export class MistShell extends Entity {
     this.cueAt = this.landAt - ATTACK_FX.cue.lead;
     this.landed = false;
     this.armed = false; // can hurt: from the landing until it hits, is parried or ends
+    this.parried = false;
     this.marker = new Graphics();
     this.burn = new Graphics(); // the floor under the boom
     for (const g of [this.marker, this.burn]) {
       g.blendMode = 'add';
       g.scale.set(1 / U);
     }
-    world.layers.telegraphs.addChild(this.marker, this.burn);
+    world.layers.zones.addChild(this.marker, this.burn);
     this.launch = new MistBallLook(world.layers.projectiles, { trail: false });
     this.ball = new MistBallLook(world.layers.projectiles, { trail: false });
     this.ball.container.visible = false;
@@ -71,6 +72,7 @@ export class MistShell extends Entity {
     this.world.hostileAttacks.delete(this);
   }
 
+  worldShape() { return { type: 'circle', x: this.to.x, y: this.to.y, r: this.radius }; }
   overlapsCircle(x, y, r) { return circleVsCircle(x, y, r, this.to.x, this.to.y, this.radius); }
   overlapsCapsule(cap) { return circleVsCapsule(this.to.x, this.to.y, this.radius, cap); }
 
@@ -79,8 +81,10 @@ export class MistShell extends Entity {
     return { x: x + (dx / l) * reach, y: y + (dy / l) * reach };
   }
 
+  // Also once it has struck (a late parry, see Player.hitBy).
   parry() {
-    if (!this.armed) return false;
+    if (!this.landed || this.parried) return false;
+    this.parried = true;
     this.disarm();
     this.sourceAbility.onParry();
     return true;
@@ -91,7 +95,7 @@ export class MistShell extends Entity {
     if (!this.armed || !p || !this.overlapsCircle(p.body.pos.x, p.body.pos.y, p.body.radius)) return;
     if (p.tryParryIncoming(this) || !this.armed) return;
     const { x, y } = this.to, b = p.body.pos, dx = x - b.x, dy = y - b.y, l = Math.hypot(dx, dy) || 1;
-    p.takeDamage(this.damage, { x: b.x + (dx / l) * p.body.radius, y: b.y + (dy / l) * p.body.radius }, { x, y });
+    p.hitBy(this, this.damage, { x: b.x + (dx / l) * p.body.radius, y: b.y + (dy / l) * p.body.radius }, { x, y });
     this.disarm();
   }
 

@@ -10,7 +10,7 @@
 //   ProjectileLook a glowing orb with a comet trail, shared by projectiles and ChargeView.
 //   MistBallLook   the same for the Seer's balls of blue mist.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
-import { Container, Graphics, Sprite } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { ATTACK_FX, FIXED_DT, MIST_BALL as M } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
@@ -30,6 +30,61 @@ const easeOut = (t) => 1 - (1 - t) ** 2;
 const tellOf = (a) => X.tells[a.data.tell] ?? X.tells.none;
 // A swing's twist (radians), toward the side it comes from if the ability has a `side`.
 const twistOf = (a) => (tellOf(a).twist ?? 0) * (a.side ?? 1) * DEG;
+
+// How far (radians) a twisted body has turned `since` its strike: whipping through from its
+// twist, past its facing, and settling back. 0 for an untwisted one. A held weapon turns with
+// it, so its hitbox does too (SwingAbility).
+export function followThrough(a, since) {
+  const twist = twistOf(a);
+  if (!twist || since < 0 || since >= S.followTime) return 0;
+  const k = since / S.followTime;
+  return k < 0.35 ? lerp(twist, -0.4 * twist, easeOut(k / 0.35)) : -0.4 * twist * (1 - smoothStep01((k - 0.35) / 0.65));
+}
+
+// A charging body's stretch along its facing (x) and across it (y), held weapon and all.
+export const CHARGE_STRETCH = { x: 1 + X.body.stretch, y: 1 - X.body.stretch * 0.6 };
+
+// A soft wedge (see ATTACK_FX.body.arcMask) masking a charge's burn to the front `arcDeg`
+// of its hitbox: white, opaque inside the arc, fading out across its sides. Pointing along
+// +x from the middle (the hitbox's centre).
+const arcMaskTextures = new Map(); // by arcDeg
+function arcMaskTexture(arcDeg) {
+  let texture = arcMaskTextures.get(arcDeg);
+  if (texture) return texture;
+  const N = 128, c = document.createElement('canvas');
+  c.width = c.height = N;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(N, N), half = arcDeg / 2;
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const deg = Math.abs(Math.atan2(y + 0.5 - N / 2, x + 0.5 - N / 2)) / DEG;
+      const i = (y * N + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+      img.data[i + 3] = Math.round(255 * (1 - smoothStep01((deg - half) / X.body.arcMask.fadeDeg + 0.5)));
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  texture = Texture.from(c);
+  arcMaskTextures.set(arcDeg, texture);
+  return texture;
+}
+
+// A charge's glow in the enemy's own shape (see ATTACK_FX.body.halo): its white
+// silhouette blurred, with `pad` of its size spare on each side for the blur to spread into.
+const haloTextures = new Map(); // by silhouette texture
+function haloTexture(silhouette) {
+  let texture = haloTextures.get(silhouette);
+  if (texture) return texture;
+  const H = X.body.halo, src = silhouette.source.resource, w = src.width, h = src.height;
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * (1 + 2 * H.pad));
+  c.height = Math.round(h * (1 + 2 * H.pad));
+  const ctx = c.getContext('2d');
+  ctx.filter = `blur(${H.blur * Math.max(w, h)}px)`;
+  for (let i = 0; i < H.passes; i++) ctx.drawImage(src, w * H.pad, h * H.pad);
+  texture = Texture.from(c);
+  haloTextures.set(silhouette, texture);
+  return texture;
+}
 
 function sprite(texture, parent, { blendMode = 'normal', tint = X.color } = {}) {
   const s = new Sprite(texture);
@@ -51,6 +106,8 @@ export class EnemyAttackFx {
     enemy.view.addChildAt(this.glow, 0);
     this.tint = sprite(silhouette.texture, enemy.view);
     this.tint.width = silhouette.width; this.tint.height = silhouette.height;
+    this.arcMasks = null; // [glow's, tint's], cutting a charge's burn to its hitbox, created as needed
+    this.maskedArc = null; // the hitbox shape they are cut to, if any
     this.tell = new Graphics(); // the wind-up's tell, redrawn each frame
     this.tell.blendMode = 'add';
     enemy.world.layers.fx.addChild(this.tell);
@@ -116,12 +173,7 @@ export class EnemyAttackFx {
       tintColor = X.hot;
       glow = Math.max(glow, W.glowAlpha * (1 - k));
     }
-    // A swing whips through from its twist, past its facing, and settles back.
-    const twist = last ? twistOf(last) : 0;
-    if (!windup && twist && since >= 0 && since < S.followTime) {
-      const k = since / S.followTime;
-      turn = k < 0.35 ? lerp(twist, -0.4 * twist, easeOut(k / 0.35)) : -0.4 * twist * (1 - smoothStep01((k - 0.35) / 0.65));
-    }
+    if (!windup && last) turn = followThrough(last, since);
     if (!windup && since >= 0 && since < S.releaseTime) {
       const k = since / S.releaseTime;
       this.drawTell(tellOf(last), r, 0, 1, W.alpha * (1 - k), easeOut(k) * S.releaseReach * r);
@@ -133,19 +185,53 @@ export class EnemyAttackFx {
       glow = W.glowAlpha;
       tint = Math.max(tint, W.tintAlpha);
       tintColor = lerpColor(X.hot, X.color, k);
-      sx = 1 + X.body.stretch; sy = 1 - X.body.stretch * 0.6;
+      ({ x: sx, y: sy } = CHARGE_STRETCH);
       if (now - this.lastAfterimageAt >= X.body.afterimageInterval) this.dropAfterimage(now, p, rot);
     }
 
+    // A charge that hurts only across its front glows in its own shape, cut to that front.
+    const shaped = burning?.hitbox.shape.arcDeg ? burning.hitbox.shape : null, H = X.body.halo;
+    this.maskToArc(shaped);
     this.glow.visible = glow > 0;
-    this.glow.alpha = glow;
-    this.glow.width = this.glow.height = W.glowSize * r * 2;
+    this.glow.texture = shaped ? haloTexture(this.silhouette.texture) : tex.mist;
+    if (shaped) {
+      this.glow.alpha = H.alpha;
+      this.glow.width = this.silhouette.width * (1 + 2 * H.pad);
+      this.glow.height = this.silhouette.height * (1 + 2 * H.pad);
+    } else {
+      this.glow.alpha = glow;
+      this.glow.width = this.glow.height = W.glowSize * r * 2;
+    }
     this.tint.visible = tint > 0;
     this.tint.alpha = Math.min(1, tint);
     this.tint.tint = tintColor;
     view.scale.set(sx, sy);
     view.rotation = rot + turn;
     this.updateAfterimages(now);
+  }
+
+  // A charge that hurts only across its front (a hitbox `shape` with `arcDeg`) burns only
+  // there: its glow and tint are cut to that arc, fading away across its sides (see
+  // arcMaskTexture). Null: uncut. The masks are only on the view while in use, as a mask off
+  // duty would be drawn like anything else.
+  maskToArc(shape) {
+    if (shape === this.maskedArc) return;
+    this.maskedArc = shape;
+    if (!shape) {
+      this.glow.mask = this.tint.mask = null;
+      for (const m of this.arcMasks) m.removeFromParent();
+      return;
+    }
+    const s = this.silhouette, size = 2 * Math.max(s.width, s.height) * (1 + 2 * X.body.halo.pad); // past the halo
+    this.arcMasks ??= [new Sprite(), new Sprite()];
+    for (const m of this.arcMasks) {
+      m.texture = arcMaskTexture(shape.arcDeg);
+      m.anchor.set(0.5);
+      m.position.set(shape.forward ?? 0, 0);
+      m.width = m.height = size;
+      this.enemy.view.addChild(m);
+    }
+    [this.glow.mask, this.tint.mask] = this.arcMasks;
   }
 
   // The parry cue, once any rig has posed the enemy's weapon: a star flashing on each of the
@@ -243,6 +329,8 @@ export class EnemyAttackFx {
 
   destroy() {
     this.tell.destroy();
+    this.maskToArc(null);
+    for (const m of this.arcMasks ?? []) m.destroy();
     for (const { sprite: s } of this.afterimages) s.destroy();
     for (const cue of this.cues) cue.destroy();
   }
@@ -309,7 +397,7 @@ export class ZoneView {
     this.gfx = new Graphics();
     this.gfx.blendMode = 'add';
     this.gfx.visible = false;
-    ability.world.layers.telegraphs.addChild(this.gfx);
+    ability.world.layers.zones.addChild(this.gfx);
   }
 
   // `at`: { x, y, rotation } to pin the area there instead of on the enemy.

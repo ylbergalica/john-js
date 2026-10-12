@@ -22,6 +22,7 @@ const SWITCHES = [
   { flag: 'noDamage', label: 'Deal no damage', badge: 'no damage' },
   { flag: 'noclip', label: 'Noclip', badge: 'noclip', key: 'KeyG' },
   { flag: 'allEnemies', label: 'Unlock all enemies' },
+  { flag: 'hitboxes', label: 'Show hitboxes', key: 'KeyB' },
 ];
 
 export class DevMenu {

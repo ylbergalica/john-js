@@ -3,7 +3,8 @@
 // to the side and whipped across the front (growing as it goes) for a swing, or heaved
 // back over the Mauler's head and brought down for a slam, which throws up dust. A smear
 // trails it as it strikes, its star brightens through a wind-up, and it shares the
-// Mauler's wind-up tint, hit flash and death pop. Purely cosmetic.
+// Mauler's wind-up tint, hit flash and death pop. Cosmetic, except that the swing's
+// hitbox follows the maul through the same poses (maulSwingPose, onMaul).
 import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, DEATH_FX, MAUL } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randRange, TAU } from '../engine/math.js';
@@ -18,13 +19,17 @@ const mix = (a, b, t) => ({
   phi: lerp(a.phi, b.phi, t), r: lerp(a.r, b.r, t), rot: lerp(a.rot, b.rot, t), pitch: lerp(a.pitch, b.pitch, t), grow: lerp(a.grow, b.grow, t),
 });
 // How big the maul looks: grown, and looming larger the more it's raised toward the camera.
-const sizeOf = (pose) => (1 + pose.grow) * (1 + MAUL.lift * Math.sin(pose.pitch));
+export const sizeOf = (pose) => (1 + pose.grow) * (1 + MAUL.lift * Math.sin(pose.pitch));
 // How long a strike's motion takes: the swing across, or the slam down to the floor.
 const strikeTime = (a) => (a.data.maul === 'slam' ? a.data.landTime : a.data.swingTime);
 
+// The maul `k` (0 → 1) of the way through a swing from the ready pose, as the swing's
+// hitbox has it (the drawn swing starts from wherever the wind-up left it, near enough).
+export const maulSwingPose = (k) => mix(P.swingReady, P.swingThrough, easeOut(clamp01(k)));
+
 // Where a point on the maul, `along` the haft from the grip and `side` across it, sits in
 // the Mauler's frame for `pose`. Pitched up, the maul foreshortens.
-function onMaul(pose, along, side = 0) {
+export function onMaul(pose, along, side = 0) {
   const size = sizeOf(pose), x = along * Math.cos(pose.pitch) * size, y = side * size;
   const c = Math.cos(pose.rot), s = Math.sin(pose.rot);
   return { x: Math.cos(pose.phi) * pose.r + c * x - s * y, y: Math.sin(pose.phi) * pose.r + s * x + c * y };

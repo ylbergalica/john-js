@@ -4,8 +4,9 @@
 // the body trembling, buckling and caving in as the player dies (PlayerDeath.posed).
 import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
-import { lerp, lerpColor, smoothDamp, isZero, TAU } from '../engine/math.js';
+import { lerp, lerpColor, smoothDamp, smoothStep01, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
+import { PARRY_PAD } from '../render/sprites.js';
 import { FrameAnim } from '../render/fx.js';
 import { DashView } from './dashView.js';
 import { ExaltedView } from './exaltedView.js';
@@ -57,14 +58,16 @@ export class PlayerView {
       return new FrameAnim(sprite, anims[name]);
     });
     this.swingIndex = 0;
+    // Scaled `P.size` about the player's centre, as the parry's hitbox is.
     const parry = new Sprite(anims.parry[0]);
     parry.anchor.set(0.5);
-    parry.position.set(-0.35 * PLAYER.scale, 0);
-    parry.width = 2 * 1.4 * PLAYER.scale;
-    parry.height = 2 * 0.9 * PLAYER.scale;
+    parry.position.set((A.attackRange - 0.35 * PLAYER.scale) * P.size - A.attackRange, 0);
+    parry.width = 2 * 1.4 * PLAYER.scale * P.size * (1 + 2 * PARRY_PAD);
+    parry.height = 2 * 0.9 * PLAYER.scale * P.size * (1 + 2 * PARRY_PAD);
     parry.visible = false;
     this.attackPoint.addChild(parry);
-    this.parryAnim = new FrameAnim(parry, anims.parry);
+    this.parryAnim = new FrameAnim(parry, anims.parry, { fps: anims.parry.length / P.clipLength });
+    this.parryFade = null; // seconds into fading out, once the parry has run out (see fadeParry)
 
     this.dash = new DashView(player);
     this.exalted = new ExaltedView(player);
@@ -88,14 +91,20 @@ export class PlayerView {
   }
 
   playParry() {
+    this.parryFade = null;
+    this.parryAnim.sprite.alpha = 1;
     this.parryAnim.sprite.visible = true;
-    this.parryAnim.play(P.clipLength / P.parryDuration);
+    this.parryAnim.play(P.clipLength / (P.parryDuration + P.fadeTime)); // still sweeping as it fades
   }
 
   hideParry() {
+    this.parryFade = null;
     this.parryAnim.sprite.visible = false;
     this.parryAnim.stop();
   }
+
+  // The parry's window ran out: its look fades away over P.fadeTime rather than vanishing.
+  fadeParry() { this.parryFade = 0; }
 
   // `level` is the parry streak beyond the first (0 … comboMax - 1); each one grows the flash
   // and sparks and warms their colour, and the top of the streak adds a backward flash and a nova.
@@ -157,6 +166,12 @@ export class PlayerView {
     this.attackPoint.scale.set(player.sizeScale);
     for (const a of this.swings) a.update(dt);
     this.parryAnim.update(dt);
+    if (this.parryFade !== null) {
+      this.parryFade += dt;
+      const k = this.parryFade / P.fadeTime;
+      if (k >= 1) this.hideParry();
+      else this.parryAnim.sprite.alpha = 1 - smoothStep01(k);
+    }
 
     // Dying, the followers are drawn into the body and shrink with it as it caves in.
     const pull = pose?.pull ?? 0, shrink = (pose?.scale ?? 1) * (1 - 0.5 * pull) * player.bodyScale;

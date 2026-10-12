@@ -9,6 +9,7 @@ import { Hud } from '../ui/hud.js';
 import { RunSummary } from '../ui/runSummary.js';
 import { DevOverlay } from '../ui/devOverlay.js';
 import { DevMenu } from '../ui/devMenu.js';
+import { DevHitboxes } from '../ui/devHitboxes.js';
 import { devFlags } from './devFlags.js';
 import { SpawnMenu } from '../ui/spawnMenu.js';
 import { h } from '../ui/dom.js';
@@ -35,6 +36,7 @@ export class GameScene {
     this.summary = null;
     this.hud = new Hud(uiRoot, this);
     this.devOverlay = DEV ? new DevOverlay(uiRoot, this) : null;
+    this.devHitboxes = DEV ? new DevHitboxes(this.world) : null;
     // Runs teach the game until one has ended in death (quitting doesn't count).
     this.tutorial = mode === RunMode.Run && profile.runsFinished === 0 ? new Tutorial(this) : null;
 
@@ -89,6 +91,7 @@ export class GameScene {
     if (!this.summary) this.music.update(world.fightState());
     const frameDt = this.frozen ? 0 : dt;
     world.render(this.alpha, frameDt, this.app.screen.width, this.app.screen.height);
+    this.devHitboxes?.update();
     if (!this.summary) {
       this.hud.update();
       this.devOverlay?.update(frameDt, this.alpha);
@@ -184,6 +187,7 @@ export class GameScene {
     this.devOverlay?.destroy();
     this.toolCorner.remove();
     this.hud.destroy();
+    this.devHitboxes?.destroy();
     this.world.destroy();
   }
 }

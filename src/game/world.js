@@ -46,11 +46,12 @@ export class World {
       debris: new Container(), // shards of broken props, settling on the floor
       props: new Container(),
       pickups: new Container(),
-      telegraphs: new Container(), // enemy attack areas and afterimages, on the floor
+      telegraphs: new Container(), // enemy afterimages, on the floor
       playerBack: new Container({ sortableChildren: true }),
       enemies: new Container(),
       projectiles: new Container(),
       player: new Container(),
+      zones: new Container(), // enemy attack areas, over the bodies so none hide them
       fx: new Container(),
     };
     this.root.addChild(...Object.values(this.layers));

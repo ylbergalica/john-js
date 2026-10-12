@@ -7,11 +7,11 @@
 import { Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
-import { segmentPointDistSq } from '../engine/physics.js';
 import { FIXED_DT, FX, PLAYER } from '../data/config.js';
 import { clamp, clamp01, deltaAngle, lerp, lerpColor, randRange } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { ASTRAL_BLADE } from '../render/sprites.js';
+import { hurtBySegment } from '../game/hurtbox.js';
 
 const DEG = Math.PI / 180;
 const U = 32; // the trail is drawn at this many units to the world unit, then scaled back down
@@ -182,7 +182,7 @@ class AstralBlade extends Entity {
     const half = this.data.fx.length / 2, r = this.data.hitRadius;
     const ax = this.prev.x + Math.cos(this.prevAngle) * half, ay = this.prev.y + Math.sin(this.prevAngle) * half;
     const bx = this.pos.x + Math.cos(this.angle) * half, by = this.pos.y + Math.sin(this.angle) * half;
-    const on = (e) => segmentPointDistSq(ax, ay, bx, by, e.body.pos.x, e.body.pos.y) <= (e.body.radius + r) ** 2;
+    const on = (e) => hurtBySegment(e, ax, ay, bx, by, r);
     for (const prop of this.world.props) {
       if (prop.dead || this.cut.has(prop) || !on(prop)) continue;
       this.cut.add(prop);

@@ -10,7 +10,7 @@
 import { Container, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
-import { segmentPointDistSq } from '../engine/physics.js';
+import { hurtByPoly, hurtBySegment } from '../game/hurtbox.js';
 import { FIXED_DT } from '../data/config.js';
 import { clamp01, lerp, randRange, seededRandom, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
@@ -98,17 +98,6 @@ function lineAt([a, c, b], u, out = { x: 0, y: 0 }) {
   out.x = v * v * a.x + 2 * v * u * c.x + u * u * b.x;
   out.y = v * v * a.y + 2 * v * u * c.y + u * u * b.y;
   return out;
-}
-
-// Whether a circle touches a polygon (a list of points).
-function circleTouchesPoly(poly, x, y, r) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const a = poly[i], b = poly[j];
-    if (segmentPointDistSq(a.x, a.y, b.x, b.y, x, y) <= r * r) return true;
-    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
-  }
-  return inside;
 }
 
 export class PhoenixAspect extends Aspect {
@@ -225,7 +214,7 @@ export class PhoenixAspect extends Aspect {
     if (this.player.dashing) {
       const r = b.radius * this.player.sizeScale + d.bodyReach;
       for (const t of targets) {
-        if (segmentPointDistSq(q.x, q.y, p.x, p.y, t.body.pos.x, t.body.pos.y) <= (t.body.radius + r) ** 2) this.catch(t);
+        if (hurtBySegment(t, q.x, q.y, p.x, p.y, r)) this.catch(t);
       }
     }
     // The wings, at a few moments through the step, so nothing slips between their strokes.
@@ -234,7 +223,7 @@ export class PhoenixAspect extends Aspect {
       const at = { x: lerp(p.x, q.x, k), y: lerp(p.y, q.y, k) };
       for (const side of [1, -1]) {
         const poly = this.outline(e - k * FIXED_DT, side, at);
-        for (const t of targets) if (!w.caught.has(t) && !t.dead && circleTouchesPoly(poly, t.body.pos.x, t.body.pos.y, t.body.radius)) this.catch(t);
+        for (const t of targets) if (!w.caught.has(t) && !t.dead && hurtByPoly(t, poly)) this.catch(t);
       }
     }
   }

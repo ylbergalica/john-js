@@ -3,7 +3,8 @@
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
-import { Body, circleVsBox } from '../engine/physics.js';
+import { Body } from '../engine/physics.js';
+import { hurtByBox } from '../game/hurtbox.js';
 import { clamp01, lerp, norm, randRange } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
@@ -74,7 +75,7 @@ class CleaveSlash extends Entity {
     const b = this.body;
     const box = { x: b.pos.x, y: b.pos.y, hw: this.data.hitboxDepth / 2, hh: this.data.hitboxWidth / 2, angle: this.angle };
     for (const e of [...this.world.enemies, ...this.world.props]) {
-      if (e.dead || this.hit.has(e) || !circleVsBox(e.body.pos.x, e.body.pos.y, e.body.radius, box)) continue;
+      if (e.dead || this.hit.has(e) || !hurtByBox(e, box)) continue;
       this.hit.add(e);
       const src = { ...b.pos };
       e.takeDamage(this.damage, e.closestPoint(src), src, this.data.id);

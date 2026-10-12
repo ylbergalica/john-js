@@ -14,7 +14,8 @@ import { EnemyHitbox } from './hitbox.js';
 import { Projectile } from './projectile.js';
 import { MistShell } from './mistShell.js';
 import { DamageCause } from '../game/damage.js';
-import { ZoneView, ChargeView, BeamView } from './attackView.js';
+import { ZoneView, ChargeView, BeamView, CHARGE_STRETCH, followThrough } from './attackView.js';
+import { maulSwingPose, onMaul, sizeOf } from './maulerRig.js';
 
 const DEG = Math.PI / 180;
 
@@ -212,26 +213,32 @@ class HitboxAbility extends Ability {
 
   // A zone stays active (and keeps its look) with its hitbox off. The stun starts now either
   // way; for a zone, whatever is left of it once the strike ends follows (see advance).
+  // A late parry (Player.hitBy) can come once the strike is over; then the stun just starts,
+  // breaking off anything the enemy has begun since.
   onParry() {
-    if (this.phase !== 'active' || this.parriedStunEndsAt !== null) return;
-    const e = this.enemy, zone = this.kind === 'zone';
+    if (this.phase === 'stunned' || this.parriedStunEndsAt !== null) return;
+    const e = this.enemy, striking = this.phase === 'active', zone = striking && this.kind === 'zone';
     if (zone) this.hitbox.setActive(false);
-    else this.endActive();
+    else if (striking) this.endActive();
     e.body.stop();
     const k = this.awayFromPlayer();
     e.body.addImpulse(k.x * this.parryKnockback, k.y * this.parryKnockback);
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
     if (e.dead || e.dying) return;
     e.stunned = true;
-    if (zone) this.parriedStunEndsAt = this.world.time + this.data.parryStunTime;
-    else this.setPhase('stunned', this.data.parryStunTime);
+    if (zone) {
+      this.parriedStunEndsAt = this.world.time + this.data.parryStunTime;
+      return;
+    }
+    if (!striking) for (const a of e.abilities.values()) if (a !== this && a.phase === 'windup') a.phase = 'ready';
+    this.setPhase('stunned', this.data.parryStunTime);
   }
 }
 
-// Body: charges the way it faces.
+// Body: charges the way it faces, hurting only across its front `hitboxArcDeg`.
 class DashAbility extends HitboxAbility {
   constructor(enemy, data) {
-    super(enemy, data, { type: 'circle', r: data.hitboxRadius }, null, {
+    super(enemy, data, { type: 'circle', r: data.hitboxRadius, arcDeg: data.hitboxArcDeg }, null, {
       kind: 'body', parryKnockback: data.dashForce * 0.3, strikeSound: 'enemyDash',
     });
   }
@@ -377,14 +384,48 @@ class LungeAbility extends HitboxAbility {
   }
 }
 
-// Body: a held weapon swung across the front as the enemy lunges (the Mauler's maul). The
-// enemy and its weapon are the hitbox, a circle `hitboxRadius` around a point
-// `hitboxForward` ahead, so a parry meets the enemy itself and cuts the swing short.
+// Body: a held weapon swung across the front as the enemy lunges. The hitbox is the weapon,
+// so a parry meets it and cuts the swing short: given `maulHit`, the Mauler's maul itself,
+// wherever it has swept since the last step; otherwise a circle `hitboxRadius` around a
+// point `hitboxForward` ahead (the Shade's blades).
 class SwingAbility extends LungeAbility {
   constructor(enemy, data) {
-    super(enemy, data, { type: 'circle', r: data.hitboxRadius, forward: data.hitboxForward }, null, {
+    super(enemy, data, data.maulHit ? { type: 'group', parts: [] } : { type: 'circle', r: data.hitboxRadius, forward: data.hitboxForward }, null, {
       kind: 'body', parryKnockback: data.parryKnockback, strikeSound: data.strikeSound,
     });
+    this.sweptTo = 0; // seconds into the strike the maul's hitbox last reached
+  }
+
+  strike() {
+    super.strike();
+    this.sweptTo = 0;
+    this.sweep();
+  }
+
+  step(dt) {
+    super.step(dt);
+    if (this.phase === 'active') this.sweep();
+  }
+
+  // The maul's part of the hitbox: capsules along it at `maulHit.samples` points of its
+  // swing, from where it was at the last step to where it is now, posed as it's drawn
+  // (maulerRig.js), stretched and turned with the charging body (attackView.js).
+  sweep() {
+    const M = this.data.maulHit;
+    if (!M) return;
+    const t0 = this.sweptTo, t1 = this.world.time - this.strikeAt, { x: sx, y: sy } = CHARGE_STRETCH, parts = [];
+    for (let i = 0; i < M.samples; i++) {
+      const t = lerp(t0, t1, i / Math.max(1, M.samples - 1)), pose = maulSwingPose(t / this.data.swingTime);
+      const turn = followThrough(this, t), c = Math.cos(turn), s = Math.sin(turn);
+      const at = (along) => {
+        const q = onMaul(pose, along), x = q.x * sx, y = q.y * sy;
+        return { x: c * x - s * y, y: s * x + c * y };
+      };
+      const a = at(M.reach[0]), b = at(M.reach[1]);
+      parts.push({ type: 'segment', ax: a.x, ay: a.y, bx: b.x, by: b.y, r: M.radius * sizeOf(pose) });
+    }
+    this.hitbox.shape.parts = parts;
+    this.sweptTo = t1;
   }
 }
 
@@ -542,13 +583,14 @@ class ThrowAbility extends Ability {
   cuePoints() { return [{ x: this.data.spawnDistance, y: 0 }]; }
 
   // A parried projectile punishes its thrower, even mid-way through a later attack, which
-  // the stun breaks off if it was still winding up.
+  // the stun breaks off if it was still winding up. With no `parryStunTime` it only hurts.
   onParry() {
     const e = this.enemy;
     if (this.phase === 'stunned' || e.dead) return;
-    e.body.stop();
+    const stuns = this.data.parryStunTime > 0;
+    if (stuns) e.body.stop();
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
-    if (e.dead || e.dying) return;
+    if (!stuns || e.dead || e.dying) return;
     e.stunned = true;
     e.isActing = false;
     for (const a of e.abilities.values()) if (a !== this && a.phase === 'windup') a.phase = 'ready';

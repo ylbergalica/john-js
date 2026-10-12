@@ -28,9 +28,9 @@ export const PLAYER = {
     // The hitbox and its look reach `size` times as far from the player's centre, covering
     // the same angle.
     size: 1.25,
-    hitboxForward: 0.7 - 0.4 * 0.8,
-    hitboxDepth: 0.5 * 1.85 * 0.8,
-    hitboxWidth: 1.3,
+    hitboxForward: 0.36,
+    hitboxDepth: 0.5 * 1.75 * 0.8,
+    hitboxWidth: 1.25,
     shakeDuration: 0.08,
     shakeStrength: 0.08,
     shakeFrequency: 45,

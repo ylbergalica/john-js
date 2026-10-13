@@ -1,11 +1,12 @@
-// End-of-run screen. Panels for the run itself (floor, time, Exalted, spawners broken, aspect stats),
-// slain enemies, slain guardians and achievements, then the total coins earned.
+// End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect stats),
+// slain enemies, slain guardians (and spawners broken) and achievements, then the total
+// coins earned.
 // Everything is revealed step by step with counting numbers; any key or click skips
 // to the end. Tiles wrap, so long runs with many enemy types stay compact. An epilogue
 // (the first run's last word, Tutorial) rises in under the coins once it's all played out.
 import { h } from './dom.js';
 import { ENEMY_TYPES, TUTORIAL } from '../data/config.js';
-import { enemyIconUrls, iconUrls } from '../render/assets.js';
+import { enemyIconUrls, iconUrls, propIconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
 import { coinIcon, easeOut, formatTime } from './common.js';
@@ -57,24 +58,24 @@ export class RunSummary {
     // ── timeline ──
     this.beat(0.15, 0.9, { start: () => { this.title.classList.add('in'); this.sound('summary'); } });
 
-    // Run: floor, time, Exalted, spawners broken, then each equipped aspect's uses or hits (its AspectStat).
+    // Run: floor, time, Exalted, then each equipped aspect's uses or hits (its AspectStat).
     this.showPanel(0.1, run.el);
     this.tiles(run.body, [
       this.statTile('Floor', floor),
       this.statTile('Time', Math.floor(stats.timeSurvived), formatTime),
       this.statTile('Exalted', adrenaline.uses, times),
-      this.statTile('Spawners', stats.spawnersBroken, times),
       ...profile.equippedAspects().map((a) => this.iconTile(iconUrls[a.icon], stats.aspectCounts[a.id] ?? 0, 'rs-aspect', a.stat.label)),
     ]);
 
-    // Slain, most killed first, guardians apart from the rest.
+    // Slain, most killed first, guardians apart from the rest, and the spawners broken after the guardians.
     const slain = Object.keys(stats.kills).filter((k) => ENEMY_TYPES[k]).sort((a, b) => stats.kills[b] - stats.kills[a]);
     const killTiles = (guardian) => slain.filter((k) => !!ENEMY_TYPES[k].isChaser === guardian)
       .map((k) => this.iconTile(enemyIconUrls[k], stats.kills[k], 'rs-enemy'));
     this.showPanel(0.2, enemies.el);
+    const spawners = stats.spawnersBroken ? [this.iconTile(propIconUrls.spawner, stats.spawnersBroken, 'rs-enemy', 'Spawners destroyed')] : [];
     this.tiles(enemies.body, killTiles(false));
     this.showPanel(0.2, guardians.el);
-    this.tiles(guardians.body, killTiles(true));
+    this.tiles(guardians.body, [...killTiles(true), ...spawners]);
     this.showPanel(0.2, achievements.el);
     this.tiles(achievements.body, []);
 

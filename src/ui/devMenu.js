@@ -22,6 +22,7 @@ const ICONS = {
   unlock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>',
   hitboxes: '<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><circle cx="12" cy="12" r="3"/>',
   speed: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5"/>',
+  anger: '<circle cx="12" cy="12" r="9"/><path d="M7 8.5l3.5 2M17 8.5l-3.5 2"/><path d="M8 17c1-2.5 7-2.5 8 0z"/>',
 };
 const icon = (name) => {
   const el = h('span', { class: 'tool-icon' });
@@ -34,6 +35,7 @@ const ACTIONS = [
   { icon: 'refresh', label: 'Refresh cooldowns', key: 'KeyR', run: (s, p) => p?.aspects.refreshCooldowns() },
   { icon: 'adrenaline', label: 'Fill adrenaline', run: (s) => s.world.adrenaline.add(99999) },
   { icon: 'core', label: 'Collect a core', run: (s) => s.world.cores.collected++ },
+  { icon: 'anger', label: 'Anger guardians', run: (s) => s.world.rage.provoke() },
   { icon: 'floor', label: 'Next floor', run: (s) => s.world.requestNextFloor() },
   { icon: 'skull', label: 'Kill player', run: (s, p) => p?.die() },
   { icon: 'spawn', label: 'Spawn enemies…', run: (s) => s.setMenu(s.spawnMenu) },

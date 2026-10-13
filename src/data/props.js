@@ -167,6 +167,47 @@ export const PROPS = {
     },
     loot: { rolls: 1, chance: 1, table: 'rich' },
   },
+  // A spawner (src/game/spawner.js, SPAWNERS): a festering wound in the void, rooted to the
+  // floor, a slit of an eye in a crown of thorns, red veins throbbing out to them. It births
+  // the floor's foes now and then. It takes a beating, and cracks open first with a gasp,
+  // then caves in on itself (`collapse`) before it bursts, a dark, wrong-sounding blast.
+  // Never empty: an armful of adrenaline or a few mends, and always a boon on top (`always`).
+  spawner: {
+    health: 14, radius: 0.82, size: 2.3, mass: 1e6, damping: 30,
+    color: 0xff2a1a,
+    glow: { size: 4.6, alpha: [0.16, 0.36], pulse: 0.75, crackGlow: 0.3 },
+    mote: null,
+    sounds: { hit: 'spawnerHit', break: 'spawnerBreak' },
+    hit: {
+      push: 0, jolt: 0.07, wobble: 0.13, wobbleTime: 0.35, wobbleHz: 7,
+      chips: { count: 7, speed: [2.5, 5], size: [0.1, 0.22], life: [0.8, 1.3] },
+      sparks: { count: 18, speed: 9, lifetime: 0.4, size: 0.4, coneDeg: 40 },
+      shake: { duration: 0.12, strength: 0.1, frequency: 26 },
+    },
+    break: {
+      pop: { time: 0.45, scale: 2.3 },
+      flash: { size: 7, grow: 2.4, time: 0.45, alpha: 1 },
+      rings: [
+        { delay: 0, time: 0.45, from: 1, to: 6, alpha: 1, color: 0xffffff },
+        { delay: 0.07, time: 0.8, from: 1, to: 10, alpha: 0.7 },
+        { delay: 0.16, time: 1.1, from: 2, to: 14, alpha: 0.4, color: 0x5a0008 },
+      ],
+      rays: { count: 10, length: [4, 8], width: [0.3, 0.55], time: [0.45, 0.7] },
+      sparks: [{ count: 60, speed: 17, lifetime: 0.7, size: 0.55, coneDeg: 180 }, { count: 24, speed: 10, lifetime: 0.5, size: 0.32, coneDeg: 180, color: 0xffffff }],
+      blow: { count: 26, speed: 20, lifetime: 0.5, size: 0.65, coneDeg: 26, color: 0xffffff },
+      stars: { count: 18, speed: [3, 9], size: [0.22, 0.42], life: [0.9, 1.6], color: 0xff9a8a },
+      mist: { count: 16, speed: [2, 5], size: [1.6, 2.4], grow: 2.6, life: [0.9, 1.4], alpha: 0.45 },
+      embers: { count: 30, speed: [2, 8], size: [0.14, 0.3], life: [1, 2] },
+      shards: { count: 30, speed: [3, 8.5], size: [0.16, 0.36], spin: 12, life: [1.8, 2.8], along: 0.35, colors: [0x14030a, 0x2e0610, 0x6a0c14, 0xff4a3a] },
+      shake: { duration: 0.45, strength: 0.35, frequency: 18 },
+      // As DEATH_FX.guardian.ripple; graded dark and red, so the world looks wrong a moment.
+      ripple: { duration: 1.2, strength: 0.045, width: 0.09, glow: 0.5, grade: [0.8, 0.45, 0.5] },
+    },
+    // Struck down, it caves in for `time` (shrinking by `shrink`, trembling by `tremble` ×
+    // its radius, its darkness drawing in) before it bursts.
+    collapse: { time: 0.32, shrink: 0.3, tremble: 0.08 },
+    loot: { rolls: 1, chance: 1, table: 'spawner', always: ['boon'] },
+  },
 };
 
 // What a broken prop can hold, weighted. `count`: how many of it drop at once.
@@ -187,6 +228,44 @@ export const LOOT = {
     { drop: 'fury', weight: 2 },
     { drop: 'haste', weight: 2 },
   ],
+  spawner: [
+    { drop: 'adrenaline', weight: 3, count: [7, 10] },
+    { drop: 'mend', weight: 2, count: [2, 3] },
+  ],
+  boon: [
+    { drop: 'swift', weight: 1 },
+    { drop: 'ward', weight: 1 },
+    { drop: 'fury', weight: 1 },
+    { drop: 'haste', weight: 1 },
+  ],
+};
+
+// Spawners (PROPS.spawner, src/game/spawner.js), set down as a floor is laid out: `count`
+// of them, one room each at most (never the first or last), each tucked into a corner of
+// its room (`margin` units off the walls), or `center` of the time in its dead centre
+// (wherever it fits nearest, if a wall stands there). Every `every` seconds or
+// so one births a foe of the floor's own mix (enemySpawn) `distance` units off, where it
+// can see, at least `clearOfPlayer` from the player, unless `crowd` foes are already
+// within `radius` of it. It starts `firstAfter` seconds into the floor and stops once the
+// floor's guardians are down. The birth: red mist streams out over `telegraph` seconds and
+// gathers at the spot (`gather`), then the foe tears out of it (`flare`).
+export const SPAWNERS = {
+  count: [2, 3],
+  margin: 0.1,
+  center: 0.2,
+  every: [7, 11],
+  firstAfter: [4, 9],
+  distance: [2.2, 4.5],
+  clearOfPlayer: 3.5,
+  radius: 16,
+  crowd: 4,
+  telegraph: 0.8,
+  gather: { size: [2.6, 0.9], alpha: 0.85, rate: 40 },
+  stream: { size: [0.5, 0.9], life: [0.35, 0.55], alpha: 0.7, color: 0xd0140c, fade: 0x200000 },
+  flare: {
+    flash: 3.4, ring: 3.6, time: 0.45,
+    sparks: { count: 22, speed: 9, lifetime: 0.45, size: 0.36, coneDeg: 180 },
+  },
 };
 
 // Props scattered over each floor (scatterProps in src/game/props.js), gathered in nooks:

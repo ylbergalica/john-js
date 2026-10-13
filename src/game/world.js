@@ -14,7 +14,7 @@ import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_F
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
-import { scaleConfig } from '../level/difficulty.js';
+import { attackersOn, scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
@@ -23,6 +23,9 @@ import { Exit } from './pickups.js';
 import { Prop, scatterProps } from './props.js';
 import { Debris } from '../render/debris.js';
 import { ExitTrail } from './exitTrail.js';
+import { GuardianTrail } from './guardianTrail.js';
+import { GuardianRage } from './guardianRage.js';
+import { Spawner, placeSpawners } from './spawner.js';
 import { RunMode } from './session.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;
@@ -77,6 +80,7 @@ export class World {
     this.entities = [];
     this.enemies = [];
     this.props = []; // destroyables, for the player's attacks
+    this.floorTextures = []; // made for this floor alone (a spawner's art), destroyed with it
     this.hostileAttacks = new Set(); // enemy hitboxes/projectiles the player can parry
     this.player = null;
     this.level = null;
@@ -86,6 +90,10 @@ export class World {
     this.navFields = new Map();
     this.cores = { required: 0, collected: 0 };
     this.activeAttackers = 0;
+    this.maxAttackers = ENEMY_COMBAT.attackers.playground; // how many may attack at once on this floor (attackersOn)
+    this.spawnTable = []; // the floor's enemy mix, weighted (enemySpawn.enemies), for spawners
+    this.rage = new GuardianRage(this); // guardians speeding up as the floor drags on
+    this.guardianTrail = new GuardianTrail(this); // the red trail to the guardian once the meter's full
     this.floorStartedAt = 0;
     this.intro = null; // guardian intro in progress (see GUARDIAN_INTRO); the world is frozen meanwhile
     this.introPace = 1; // how many times longer the intro's hold and pan take (TUTORIAL.introPace)
@@ -116,6 +124,9 @@ export class World {
       const layout = this.buildLevel(playgroundLayout());
       for (const { type, x, y } of layout.props) this.spawnProp(type, { x, y });
       this.cores = { required: 0, collected: 0 };
+      this.maxAttackers = ENEMY_COMBAT.attackers.playground;
+      this.spawnTable = scaleConfig(BASE_LEVEL_CONFIG, 1).enemySpawn.enemies;
+      this.rage.start(false);
       this.floorStartedAt = this.time;
       this.intro = null;
       sfx.play('floor');
@@ -125,9 +136,12 @@ export class World {
     const cfg = scaleConfig(BASE_LEVEL_CONFIG, this.session.floor);
     const layout = this.buildLevel(generateLayout(cfg, { farEnds: this.farEnds }));
     this.exit = this.add(new Exit(this, layout.exit.x, layout.exit.y));
+    this.maxAttackers = attackersOn(this.session.floor, ENEMY_COMBAT.attackers);
 
     const { rooms, grid } = layout;
     const es = cfg.enemySpawn;
+    this.spawnTable = es.enemies;
+    placeSpawners(this, layout); // before the enemies, so it finds its corners free
     const first = es.skipFirstRoom ? 1 : 0;
     const last = es.skipLastRoom ? rooms.length - 1 : rooms.length;
     const clear = (p) => Math.hypot(p.x - layout.start.x, p.y - layout.start.y) >= this.startClearance;
@@ -145,15 +159,15 @@ export class World {
       return ENEMY_TYPES[key].minAdrenalineDrops * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
     };
     // Every room gets its minimum, then enemies go into random rooms (up to each room's cap)
-    // until killing them all fills a whole meter even if each drops only its minimum, so
-    // enemies that drop more adrenaline mean fewer enemies.
+    // until killing them all fills es.meterShare of a meter even if each drops only its
+    // minimum, so enemies that drop more adrenaline mean fewer enemies. Spawners bring the rest.
     const counts = new Map();
     const spawnCounted = (i) => { counts.set(i, (counts.get(i) ?? 0) + 1); return spawnIn(rooms[i]); };
     let supply = 0;
     for (let i = first; i < last; i++) {
       for (let n = 0; n < es.minEnemiesPerRoom; n++) supply += spawnCounted(i);
     }
-    const budget = this.adrenaline.capacity;
+    const budget = this.adrenaline.capacity * es.meterShare;
     for (let tries = 0; supply < budget && tries < 200; tries++) {
       const open = [];
       for (let i = first; i < last; i++) if ((counts.get(i) ?? 0) < es.maxEnemiesPerRoom) open.push(i);
@@ -172,6 +186,7 @@ export class World {
     this.cores = { required: chasers, collected: 0 };
     scatterProps(this, layout); // after the enemies, so they keep clear of them
     this.floorStartedAt = this.time; // the clock is frozen through the guardian intro, so this still holds after it
+    this.rage.start(true);
     this.intro = null;
     const guardian = this.enemies.find((e) => e.type.isChaser);
     if (guardian && this.session.floor <= GI.floors) this.startIntro(guardian);
@@ -232,9 +247,12 @@ export class World {
     this.hostileAttacks.clear();
     this.navFields.clear();
     this.activeAttackers = 0;
+    this.guardianTrail.reset();
     this.effects.clear();
     this.deathFx.clear();
     this.debris.clear();
+    for (const t of this.floorTextures) t.destroy(true);
+    this.floorTextures = [];
     this.floorHeal = null;
     this.respawnAt = Infinity;
   }
@@ -421,7 +439,8 @@ export class World {
   }
 
   spawnProp(type, pos) {
-    const prop = this.add(new Prop(this, type, pos.x, pos.y));
+    const Type = type === 'spawner' ? Spawner : Prop;
+    const prop = this.add(new Type(this, type, pos.x, pos.y));
     this.props.push(prop);
     return prop;
   }
@@ -475,9 +494,9 @@ export class World {
     return field;
   }
 
-  // At most a few enemies commit to attacks at once.
+  // At most a few enemies commit to attacks at once, more on deeper floors (maxAttackers).
   tryAcquireAttackSlot() {
-    if (this.activeAttackers >= ENEMY_COMBAT.maxActiveAttackers) return false;
+    if (this.activeAttackers >= this.maxAttackers) return false;
     this.activeAttackers++;
     return true;
   }
@@ -500,10 +519,27 @@ export class World {
     return { pan: Math.max(-1, Math.min(1, dx / halfWidth)) * AUDIO.maxPan, volume: Math.max(0, Math.min(1, fade)) };
   }
 
+  // Spawners keep birthing foes until the floor's guardians are down (always in the playground).
+  get spawnersActive() {
+    return this.session.mode === RunMode.Playground || this.enemies.some((e) => e.type.isChaser && !e.summoned);
+  }
+
+  // An enemy winding up or swinging at the player, within its aggro range (a guardian within
+  // MUSIC.guardianRange), counts as a blow traded (lastBlowAt), as do hits and parries.
+  noteBlows() {
+    const p = this.livePlayer;
+    if (!p) return;
+    for (const e of this.enemies) {
+      if (e.ai.state !== AIState.WindUp && e.ai.state !== AIState.Attack) continue;
+      const range = e.type.isChaser ? MUSIC.guardianRange : e.type.ai.aggroRange;
+      if (dist(e.body.pos, p.body.pos) <= range) { this.lastBlowAt = this.time; return; }
+    }
+  }
+
   // For the fight music: how many enemies are fighting the player and whether a guardian
   // is among them, plus what shapes the music. Null while there's no fight to be had.
-  // Enemies merely nearby don't count: only while blows are traded (a hit either way, a
-  // parry, an enemy winding up or swinging at the player) within MUSIC.blowMemory seconds.
+  // Enemies merely nearby don't count: only while blows are traded (noteBlows) within
+  // MUSIC.blowMemory seconds.
   fightState() {
     const p = this.livePlayer;
     if (!p || this.intro || this.warp || this.warpIn) return null;
@@ -512,7 +548,6 @@ export class World {
       if (e.dead || e.dying || e.ai.state === AIState.Idle || e.ai.state === AIState.Dead) continue;
       const range = e.type.isChaser ? MUSIC.guardianRange : e.type.ai.aggroRange;
       if (dist(e.body.pos, p.body.pos) > range) continue;
-      if (e.ai.state === AIState.WindUp || e.ai.state === AIState.Attack) this.lastBlowAt = this.time;
       if (e.type.isChaser) guardian = true;
       else enemies++;
     }
@@ -536,6 +571,9 @@ export class World {
     this.physics.step(dt);
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].afterPhysics();
     if (!this.player?.death) this.adrenaline.step(dt); // a dying player's meter is theirs to empty (PlayerDeath)
+    this.noteBlows();
+    this.rage.step(dt);
+    this.guardianTrail.step();
     this.stepFloorHeal(dt);
     if (this.time >= this.respawnAt) this.respawnPlayer();
     if (this.time >= this.exitTrailAt) {

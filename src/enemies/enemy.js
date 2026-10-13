@@ -4,7 +4,7 @@ import { Container, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { Body, swapRemove } from '../engine/physics.js';
 import { clamp01, lerp, lerpColor, randInt, randInsideUnitCircle, norm, fromAngle, TAU } from '../engine/math.js';
-import { ENEMY_TYPES, ABILITIES, DEATH_FX, PARTICLES, PICKUPS } from '../data/config.js';
+import { ENEMY_TYPES, ABILITIES, DEATH_FX, GUARDIAN_RAGE, PARTICLES, PICKUPS } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
@@ -35,6 +35,8 @@ export class Enemy extends Entity {
     this.summoned = false; // spawned from the spawn menu (World.summonEnemy)
     this.dying = null; // { at, nextSparkAt } while a slain guardian goes critical (see die)
     this.dyingWhite = false; // blinking white while dying
+    this.pace = 1; // × its speed: a guardian losing patience (GuardianRage)
+    this.rageGlow = null; // the red haze it smoulders in meanwhile, made when first needed
 
     this.buildView();
     this.abilities = new Map();
@@ -47,8 +49,7 @@ export class Enemy extends Entity {
     this.rig = Rig ? new Rig(this) : null; // held weapons, posed by the attacks
   }
 
-  get damage() { return this.type.damage; }
-  get player() { return this.world.livePlayer; }
+  get damage() { return this.type.damage; }  get player() { return this.world.livePlayer; }
 
   buildView() {
     const v = this.type.visual;
@@ -226,12 +227,38 @@ export class Enemy extends Entity {
     this.view.position.set(p.x, p.y);
     this.view.rotation = rot;
     this.attackFx.render(now, p, rot, visible);
+    this.renderRage(now, p, visible, dt);
     if (this.dying) this.renderDying(now, p);
     this.rig?.render(now, dt);
     this.attackFx.renderCue(now, visible);
     if (!visible) return;
     this.setFlash(this.dying ? this.dyingWhite : this.world.time < this.flashUntil);
     if (!this.flashing) this.stars?.update(this.world.time);
+  }
+
+  // A guardian losing patience smoulders: a red haze under it, pulsing faster and glowing
+  // stronger, and embers rising off it, the faster it goes (GUARDIAN_RAGE).
+  renderRage(now, p, visible, dt) {
+    const R = GUARDIAN_RAGE, k = this.dying ? 0 : clamp01((this.pace - 1) / (R.max - 1));
+    if (k <= 0 && !this.rageGlow) return;
+    if (!this.rageGlow) {
+      const g = this.rageGlow = new Sprite(tex.mist);
+      g.anchor.set(0.5);
+      g.blendMode = 'add';
+      g.tint = R.embers.color;
+      this.world.layers.telegraphs.addChild(g);
+    }
+    const g = this.rageGlow, r = this.body.radius;
+    g.visible = visible && k > 0;
+    if (!g.visible) return;
+    const beat = 0.5 + 0.5 * Math.sin(now * lerp(R.glow.pulse[0], R.glow.pulse[1], k) * TAU);
+    g.position.set(p.x, p.y);
+    g.width = g.height = R.glow.size * r * (0.9 + 0.1 * beat);
+    g.alpha = R.glow.alpha * Math.sqrt(k) * (0.6 + 0.4 * beat); // plain from the first, so a guardian picking up pace shows it
+    if (dt > 0 && Math.random() < R.embers.rate * k * dt) {
+      const a = Math.random() * TAU;
+      this.world.effects.burst(p.x + Math.cos(a) * r * 0.8, p.y + Math.sin(a) * r * 0.8, -Math.PI / 2, R.embers);
+    }
   }
 
   // Hit flash: swap to white silhouettes (no filter pass).
@@ -254,6 +281,7 @@ export class Enemy extends Entity {
     this.ai.releaseSlot();
     for (const a of this.abilities.values()) a.dispose();
     this.attackFx.destroy();
+    this.rageGlow?.destroy();
     this.world.physics.remove(this.body);
     this.view.destroy({ children: true });
   }

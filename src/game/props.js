@@ -17,7 +17,8 @@ const LOOT_DAMPING = 6; // flung loot slows at this rate (PICKUPS.launch)
 const FLASH_TIME = 0.08;
 
 export class Prop extends Entity {
-  constructor(world, typeKey, x, y) {
+  // `textures`: { stages, white } of its own, in place of its type's (a spawner's, Spawner).
+  constructor(world, typeKey, x, y, textures = null) {
     super(world);
     const T = this.type = PROPS[typeKey];
     this.typeKey = typeKey;
@@ -26,6 +27,7 @@ export class Prop extends Entity {
     this.body.rotation = this.body.prevRotation = Math.random() * TAU;
     this.health = T.health;
     this.stages = propStageCount(typeKey);
+    this.textures = textures ?? { stages: Array.from({ length: this.stages }, (_, i) => tex[`${typeKey}_${i}`]), white: tex[`${typeKey}_white`] };
     this.stage = 0;
     this.hit = null; // { at, dir }: the latest hit, for its jolt and wobble
     this.flashUntil = -Infinity;
@@ -42,7 +44,7 @@ export class Prop extends Entity {
     this.glow.width = this.glow.height = T.glow.size;
     this.squash = new Container();
     this.inner = new Container();
-    this.sprite = new Sprite(tex[`${typeKey}_0`]);
+    this.sprite = new Sprite(this.textures.stages[0]);
     this.sprite.anchor.set(0.5);
     this.sprite.width = this.sprite.height = T.size;
     this.inner.addChild(this.sprite);
@@ -105,7 +107,7 @@ export class Prop extends Entity {
   shatter(dir) {
     const w = this.world, T = this.type, B = T.break, b = this.body, { x, y } = b.pos, r = b.radius;
     const angle = Math.atan2(dir.y, dir.x);
-    w.deathFx.flare(tex[`${this.typeKey}_white`], x, y, b.rotation, {
+    w.deathFx.flare(this.textures.white, x, y, b.rotation, {
       time: B.pop.time, w0: T.size, h0: T.size, w1: T.size * B.pop.scale, h1: T.size * B.pop.scale,
       color0: 0xffffff, color1: T.color, fade: 1.5,
     });
@@ -119,16 +121,18 @@ export class Prop extends Entity {
     this.destroy();
   }
 
-  // Each of its loot's rolls may drop something, all of it flung out evenly around it.
+  // Each of its loot's rolls may drop something, plus one pick from each of its `always`
+  // tables, all of it flung out evenly around it.
   dropLoot() {
     const L = this.type.loot, w = this.world, { x, y } = this.body.pos;
     const drops = [];
-    for (let i = 0; i < L.rolls; i++) {
-      if (Math.random() >= L.chance) continue;
-      const e = pickWeighted(LOOT[L.table]);
+    const pick = (table) => {
+      const e = pickWeighted(LOOT[table]);
       const n = e.count ? randInt(e.count[0], e.count[1] + 1) : 1;
       for (let k = 0; k < n; k++) drops.push(e.drop);
-    }
+    };
+    for (let i = 0; i < L.rolls; i++) if (Math.random() < L.chance) pick(L.table);
+    for (const table of L.always ?? []) pick(table);
     if (!drops.length) return;
     w.sound('lootPop', this.body.pos);
     const offset = Math.random() * TAU;
@@ -183,7 +187,7 @@ export class Prop extends Entity {
 
   setFlash(on) {
     this.flashing = on;
-    this.sprite.texture = tex[on ? `${this.typeKey}_white` : `${this.typeKey}_${this.stage}`];
+    this.sprite.texture = on ? this.textures.white : this.textures.stages[this.stage];
   }
 
   dispose() {
@@ -342,7 +346,7 @@ function tuck({ cx, cy, hx, hy }, r) {
   };
 }
 
-function shuffle(list) {
+export function shuffle(list) {
   for (let i = list.length - 1; i > 0; i--) {
     const j = randInt(0, i + 1);
     [list[i], list[j]] = [list[j], list[i]];

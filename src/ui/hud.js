@@ -8,6 +8,7 @@ import { iconUrls } from '../render/assets.js';
 import { RunMode } from '../game/session.js';
 import { BUFF_KINDS } from '../player/buffs.js';
 import { keycap, replay, mistFx } from './common.js';
+import { AngerSign } from './angerSign.js';
 
 const hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
 const LOW_HEALTH = 0.3; // fraction at which the health bar starts pulsing
@@ -83,6 +84,7 @@ export class Hud {
       h('div', { class: 'cine-vignette' }), h('div', { class: 'cine-bar top' }), h('div', { class: 'cine-bar bottom' }),
       h('div', { class: 'cine-black' }));
     this.warpWash = h('div', { class: 'warp-wash' }); // white wash taking the exit (World.whiteout)
+    this.angerSign = new AngerSign(); // an angry guardian's sign, over it or at the screen's edge
 
     // Leaving mid-run forfeits the unbanked coins, so Main Menu asks first when there are any.
     this.pauseButtons = h('div', { class: 'pause-buttons' },
@@ -105,7 +107,7 @@ export class Hud {
     );
 
     this.el = h('div', { class: 'hud' },
-      this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.warpWash, this.floorIntro,
+      this.exaltedGlow, this.hurtFlash, this.readyThrob, this.cine, this.warpWash, this.floorIntro, this.angerSign.el,
       h('div', { class: 'hud-cluster' },
         this.buffList,
         this.icons,
@@ -189,6 +191,7 @@ export class Hud {
     d.set(this.exaltedGlow, 'animation-play-state', a.isExalted ? 'running' : 'paused');
 
     this.updateAspectIcons(p);
+    this.angerSign.update(world, this.scene.alpha);
   }
 
   // The floor heal (World.carryHealth), once play starts: the bar blooms with starlight, the

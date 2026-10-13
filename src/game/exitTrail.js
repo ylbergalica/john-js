@@ -1,22 +1,25 @@
 // A thin trail of mist from where the player stood to the exit (EXIT_TRAIL), laid once
 // after the floor's last guardian bursts and never re-routed. Lies on the floor under the
-// exit; purely cosmetic, driven by render time.
+// exit; purely cosmetic, driven by render time. The guardian trail (GUARDIAN_TRAIL,
+// guardianTrail.js) is the same mist in red, laid with its own config and faded away
+// (fadeAway) when it's no longer wanted.
 import { Particle, ParticleContainer } from 'pixi.js';
 import { Entity } from './entity.js';
-import { EXIT_TRAIL as T } from '../data/config.js';
+import { EXIT_TRAIL } from '../data/config.js';
 import { clamp01, randRange, randSign, TAU } from '../engine/math.js';
 import { trailPath } from '../level/trailPath.js';
 import { tex } from '../render/assets.js';
 
 export class ExitTrail extends Entity {
   // → the trail, or null when there's no way from `from` to `to`.
-  static lay(world, from, to) {
-    const points = trailPath(world.level.grid, from, to, T);
-    return points?.length ? world.add(new ExitTrail(world, points)) : null;
+  static lay(world, from, to, cfg = EXIT_TRAIL) {
+    const points = trailPath(world.level.grid, from, to, cfg);
+    return points?.length ? world.add(new ExitTrail(world, points, cfg)) : null;
   }
 
-  constructor(world, points) {
+  constructor(world, points, T) {
     super(world);
+    this.cfg = T;
     const texture = tex.mist;
     this.unit = 1 / texture.width;
     this.container = new ParticleContainer({
@@ -41,12 +44,24 @@ export class ExitTrail extends Entity {
     this.container.particleChildren.push(...this.puffs);
     this.container.update();
     this.t = 0;
+    this.fade = null; // { t, time } while fading away
+  }
+
+  // Fades the whole trail out over `time` seconds, then removes it.
+  fadeAway(time = this.cfg.fadeOut) {
+    this.fade ??= { t: 0, time: Math.max(0.01, time) };
   }
 
   render(_alpha, dt) {
     if (dt <= 0) return;
     this.t += dt;
-    const t = this.t, F = T.flow;
+    let fade = 1;
+    if (this.fade) {
+      this.fade.t += dt;
+      fade = 1 - clamp01(this.fade.t / this.fade.time);
+      if (fade <= 0) { this.destroy(); return; }
+    }
+    const T = this.cfg, t = this.t, F = T.flow;
     for (const m of this.puffs) {
       const age = t - m.s / T.reveal;
       if (age <= 0) continue;
@@ -55,7 +70,7 @@ export class ExitTrail extends Entity {
       m.x = m.x0 + Math.cos(a) * T.drift;
       m.y = m.y0 + Math.sin(a * 0.8) * T.drift;
       m.rotation += m.spin * dt;
-      m.alpha = clamp01(age / 0.6) * (m.peak + F.alpha * swell);
+      m.alpha = clamp01(age / 0.6) * (m.peak + F.alpha * swell) * fade;
       m.scaleX = m.scaleY = m.size * (1 + T.breathe * Math.sin(a * 1.3) + F.grow * swell);
     }
   }

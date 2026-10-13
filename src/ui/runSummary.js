@@ -1,4 +1,4 @@
-// End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect stats),
+// End-of-run screen. Panels for the run itself (floor, time, Exalted, spawners broken, aspect stats),
 // slain enemies, slain guardians and achievements, then the total coins earned.
 // Everything is revealed step by step with counting numbers; any key or click skips
 // to the end. Tiles wrap, so long runs with many enemy types stay compact. An epilogue
@@ -57,12 +57,13 @@ export class RunSummary {
     // ── timeline ──
     this.beat(0.15, 0.9, { start: () => { this.title.classList.add('in'); this.sound('summary'); } });
 
-    // Run: floor, time, Exalted, then each equipped aspect's uses or hits (its AspectStat).
+    // Run: floor, time, Exalted, spawners broken, then each equipped aspect's uses or hits (its AspectStat).
     this.showPanel(0.1, run.el);
     this.tiles(run.body, [
       this.statTile('Floor', floor),
       this.statTile('Time', Math.floor(stats.timeSurvived), formatTime),
       this.statTile('Exalted', adrenaline.uses, times),
+      this.statTile('Spawners', stats.spawnersBroken, times),
       ...profile.equippedAspects().map((a) => this.iconTile(iconUrls[a.icon], stats.aspectCounts[a.id] ?? 0, 'rs-aspect', a.stat.label)),
     ]);
 

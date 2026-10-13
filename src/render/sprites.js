@@ -78,6 +78,7 @@ export function icons() {
     thunder_icon: thunderIcon(),
     phoenix_icon: phoenixIcon(),
     coin_icon: coinIcon(),
+    anger_sign: angerSign(),
     buff_swift: swiftGlyph(),
     buff_ward: wardGlyph(),
     buff_fury: furyGlyph(),
@@ -703,7 +704,7 @@ function drawFeather(ctx, y, half, rand) {
   ctx.clip(vane);
   ctx.strokeStyle = rgba('#ffffff', 0.13);
   ctx.lineWidth = 0.004;
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 90; i++) {
     const x = lerp(Q, TIP, i / 70), side = i % 2 ? 1 : -1;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -1370,10 +1371,13 @@ const PROP_ART = {
     crack: '#fff6dc', crackGlow: rgba('#ffc85a', 0.95),
     detail: reliquaryDetail,
   },
+  // A spawner: a wound in the void, a crown of uneven thorns round a slit of an eye, red
+  // veins throbbing out from it to every thorn. Cracks split it wide before it bursts. Each
+  // spawner in play grows its own (spawnerSprites); this one is the spawn menu's.
+  spawner: spawnerArt(137),
 };
 
-function propSprite(name, stage, S = 256) {
-  const A = PROP_ART[name];
+function propSprite(name, stage, S = 256, A = PROP_ART[name]) {
   const { c, ctx, px } = surface(S);
   const shape = A.path();
   ctx.fillStyle = A.fill(ctx);
@@ -1624,6 +1628,203 @@ function reliquaryDetail(ctx, px) {
   ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.2, [rgba('#ffd27a', 0.45), rgba('#ffd27a', 0)]);
   ctx.fillRect(0.3, 0.3, 0.4, 0.4);
   glow(ctx, rgba('#ffc85a', 0.9), px * 0.05, () => sparkle(ctx, 0.5, 0.5, 0.13, '#fff4d6'));
+}
+
+// A spawner's crown, laid out afresh from each spawner's own seed so no two look alike:
+// `count` thorns (picked in range) round a core of radius `r`, spaced evenly but for a
+// little `jitter` (× the spacing), each pointing straight out to its own length past the
+// core (`reach`), its own width (`width`, × the spacing either side), its sides bowing out
+// or in a touch alike (`bow`).
+const SPAWNER = { count: [6, 12], r: [0.2, 0.27], reach: [0.06, 0.2], width: [0.26, 0.4], jitter: 0.08, bow: [-0.25, 0.35] };
+
+function spawnerCrown(seed) {
+  const S = SPAWNER, rand = seededRandom(seed);
+  const n = S.count[0] + Math.floor(rand() * (S.count[1] - S.count[0] + 1));
+  const step = 360 / n, turn = rand() * 360, r = lerp(...S.r, rand());
+  const thorns = Array.from({ length: n }, (_, i) => ({
+    a: turn + (i + lerp(-S.jitter, S.jitter, rand())) * step,
+    tip: r + lerp(...S.reach, rand()),
+    half: step * lerp(...S.width, rand()),
+    bow: lerp(...S.bow, rand()),
+  }));
+  return { r, thorns };
+}
+
+// The art (as PROP_ART's) of the spawner grown from `seed`.
+function spawnerArt(seed) {
+  let crown = null;
+  const get = () => (crown ??= spawnerCrown(seed)); // only once it's drawn: SPAWNER isn't set yet while PROP_ART is
+  return {
+    path: () => spawnerPath(get()), line: 0.03, cracks: [0, 2, 3, 5, 7, 9],
+    palette: { stroke: ['#ff9a8a', '#c0141c', '#3a0208'], glow: rgba('#ff1a10', 0.75) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, 0.44, ['#30040a', '#0a0004', '#020001'], 0.5, 0.5),
+    clouds: [['#c0101a', 0.22], ['#5a0a3a', 0.18], ['#ff3a24', 0.08]], seed, cloudBox: [0.2, 0.8, 0.2, 0.8],
+    crack: '#ffd8cc', crackGlow: rgba('#ff3a24', 0.95),
+    detail: (ctx, px) => spawnerDetail(ctx, px, get(), seed), over: spawnerEye,
+  };
+}
+
+// A spawner's own sprites, one per crack stage, grown from `seed` (src/game/spawner.js).
+export function spawnerSprites(seed) {
+  const A = spawnerArt(seed);
+  return A.cracks.map((_, stage) => propSprite('spawner', stage, 256, A));
+}
+
+// Each thorn straight out from the core, its sides bowed alike; between thorns the rim
+// sags in a little toward the core.
+function spawnerPath({ r, thorns }) {
+  const p = new Path2D();
+  thorns.forEach((t, i) => {
+    const [lx, ly] = polar(0.5, 0.5, t.a - t.half, r), [tx, ty] = polar(0.5, 0.5, t.a, t.tip);
+    const [rx, ry] = polar(0.5, 0.5, t.a + t.half, r), mid = (r + t.tip) / 2, side = t.half * 0.5 * (1 + t.bow);
+    const [c1x, c1y] = polar(0.5, 0.5, t.a - side, mid), [c2x, c2y] = polar(0.5, 0.5, t.a + side, mid);
+    if (i === 0) p.moveTo(lx, ly); else p.lineTo(lx, ly);
+    p.quadraticCurveTo(c1x, c1y, tx, ty);
+    p.quadraticCurveTo(c2x, c2y, rx, ry);
+    const next = thorns[(i + 1) % thorns.length], gap = ((next.a - next.half + 360 - (t.a + t.half)) % 360) / 2;
+    const [sx, sy] = polar(0.5, 0.5, t.a + t.half + gap, r * 0.9);
+    const [nx, ny] = polar(0.5, 0.5, next.a - next.half, r);
+    p.quadraticCurveTo(sx, sy, nx, ny);
+  });
+  p.closePath();
+  return p;
+}
+
+// Veins: a branching red line from the eye out to the tip of every thorn, throbbing hot
+// near the middle, and the darkness pooling round the eye.
+function spawnerDetail(ctx, px, { thorns }, seed) {
+  const rand = seededRandom(seed + 7), veins = new Path2D();
+  for (const t of thorns) {
+    let x = 0.5, y = 0.5;
+    const a = t.a * DEG, [ex, ey] = polar(0.5, 0.5, t.a, t.tip * 0.92);
+    veins.moveTo(x, y);
+    for (let k = 1; k <= 6; k++) {
+      const f = k / 6, wob = lerp(-0.035, 0.035, rand()) * (1 - f * 0.6);
+      x = lerp(0.5, ex, f) - Math.sin(a) * wob;
+      y = lerp(0.5, ey, f) + Math.cos(a) * wob;
+      veins.lineTo(x, y);
+      if (k === 3 && rand() < 0.7) { // a short fork off to the side
+        const side = rand() < 0.5 ? -1 : 1, fa = a + side * lerp(0.5, 0.9, rand()), len = lerp(0.04, 0.08, rand());
+        veins.moveTo(x, y);
+        veins.lineTo(x + Math.cos(fa) * len, y + Math.sin(fa) * len);
+        veins.moveTo(x, y);
+      }
+    }
+  }
+  glow(ctx, rgba('#ff1a10', 0.9), px * 0.04, () => {
+    ctx.strokeStyle = rgba('#b0101a', 0.85);
+    ctx.lineWidth = 0.018;
+    ctx.stroke(veins);
+  });
+  ctx.strokeStyle = rgba('#ff6a50', 0.55);
+  ctx.lineWidth = 0.006;
+  ctx.stroke(veins);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.2, [rgba('#000000', 0.85), rgba('#000000', 0)]);
+  ctx.fillRect(0.3, 0.3, 0.4, 0.4);
+}
+
+// The eye, over everything: an almond slit, hot red rimmed in black, a darker slit of a
+// pupil down it and a glint, so it reads however the spawner lies.
+function spawnerEye(ctx, px) {
+  const w = 0.075, hh = 0.15, eye = new Path2D();
+  eye.moveTo(0.5, 0.5 - hh);
+  eye.quadraticCurveTo(0.5 + w * 2, 0.5, 0.5, 0.5 + hh);
+  eye.quadraticCurveTo(0.5 - w * 2, 0.5, 0.5, 0.5 - hh);
+  glow(ctx, rgba('#ff2a10', 1), px * 0.07, () => {
+    ctx.fillStyle = radial(ctx, 0.5, 0.5, hh, ['#ffe0c8', '#ff3a1a', '#8a0008']);
+    ctx.fill(eye);
+  });
+  ctx.strokeStyle = '#0a0002';
+  ctx.lineWidth = 0.014;
+  ctx.stroke(eye);
+  const pupil = new Path2D();
+  pupil.moveTo(0.5, 0.5 - hh * 0.75);
+  pupil.quadraticCurveTo(0.5 + w * 0.42, 0.5, 0.5, 0.5 + hh * 0.75);
+  pupil.quadraticCurveTo(0.5 - w * 0.42, 0.5, 0.5, 0.5 - hh * 0.75);
+  ctx.fillStyle = '#120004';
+  ctx.fill(pupil);
+  sparkle(ctx, 0.5 + w * 0.45, 0.5 - hh * 0.4, 0.035, '#ffffff', 0.9);
+}
+
+// An angry guardian's sign (ANGER_SIGN, src/ui/angerSign.js): nothing but a churning cloud
+// of red mist, with the mist missing in three places: two long slits of eyes slanting down
+// hard toward each other, and a mouth torn wide in a roar, its corners hooked up, its edges
+// ragged into fangs of the mist itself. Dark seeps into the holes, so they read as void
+// over anything, the guardian included.
+function angerSign(S = 256) {
+  const { c, ctx, px } = surface(S);
+  const rand = seededRandom(151);
+  // The cloud: dark at its ragged rim, hotter toward its heart, with tendrils curling off it.
+  ctx.save();
+  ctx.filter = `blur(${Math.round(px * 0.028)}px)`;
+  for (let i = 0; i < 70; i++) {
+    const a = rand() * TAU, d = Math.sqrt(rand()) * 0.37, edge = d / 0.37;
+    const x = 0.5 + Math.cos(a) * d, y = 0.54 + Math.sin(a) * d * 1.05, r = lerp(0.08, 0.17, rand());
+    const color = edge > 0.8 ? '#7a0810' : rand() < 0.45 ? '#d4141a' : '#8a0810';
+    ctx.fillStyle = radial(ctx, x, y, r, [rgba(color, lerp(0.6, 0.9, rand())), rgba(color, 0.3), rgba(color, 0)]);
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  for (let i = 0; i < 9; i++) { // tendrils
+    const a = (i / 9) * TAU + lerp(-0.3, 0.3, rand()), len = lerp(0.06, 0.1, rand());
+    for (let k = 0; k < 5; k++) {
+      const d = 0.36 + (k / 4) * len, bend = Math.sin(k * 0.9) * 0.05, r = lerp(0.05, 0.02, k / 4);
+      const x = 0.5 + Math.cos(a + bend) * d, y = 0.54 + Math.sin(a + bend) * d * 1.05;
+      ctx.fillStyle = radial(ctx, x, y, r, [rgba('#6a0a10', 0.6 * (1 - k / 5)), rgba('#6a0a10', 0)]);
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }
+  ctx.restore();
+
+  // Eyes: long thin slits, the inner ends dropped low, the outer ends flicked up to points.
+  const eye = (side) => {
+    const p = new Path2D(), o = side;
+    p.moveTo(0.5 + o * 0.035, 0.47);
+    p.quadraticCurveTo(0.5 + o * 0.15, 0.39, 0.5 + o * 0.29, 0.315);
+    p.quadraticCurveTo(0.5 + o * 0.2, 0.45, 0.5 + o * 0.045, 0.495);
+    p.closePath();
+    return p;
+  };
+  // The mouth: corners hooked up, the upper edge ragged with fangs hanging in, the lower
+  // dropped deep with fangs jutting up.
+  const mouth = new Path2D(), L = 0.24, R = 0.76, half = (R - L) / 2;
+  const top = (x) => 0.6 - 0.05 * ((x - 0.5) / half) ** 4;
+  const bottom = (x) => 0.6 + 0.25 * (1 - ((x - 0.5) / half) ** 2) ** 0.7;
+  const upper = [[0.3, 0.06], [0.355, 0.11], [0.42, 0.05], [0.47, 0.035], [0.53, 0.035], [0.58, 0.05], [0.645, 0.11], [0.7, 0.06]];
+  const lower = [[0.67, 0.05], [0.6, 0.09], [0.53, 0.04], [0.47, 0.04], [0.4, 0.09], [0.33, 0.05]];
+  mouth.moveTo(L, 0.54);
+  for (const [x, len] of upper) {
+    const w = len * 0.32;
+    mouth.lineTo(x - w, top(x - w));
+    mouth.lineTo(x + lerp(-0.006, 0.006, rand()), top(x) + len);
+    mouth.lineTo(x + w, top(x + w));
+  }
+  mouth.lineTo(R, 0.54);
+  mouth.quadraticCurveTo(R - 0.01, 0.66, 0.71, bottom(0.71));
+  for (const [x, len] of lower) {
+    const w = len * 0.36;
+    mouth.lineTo(x + w, bottom(x + w));
+    mouth.lineTo(x + lerp(-0.006, 0.006, rand()), bottom(x) - len);
+    mouth.lineTo(x - w, bottom(x - w));
+  }
+  mouth.lineTo(0.29, bottom(0.29));
+  mouth.quadraticCurveTo(L + 0.01, 0.66, L, 0.54);
+  mouth.closePath();
+
+  // Cut out of the cloud, soft at the rims and clean through in the middle...
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  for (const [blur, alpha] of [[0.022, 0.8], [0.008, 1]]) {
+    ctx.filter = `blur(${Math.round(px * blur)}px)`;
+    ctx.fillStyle = rgba('#000000', alpha);
+    for (const p of [eye(-1), eye(1), mouth]) ctx.fill(p);
+  }
+  // ...and darkness seeping into them, so they're void whatever's behind.
+  ctx.globalCompositeOperation = 'destination-over';
+  ctx.filter = `blur(${Math.round(px * 0.01)}px)`;
+  ctx.fillStyle = rgba('#050001', 0.92);
+  for (const p of [eye(-1), eye(1), mouth]) ctx.fill(p);
+  ctx.restore();
+  return c;
 }
 
 // A shard of a broken prop or ward, white so it can be tinted (src/render/debris.js): a

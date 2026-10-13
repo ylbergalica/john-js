@@ -3,7 +3,7 @@
 // played. Browsers start audio suspended, so the context is created/resumed on the
 // first key or mouse press (`sfx.unlock`). Looping beds (`sfx.loop`) run until stopped.
 
-import { PLAYER_DEATH } from '../data/config.js';
+import { PLAYER_DEATH, PROPS, SPAWNERS } from '../data/config.js';
 
 const MUTE_KEY = 'john.muted';
 const MASTER_VOLUME = 0.5;
@@ -426,6 +426,56 @@ const SOUNDS = {
     arp(v, [523, 659, 784, 1047, 1319, 1568], 0.05, { type: 'triangle', at: 0.12, dur: 0.8, vol: 0.07 });
     tone(v, { freq: 262, at: 0.15, dur: 1.1, vol: 0.1, attack: 0.04 });
   },
+  // A spawner (PROPS.spawner): everything about it a little off, tritones and wet sounds.
+  spawnerHit(v) { // struck: a wet, meaty thud, a crunch, and a sour ring a tritone apart
+    tone(v, { freq: 120, to: 48, dur: 0.18, vol: 0.4 });
+    noise(v, { filter: 'lowpass', freq: 1800, to: 180, dur: 0.16, vol: 0.5 });
+    noise(v, { freq: 900, to: 400, q: 3, dur: 0.12, vol: 0.18, attack: 0.01 });
+    tone(v, { type: 'triangle', freq: 466, to: 452, dur: 0.45, vol: 0.05, attack: 0.01 });
+    tone(v, { type: 'triangle', freq: 659, to: 677, dur: 0.4, vol: 0.04, attack: 0.01 });
+  },
+  // Birthing a foe, about as long as SPAWNERS.telegraph: a low groan straining upward over a
+  // wet swell, then a tearing rip as it comes free.
+  spawnerBirth(v) {
+    const dur = SPAWNERS.telegraph;
+    const throat = ctx.createGain();
+    throat.gain.value = 0.5;
+    lfo(v, throat.gain, { rate: 11, depth: 0.3, dur });
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.frequency.setValueAtTime(260, v.t);
+    muffle.frequency.exponentialRampToValueAtTime(1100, v.t + dur);
+    throat.connect(muffle).connect(v.out);
+    for (const freq of [62, 64.4]) tone(v, { type: 'sawtooth', freq, to: freq * 1.6, dur, vol: 0.14, attack: dur * 0.6, hold: dur - 0.05, out: throat });
+    noise(v, { freq: 300, to: 1200, q: 2.5, dur, vol: 0.12, attack: dur * 0.7, hold: dur - 0.05 });
+    noise(v, { freq: 700, to: 2600, q: 1.2, at: dur - 0.04, dur: 0.22, vol: 0.32, attack: 0.008 });
+    noise(v, { filter: 'lowpass', freq: 900, to: 120, at: dur - 0.02, dur: 0.3, vol: 0.3 });
+    tone(v, { freq: 90, to: 40, at: dur - 0.02, dur: 0.25, vol: 0.3 });
+  },
+  // Struck down, caving in (PROPS.spawner.collapse.time): a sharp gasp sucked inward, rising
+  // too fast, cut off by spawnerBreak.
+  spawnerCollapse(v) {
+    const dur = PROPS.spawner.collapse.time + 0.02;
+    noise(v, { freq: 400, to: 4200, q: 1.8, dur, vol: 0.32, attack: dur * 0.9, hold: dur - 0.02 });
+    tone(v, { type: 'sawtooth', freq: 110, to: 330, dur, vol: 0.08, attack: dur * 0.8, hold: dur - 0.02 });
+    tone(v, { type: 'triangle', freq: 156, to: 466, dur, vol: 0.07, attack: dur * 0.8, hold: dur - 0.02 });
+    tone(v, { freq: 40, to: 70, dur, vol: 0.3, attack: dur * 0.7, hold: dur - 0.02 });
+  },
+  // ...and bursting: a deep, wet blast, glass and gristle flying, and a dissonant cluster
+  // sliding down out of tune as a long moan dies away.
+  spawnerBreak(v) {
+    tone(v, { freq: 66, to: 22, dur: 1.6, vol: 0.6 });
+    noise(v, { filter: 'lowpass', freq: 3600, to: 70, dur: 1.2, vol: 0.6 });
+    noise(v, { freq: 1200, to: 220, q: 2, dur: 0.5, vol: 0.25, attack: 0.005 });
+    noise(v, { filter: 'highpass', freq: 3800, to: 1800, dur: 0.45, vol: 0.16 });
+    tinkles(v, 8, { at: 0.02, spread: 0.6, vol: 0.035, lo: 1200, hi: 3200 });
+    for (const [freq, to] of [[311, 233], [330, 241], [466, 311]]) tone(v, { type: 'triangle', freq, to, at: 0.08, dur: 1.6, vol: 0.05, attack: 0.03 });
+    const moan = ctx.createGain();
+    moan.gain.value = 0.5;
+    lfo(v, moan.gain, { rate: 5, depth: 0.25, dur: 2.2 });
+    moan.connect(v.out);
+    for (const freq of [98, 103.8]) tone(v, { type: 'sawtooth', freq, to: freq * 0.55, at: 0.15, dur: 2, vol: 0.05, attack: 0.3, out: moan });
+  },
   lootPop(v) { // loot springing out
     tone(v, { freq: 520, to: 1040, dur: 0.08, vol: 0.06 });
     tone(v, { type: 'triangle', freq: 780, to: 1560, at: 0.03, dur: 0.08, vol: 0.04 });
@@ -517,6 +567,35 @@ const SOUNDS = {
     noise(v, { filter: 'bandpass', freq: 180, to: 420, q: 4, at: 0.2, dur: 2, vol: 0.12, attack: 0.9 });
     tone(v, { type: 'triangle', freq: 110, to: 104, at: 0.1, dur: 2.2, vol: 0.09, attack: 0.6, hold: 1.2 });
     tone(v, { type: 'triangle', freq: 156, to: 147, at: 0.1, dur: 2.2, vol: 0.06, attack: 0.6, hold: 1.2 });
+  },
+  // A guardian loses its temper (GUARDIAN_RAGE.angry): a huge, monstrous roar from far off,
+  // a sub hit and a rumbling bellow of detuned saws that swells, cracks open into a raw
+  // scream and drags back down, shaken by a growling tremolo and driven hard.
+  guardianRoar(v) {
+    const dur = 2.4;
+    const throat = ctx.createGain();
+    throat.gain.value = 0.6;
+    lfo(v, throat.gain, { rate: 19, depth: 0.42, dur, type: 'triangle' });
+    const grit = ctx.createWaveShaper();
+    grit.curve = drive();
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.Q.value = 4;
+    muffle.frequency.setValueAtTime(220, v.t);
+    muffle.frequency.exponentialRampToValueAtTime(1500, v.t + 0.55);
+    muffle.frequency.exponentialRampToValueAtTime(180, v.t + dur);
+    const trim = ctx.createGain();
+    trim.gain.value = 0.7;
+    throat.connect(grit).connect(muffle).connect(trim).connect(v.out);
+    for (const [freq, peak, to] of [[52, 88, 34], [53.1, 90, 35], [78, 132, 50], [104, 170, 66]]) {
+      const osc = tone(v, { type: 'sawtooth', freq, dur, vol: 0.2, attack: 0.25, hold: 1.4, out: throat });
+      osc.frequency.exponentialRampToValueAtTime(peak * v.pitch, v.t + 0.5);
+      osc.frequency.exponentialRampToValueAtTime(to * v.pitch, v.t + dur);
+      lfo(v, osc.frequency, { rate: 4.5, depth: freq * 0.05, dur });
+    }
+    noise(v, { freq: 380, to: 160, q: 0.8, dur: dur - 0.2, vol: 0.7, attack: 0.2, hold: 1.2, out: throat });
+    tone(v, { freq: 48, to: 20, dur: 1.5, vol: 0.55, attack: 0.01 });
+    noise(v, { filter: 'lowpass', freq: 500, to: 60, dur: 1.2, vol: 0.4 });
   },
   // A muffled demonic roar: low detuned saws a fifth apart and a breathy throat, rasped by a
   // fast tremolo, driven for grit and smothered by a lowpass that opens then closes, over the

@@ -86,4 +86,26 @@ export const EXIT_TRAIL = {
   drift: 0.12, driftSpeed: [0.15, 0.4], spin: 0.25, breathe: 0.15,
   reveal: 30,
   flow: { speed: 5, wavelength: 12, alpha: 0.06, grow: 0.15 },
+  fadeOut: 1.2, // seconds to fade away once it's no longer wanted (only the guardian trail ever is)
 };
+
+// With the adrenaline meter full and the fighting `calm` seconds behind them, the exit
+// trail's red twin shows the player the way to the nearest guardian
+// (src/game/guardianTrail.js): the same mist, laid the same way. A guardian walks, so it's
+// laid afresh (the old one fading out) once the guardian has strayed `relay` units from its
+// end or the player as far from its start, at most every `relayEvery` seconds. It goes once
+// the meter is spent, a fight starts, or the player is within `near` units of the guardian.
+export const GUARDIAN_TRAIL = {
+  ...EXIT_TRAIL,
+  color: 0xff2a1a,
+  calm: 3,
+  relay: 8, relayEvery: 4,
+  near: 9,
+};
+
+// The sign of an angry guardian (GUARDIAN_RAGE.angry; src/ui/angerSign.js): red mist with
+// holes for eyes and a roaring mouth, `size` world units across, right over the guardian's
+// middle while it's on screen; off it, `edgeScale` of that, pinned `edge` px in from the
+// screen's edge toward it with an arrow pointing the way. It bursts in, shudders through
+// the roar and fades, `time` seconds in all.
+export const ANGER_SIGN = { time: 4.5, size: 6, edgeScale: 0.7, edge: 16 };

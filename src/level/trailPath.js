@@ -21,8 +21,19 @@ export function trailPath(grid, from, to, cfg) {
 }
 
 // Per cell, how many cells (8-way) to the nearest wall, up to `max`: walls 0, floor
-// touching a wall 1, and so on.
+// touching a wall 1, and so on. A floor's grid never changes, so it's worked out once per
+// grid (the guardian trail is laid again and again).
+const clearances = new WeakMap();
+
 function clearance(grid, max) {
+  let byMax = clearances.get(grid);
+  if (!byMax) clearances.set(grid, (byMax = new Map()));
+  let d = byMax.get(max);
+  if (!d) byMax.set(max, (d = measureClearance(grid, max)));
+  return d;
+}
+
+function measureClearance(grid, max) {
   const { width: W, height: H } = grid, n = W * H;
   const d = new Uint8Array(n).fill(max);
   const queue = new Int32Array(n);

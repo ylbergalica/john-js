@@ -41,6 +41,15 @@ export function scaleConfig(base, floor) {
   return s;
 }
 
+// How many enemies can attack at once on `floor` (ENEMY_COMBAT.attackers).
+export function attackersOn(floor, { steps, every }) {
+  let [from, n] = steps[0];
+  for (const [f, k] of steps) if (floor >= f) [from, n] = [f, k];
+  if (from !== steps[steps.length - 1][0]) return n;
+  for (let next = from + every + n; floor >= next; next += every + n) n++;
+  return n;
+}
+
 // Keeps the entries within [fromFloor, toFloor] and turns a { min, max } weight into a
 // number: min on fromFloor, rising linearly to max on peakFloor, falling back to min on toFloor.
 export function spawnableOn(entries, floor) {

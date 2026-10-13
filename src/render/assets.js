@@ -3,7 +3,7 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, MAUL_ART, BLADE_ART } from './sprites.js';
+import { animations, icons, sprites, spawnerSprites, MAUL_ART, BLADE_ART } from './sprites.js';
 import { BLADES, ENEMY_TYPES, MAUL, PROPS } from '../data/config.js';
 
 export const tex = {};
@@ -34,6 +34,13 @@ export async function loadAssets() {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
   for (const key of Object.keys(PROPS)) tex[`${key}_white`] = toTexture(whiteSilhouette(tex[`${key}_0`].source.resource));
+}
+
+// A spawner's own textures (src/game/spawner.js), grown from `seed`: one per crack stage,
+// and its white silhouette. Destroy them once nothing shows them any more.
+export function spawnerTextures(seed) {
+  const stages = spawnerSprites(seed).map(toTexture);
+  return { stages, white: toTexture(whiteSilhouette(stages[0].source.resource)) };
 }
 
 // Low-res alpha grid of a texture, for scattering detail inside a sprite's shape.

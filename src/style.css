@@ -97,6 +97,47 @@ kbd {
 .cine-bar.bottom { bottom: 0; transform-origin: bottom; }
 .cine-black { position: absolute; inset: 0; background: #000; opacity: var(--fade); }
 .warp-wash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, #ffffff 20%, #e6ebff 60%, #b4c2ff 100%); }
+
+/* An angry guardian's sign (angerSign.js), --size across right over the guardian: its face
+   bursts in out of red mist, shudders through the roar and fades by --dur; pinned at the
+   screen's edge (.off) it shrinks to --edge-scale and an arrow points the way to it (--a).
+   Mist and embers keep rising off its crown. */
+.anger-signs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.anger-sign { position: absolute; left: 0; top: 0; width: 0; height: 0; transition: opacity 0.3s; }
+.anger-sign.gone { opacity: 0; }
+.anger-body { position: absolute; left: calc(var(--size) / -2); top: calc(var(--size) / -2); width: var(--size); height: var(--size); transition: scale 0.3s; animation: anger-life var(--dur) linear both; }
+.anger-sign.off .anger-body { scale: var(--edge-scale); }
+.anger-face { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 22px rgba(255, 20, 10, 0.8)); animation: anger-roar var(--dur) both; }
+.anger-mist { inset: -20%; --tier: #d0140c; --rise: -90px; --peak: 0.75; --ember-rise: -120px; }
+.anger-mist .puff { animation-name: anger-smoke; }
+@keyframes anger-smoke {
+  0% { opacity: 0; background: #ff2a14; transform: translate(0, 6px) rotate(var(--r)) scale(0.5); }
+  25% { opacity: 0.75; }
+  100% { opacity: 0; background: #2a0002; transform: translate(var(--dx), var(--rise)) rotate(calc(var(--r) + 50deg)) scale(1.7); }
+}
+.anger-mist .ember { box-shadow: 0 0 5px #ff2a10; }
+@keyframes anger-life { 0% { opacity: 0; } 4% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+/* Bursting in big and settling, then the roar: jaw-shaking jolts, swelling, easing off. */
+@keyframes anger-roar {
+  0% { transform: scale(0.3); filter: drop-shadow(0 0 40px rgba(255, 60, 20, 1)) brightness(2.2); }
+  6% { transform: scale(1.25); }
+  11% { transform: scale(0.95); filter: drop-shadow(0 0 22px rgba(255, 20, 10, 0.8)) brightness(1); }
+  14% { transform: translate(-1.5%, 1%) scale(1.04); }
+  17% { transform: translate(1.5%, -1%) scale(1.08); }
+  20% { transform: translate(-1.5%, -0.5%) scale(1.06); }
+  23% { transform: translate(1%, 1%) scale(1.1); }
+  26% { transform: translate(-1%, 0.5%) scale(1.07); }
+  29% { transform: translate(1.5%, -0.5%) scale(1.11); }
+  32% { transform: translate(-1%, -1%) scale(1.08); }
+  36% { transform: translate(0.5%, 0.5%) scale(1.06); }
+  45% { transform: translate(0, 0) scale(1.03); }
+  100% { transform: scale(0.96); }
+}
+.anger-arrow { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; transform: rotate(var(--a, 0rad)); transition: opacity 0.25s; }
+.anger-arrow::before { content: ''; position: absolute; left: calc(var(--size) * var(--edge-scale) * 0.5 + 4px); top: -13px; width: 0; height: 0; border-top: 13px solid transparent; border-bottom: 13px solid transparent; border-left: 20px solid #ff2a14; filter: drop-shadow(0 0 8px rgba(255, 30, 10, 0.9)); animation: anger-point 0.7s ease-in-out infinite; }
+@keyframes anger-point { 50% { transform: translateX(7px); } }
+.anger-sign.off .anger-arrow { opacity: 1; }
+.hud.paused .anger-sign *, .hud.paused .anger-arrow::before { animation-play-state: paused; }
 .hud-cluster { transition: opacity 0.5s; }
 .hud.cinematic .hud-cluster { opacity: 0; }
 .hud.paused .fi, .hud.paused .fi * { animation-play-state: paused; }
@@ -222,7 +263,7 @@ kbd {
 .adr.exalted .ember { animation-duration: calc(var(--t) * 0.6); }
 /* Dying with adrenaline: it's wrung out of them, the bar convulsing and burning hot as it empties. */
 .adr.purging { animation: adr-purge 0.1s steps(2) infinite; }
-@keyframes adr-purge { 0% { transform: translate(-2px, 1px); } 100% { transform: translate(2px, -1px); } }
+@keyframes adr-purge { 0% { transform: translate(-1%, 0.5%); } 100% { transform: translate(2px, -1px); } }
 .adr.purging .adr-fx { display: block; }
 .adr.purging .puff { animation-name: rage; animation-duration: calc(var(--t) * 0.4); }
 .adr.purging .bar.adrenaline { --c: #ff3a24; box-shadow: 0 0 0 1px #ff8a6a, 0 0 0 3px rgba(0, 0, 0, 0.6), 0 0 26px rgba(255, 30, 10, 1), 0 3px 12px rgba(0, 0, 0, 0.6); }

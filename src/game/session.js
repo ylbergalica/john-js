@@ -27,7 +27,8 @@ export class RunSession {
       kills: {}, // by enemy type key
       aspectCounts: {}, // by aspect id: uses or hits, per its AspectStat
       floorsCleared: 0,
-      coins: { enemies: 0, guardians: 0, floors: 0, achievements: 0 }, // earned, by source
+      spawnersBroken: 0,
+      coins: { enemies: 0, guardians: 0, spawners: 0, floors: 0, achievements: 0 }, // earned, by source
       coinsBanked: 0,
       timeSurvived: 0,
     };
@@ -47,6 +48,12 @@ export class RunSession {
     kills[enemy.typeKey] = (kills[enemy.typeKey] ?? 0) + 1;
     if (enemy.type.isChaser) this.addCoins(this.coinsFor(COINS.guardianKill), 'guardians');
     else this.addCoins(this.coinsFor(COINS.enemyKill), 'enemies');
+  }
+
+  spawnerBroken() {
+    if (!this.earns) return;
+    this.stats.spawnersBroken++;
+    this.addCoins(this.coinsFor(COINS.spawnerBroken), 'spawners');
   }
 
   floorCleared() {

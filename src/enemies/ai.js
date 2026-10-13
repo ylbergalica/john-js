@@ -26,6 +26,7 @@ export class EnemyAI {
   get player() { return this.enemy.player; }
   get now() { return this.enemy.world.time; }
   get isChaser() { return this.enemy.type.isChaser; }
+  get pace() { return this.enemy.pace; } // a guardian losing patience moves, turns and decides faster (GuardianRage)
 
   step(dt) {
     if (this.state === AIState.Dead || !this.player) return;
@@ -75,7 +76,7 @@ export class EnemyAI {
     switch (next) {
       case AIState.Idle: this.stateTimer = 0; break;
       case AIState.Reposition:
-        this.stateTimer = randRange(this.cfg.repositionDurationRange.x, this.cfg.repositionDurationRange.y);
+        this.stateTimer = randRange(this.cfg.repositionDurationRange.x, this.cfg.repositionDurationRange.y) / this.pace;
         this.orbitDirection = randSign();
         break;
       case AIState.WindUp:
@@ -162,7 +163,7 @@ export class EnemyAI {
   }
 
   scheduleNextDecision() {
-    this.nextDecisionTime = this.now + randRange(this.cfg.decisionDelayRange.x, this.cfg.decisionDelayRange.y);
+    this.nextDecisionTime = this.now + randRange(this.cfg.decisionDelayRange.x, this.cfg.decisionDelayRange.y) / this.pace;
   }
 
   // ── movement ─────────────────────────────────────────────────────
@@ -172,7 +173,7 @@ export class EnemyAI {
     const stopping = this.hasAvailableAttack() ? this.engageRange : this.blockedSightDistance;
     const dir = this.pathDirection(stopping);
     if (dir) {
-      const speed = this.cfg.moveSpeed;
+      const speed = this.cfg.moveSpeed * this.pace;
       this.steer(dir.x * speed, dir.y * speed);
     }
   }
@@ -189,6 +190,7 @@ export class EnemyAI {
       this.setVelocity(clampLength(this.body.vel, this.cfg.preservedExternalVelocityLimit));
       return;
     }
+    speed *= this.pace;
     this.steer(move.x * speed, move.y * speed);
   }
 
@@ -216,8 +218,8 @@ export class EnemyAI {
 
   // Eases toward `dir`, never faster than `maxTurnSpeed` (rad/s).
   turnToward(dir, dt) {
-    const b = this.body, max = this.cfg.maxTurnSpeed;
-    const next = smoothDampAngle(b.rotation, Math.atan2(dir.y, dir.x), this.turnVelocity, this.cfg.turnSmoothTime, dt);
+    const b = this.body, max = this.cfg.maxTurnSpeed * this.pace;
+    const next = smoothDampAngle(b.rotation, Math.atan2(dir.y, dir.x), this.turnVelocity, this.cfg.turnSmoothTime / this.pace, dt);
     b.rotation += clamp(next - b.rotation, -max * dt, max * dt);
     this.turnVelocity.v = clamp(this.turnVelocity.v, -max, max);
   }

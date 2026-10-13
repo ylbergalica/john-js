@@ -27,16 +27,18 @@ export const BASE_LEVEL_CONFIG = {
   // toFloor (stays at max without one).
   enemySpawn: {
     enemies: [
-      { type: 'goblin', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 2, toFloor: 5 },
-      { type: 'striker', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 2, toFloor: 5 },
-      { type: 'mauler', weight: { min: 0.5, max: 1 }, fromFloor: 2, peakFloor: 4 },
-      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 4, peakFloor: 6 },
+      { type: 'goblin', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 3, toFloor: 5 },
+      { type: 'striker', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 3, toFloor: 5 },
+      { type: 'mauler', weight: { min: 0.5, max: 1 }, fromFloor: 3, peakFloor: 4 },
+      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 5, peakFloor: 7 },
       { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 6, peakFloor: 7 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
-    // in a room) until killing them all fills a whole meter even if each drops only its
-    // minAdrenalineDrops. Per-type drops are in enemies.js.
-    minEnemiesPerRoom: 2,
+    // in a room) until killing them all fills `meterShare` of a meter even if each drops
+    // only its minAdrenalineDrops; the floor's spawners (SPAWNERS) bring the rest. Per-type
+    // drops are in enemies.js.
+    minEnemiesPerRoom: 1,
+    meterShare: 0.75,
     maxEnemiesPerRoom: 6,
     skipFirstRoom: true,
     skipLastRoom: true,

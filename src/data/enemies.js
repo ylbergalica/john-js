@@ -100,4 +100,30 @@ export const ENEMY_TYPES = {
   },
 };
 
-export const ENEMY_COMBAT = { maxActiveAttackers: 3 };
+// Guardians lose patience as a floor drags on (src/game/guardianRage.js). A floor's fill
+// time is how long the player should take there to fill the adrenaline meter they arrived
+// with: `secondsPerPoint` for each point of it, so a bigger meter buys more time. For
+// `calm` fill times the floor's guardians keep their pace, then it climbs by `climb` (×
+// their own) with each fill time more, up to `max`. Reaching `angry` they roar (a sign over
+// them, or at the screen's edge toward them, ANGER_SIGN); an Exalted state started on the
+// floor (not one carried in) running out, or the first of the floor's spawners broken,
+// drives them straight there, the clock jumping ahead to it. Breaking the last spawner
+// drives them all the way to `max`, and they roar again. Pace speeds up only their
+// walking, turning and decisions; their wind-ups, recoveries and cooldowns stay as they
+// are. `glow`: the red haze an impatient guardian smoulders in, × its radius, full at
+// `max`; `embers` a second.
+export const GUARDIAN_RAGE = {
+  secondsPerPoint: 6, calm: 1, climb: 1, angry: 2, max: 3,
+  glow: { size: 5, alpha: 0.7, pulse: [0.8, 2.4] },
+  embers: { rate: 14, count: 1, speed: 2.2, lifetime: 0.7, size: 0.32, coneDeg: 25, color: 0xff3a24 },
+  roarVolume: 0.7, // heard at least this loud however far off it is
+};
+
+// How many enemies can be attacking the player at once (from wind-up through the strike;
+// the rest wait their turn), by floor (attackersOn in src/level/difficulty.js): `steps`
+// set it from each listed floor on, and past the last one more joins every `every` + (as
+// many as there are by then) floors: 4 from floor 9, 5 from 18, 6 from 28, 7 from 39...
+// The playground keeps `playground`.
+export const ENEMY_COMBAT = {
+  attackers: { steps: [[1, 1], [2, 2], [4, 3], [9, 4]], every: 5, playground: 3 },
+};

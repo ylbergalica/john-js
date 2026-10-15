@@ -2,13 +2,15 @@
 // level of the parry streak, a moment apart. Each glides out to its own spot on an arc behind
 // the player (from the enemy parried), turning to point at that enemy, and eases to a stop;
 // a moment later it flies at it (or, if it's dead, at the enemy nearest the player), homing
-// in through walls, cutting props on the way and breaking on the first enemy it meets. It
+// in through walls, cutting props on the way and breaking on the first enemy it meets. With
+// no enemy left, it keeps guard behind the player, trailing after them, until the next parry
+// sends it at the enemy parried. It
 // trails a thin, tapering line of blue light; all of it crimson while the player is Exalted.
 import { Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
 import { FIXED_DT, FX, PLAYER } from '../data/config.js';
-import { clamp, clamp01, deltaAngle, lerp, lerpColor, randRange } from '../engine/math.js';
+import { clamp, clamp01, deltaAngle, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { ASTRAL_BLADE } from '../render/sprites.js';
 import { hurtBySegment } from '../game/hurtbox.js';
@@ -22,6 +24,7 @@ export class AstralAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     this.queue = []; // blades still to come: { at, target, offset (from straight behind) }
+    this.guards = new Set(); // blades with nothing to hunt, keeping behind the player
   }
 
   onParry(attack) {
@@ -29,6 +32,9 @@ export class AstralAspect extends Aspect {
     const max = PLAYER.parry.comboMax, n = clamp(this.player.parryStreak, 1, max), arc = this.data.arcDeg * DEG;
     // The higher the streak, the quicker they come.
     const [slow, fast] = this.data.stagger, gap = max > 2 ? lerp(slow, fast, (n - 2) / (max - 2)) : slow;
+    // Blades keeping guard are set on the enemy parried at once, one after another.
+    [...this.guards].forEach((blade, i) => blade.hunt(target, this.now + i * this.data.guard.stagger));
+    this.guards.clear();
     // Each blade gets its own share of the arc, somewhere inside it, and they take them in a random order.
     const offsets = Array.from({ length: n }, (_, i) => ((i + randRange(0.2, 0.8)) / n - 0.5) * arc);
     for (let i = n - 1; i > 0; i--) {
@@ -54,7 +60,7 @@ export class AstralAspect extends Aspect {
     const t = alive(target) ? target : this.nearest(p);
     const back = t ? Math.atan2(p.y - t.body.pos.y, p.x - t.body.pos.x) : this.player.body.rotation + Math.PI;
     const a = back + offset, r = randRange(...this.data.distance);
-    this.world.add(new AstralBlade(this, p, { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }, t));
+    this.world.add(new AstralBlade(this, p, { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }, t, { offset, r }));
     this.world.sound('astralDraw');
   }
 
@@ -69,11 +75,15 @@ export class AstralAspect extends Aspect {
     return best;
   }
 
-  dispose() { this.queue = []; }
+  dispose() {
+    this.queue = [];
+    this.guards.clear();
+  }
 }
 
 class AstralBlade extends Entity {
-  constructor(aspect, from, spot, target) {
+  // `slot`: where it keeps guard behind the player, `offset` round from straight back and `r` out.
+  constructor(aspect, from, spot, target, slot) {
     const world = aspect.world;
     super(world);
     this.aspect = aspect;
@@ -84,9 +94,12 @@ class AstralBlade extends Entity {
     this.prev = { ...from };
     this.angle = this.prevAngle = Math.atan2(spot.y - from.y, spot.x - from.x); // pointing out, then round at the target
     this.target = target;
+    this.slot = slot;
+    this.phase = Math.random() * TAU; // its own sway while keeping guard
     this.born = world.time;
     this.launchAt = world.time + this.data.launchDelay;
     this.flownAt = null; // set on launch
+    this.guarding = false; // nothing to hunt: keeping behind the player until the next parry
     this.spentAt = null; // broke on an enemy or gave out: gone, while its trail fades
     this.cut = new Set(); // props already cut
     this.points = []; // the trail: { x, y, t } each step
@@ -132,7 +145,8 @@ class AstralBlade extends Entity {
       if (w.time - this.spentAt >= this.trailTime) this.destroy();
       return;
     }
-    if (this.flownAt === null) this.hover(dt);
+    if (this.guarding) this.guard(dt);
+    else if (this.flownAt === null) this.hover(dt);
     else this.fly(dt);
     this.points.push({ ...this.butt(this.pos, this.angle, w.time), t: w.time });
     while (this.points.length > 2 && w.time - this.points[1].t > this.trailTime) this.points.shift();
@@ -152,7 +166,38 @@ class AstralBlade extends Entity {
     if (w.time >= this.launchAt) this.launch();
   }
 
+  // Nothing left to hunt: it keeps to its spot behind the player, trailing after them as they
+  // move and swinging round as they turn, swaying a little and pointing the way they face.
+  startGuard() {
+    this.guarding = true;
+    this.flownAt = null;
+    this.target = null;
+    this.launchAt = Infinity;
+    this.aspect.guards.add(this);
+  }
+
+  guard(dt) {
+    const G = this.data.guard, p = this.world.livePlayer?.body;
+    if (p) {
+      const now = this.world.time, a = p.rotation + Math.PI + this.slot.offset + Math.sin(now * G.swaySpeed + this.phase) * G.sway;
+      const r = this.slot.r * (1 + Math.sin(now * G.bobSpeed + this.phase * 2) * G.bob);
+      const k = 1 - Math.exp(-G.follow * dt);
+      this.pos.x += (p.pos.x + Math.cos(a) * r - this.pos.x) * k;
+      this.pos.y += (p.pos.y + Math.sin(a) * r - this.pos.y) * k;
+      this.angle += deltaAngle(this.angle, p.rotation) * (1 - Math.exp(-this.data.aimRate * dt));
+    }
+    if (this.world.time >= this.launchAt) this.launch();
+  }
+
+  // Set on `target` (or the enemy nearest the player, if it's gone), flying at `at`.
+  hunt(target, at) {
+    this.target = target;
+    this.launchAt = at;
+  }
+
   launch() {
+    if (!this.aim()) { this.startGuard(); return; }
+    this.guarding = false;
     const L = this.data.fx.launch, { x, y } = this.pos;
     this.flownAt = this.world.time;
     const t = this.aim(); // snaps true, in case it hadn't quite come round
@@ -166,10 +211,9 @@ class AstralBlade extends Entity {
   fly(dt) {
     const d = this.data, age = this.world.time - this.flownAt;
     const t = this.aim();
-    if (t) {
-      const want = Math.atan2(t.body.pos.y - this.pos.y, t.body.pos.x - this.pos.x), max = d.turnRate * dt;
-      this.angle += clamp(deltaAngle(this.angle, want), -max, max);
-    }
+    if (!t) { this.startGuard(); return; } // nothing left to hunt: back behind the player
+    const want = Math.atan2(t.body.pos.y - this.pos.y, t.body.pos.x - this.pos.x), max = d.turnRate * dt;
+    this.angle += clamp(deltaAngle(this.angle, want), -max, max);
     this.pos.x += Math.cos(this.angle) * d.speed * dt;
     this.pos.y += Math.sin(this.angle) * d.speed * dt;
     this.strike();
@@ -279,6 +323,7 @@ class AstralBlade extends Entity {
   }
 
   dispose() {
+    this.aspect.guards.delete(this);
     this.trail.destroy();
     this.sprite.destroy();
     this.exalted.destroy();

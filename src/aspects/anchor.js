@@ -199,7 +199,7 @@ class AnchorObject extends Entity {
   }
 }
 
-// Expanding ring that knocks back each enemy it sweeps over, once. Drawn as a thick ring
+// Expanding ring that stuns and knocks back each enemy it sweeps over, once. Drawn as a thick ring
 // of blue mist: two hazy layers turning opposite ways under a soft edge, shedding puffs.
 class WindPulse extends Entity {
   constructor(world, origin, data) {
@@ -231,6 +231,7 @@ class WindPulse extends Entity {
       const d2 = (e.body.pos.x - this.origin.x) ** 2 + (e.body.pos.y - this.origin.y) ** 2;
       if (hurtDistance(e, this.origin.x, this.origin.y) > this.radius || d2 < inner * inner) continue;
       this.knocked.add(e);
+      e.stun(this.data.stunTime);
       e.applyKnockback(this.data.windForce, this.origin);
     }
     this.shedPuffs(dt);

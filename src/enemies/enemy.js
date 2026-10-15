@@ -13,6 +13,7 @@ import { EnemyAI } from './ai.js';
 import { EnemyAttackFx, renderTime } from './attackView.js';
 import { MaulerRig } from './maulerRig.js';
 import { ShadeRig } from './shadeRig.js';
+import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
@@ -28,7 +29,8 @@ export class Enemy extends Entity {
     this.body.rotation = this.body.prevRotation = Math.random() * TAU; // spawn facing anywhere
     this.health = this.type.maxHealth;
     this.isActing = false; // committed to an ability (wind-up through recovery)
-    this.stunned = false;
+    this.parryStunned = false; // set and cleared by the ability that was parried (see `stunned`)
+    this.stunUntil = -Infinity; // stunned from outside (stun) until then
     this.flashUntil = -Infinity;
     this.flashing = false;
     this.lastHitDir = null; // direction of the latest hit, so the death bursts along the killing blow
@@ -47,9 +49,24 @@ export class Enemy extends Entity {
     this.attackFx = new EnemyAttackFx(this, this.silhouette);
     const Rig = RIGS[this.type.visual.rig];
     this.rig = Rig ? new Rig(this) : null; // held weapons, posed by the attacks
+    this.stunMark = new StunMark(this);
   }
 
   get damage() { return this.type.damage; }  get player() { return this.world.livePlayer; }
+
+  // Stunned by a parry (the abilities set and clear it) or from outside, whichever lasts longer.
+  get stunned() { return this.parryStunned || this.world.time < this.stunUntil; }
+  set stunned(on) { this.parryStunned = on; }
+
+  // Stunned from outside (Anchor's shockwave) for `duration`, or longer if it already was:
+  // whatever it was winding up or striking with is called off.
+  stun(duration) {
+    if (this.dead || this.dying) return;
+    for (const a of this.abilities.values()) a.interrupt();
+    this.isActing = false;
+    this.body.stop();
+    this.stunUntil = Math.max(this.stunUntil, this.world.time + duration);
+  }
 
   buildView() {
     const v = this.type.visual;
@@ -98,13 +115,6 @@ export class Enemy extends Entity {
     this.health -= damage;
     if (damage > 0) this.world.events.enemyDamaged.emit(this, damage, cause);
     if (this.health <= 0) this.die(cause);
-  }
-
-  // A hit that deals nothing itself (setting it alight): no flinch, flash or sound, but it
-  // counts as a hit like any other.
-  mark(cause = null) {
-    if (this.dead || this.dying) return;
-    this.world.events.enemyDamaged.emit(this, 0, cause);
   }
 
   // Damage that isn't a hit (a burn eating away at it): no flinch, flash or sound, and no
@@ -163,6 +173,7 @@ export class Enemy extends Entity {
     for (const a of this.abilities.values()) a.dispose();
     this.abilities.clear();
     this.isActing = this.stunned = false;
+    this.stunUntil = -Infinity;
     swapRemove(world.enemies, this);
     this.dying = { at: world.time, nextSparkAt: world.time };
     world.sound('bossDying', body.pos);
@@ -228,6 +239,7 @@ export class Enemy extends Entity {
     this.view.rotation = rot;
     this.attackFx.render(now, p, rot, visible);
     this.renderRage(now, p, visible, dt);
+    this.stunMark.render(now, p, visible, dt);
     if (this.dying) this.renderDying(now, p);
     this.rig?.render(now, dt);
     this.attackFx.renderCue(now, visible);
@@ -282,6 +294,7 @@ export class Enemy extends Entity {
     for (const a of this.abilities.values()) a.dispose();
     this.attackFx.destroy();
     this.rageGlow?.destroy();
+    this.stunMark.destroy();
     this.world.physics.remove(this.body);
     this.view.destroy({ children: true });
   }

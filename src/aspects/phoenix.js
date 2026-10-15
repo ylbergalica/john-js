@@ -2,7 +2,7 @@
 // across the dash. They sweep open and flap forward, curling around in front, then flap back,
 // sweeping behind, and fold at the player's back and sides as they shrink and go out.
 // Every enemy and prop the wings or the dashing player touch catches fire (Burns): catching
-// counts as a hit, and the burn eats away at it quietly, interrupting nothing. Catching fire
+// is a small hit, and the burn eats away at it quietly, interrupting nothing. Catching fire
 // again starts the burn over.
 // The wings are nothing but fire in the shape of wings: a blazing arm trailing tongues of
 // flame, wreathed in flames licking off them that ride along with the player, more left
@@ -228,14 +228,14 @@ export class PhoenixAspect extends Aspect {
     }
   }
 
-  // `target` catches fire: a hit that deals nothing itself, and a burn (started over if it's
-  // burning already).
+  // `target` catches fire: a small hit, and a burn (started over if it's burning already).
   catch(target) {
-    const d = this.data, C = d.fx.catch, w = this.world, p = target.body.pos;
+    const d = this.data, C = d.fx.catch, w = this.world, p = target.body.pos, mult = w.adrenaline.damageMultiplier;
+    const from = { ...this.player.body.pos };
     this.wing.caught.add(target);
     if (!this.burns || this.burns.dead) this.burns = w.add(new Burns(w, d));
-    this.burns.light(target, (d.burn * w.adrenaline.damageMultiplier) / d.burnTime, this.player.body.pos);
-    if (!target.isProp) target.mark(d.id);
+    this.burns.light(target, (d.burn * mult) / d.burnTime, from);
+    target.takeDamage(d.catchDamage * mult, target.closestPoint(from), from, d.id);
     w.deathFx.flare(tex.mist, p.x, p.y, 0, { time: C.flash.time, w0: C.flash.size, h0: C.flash.size, w1: C.flash.size * 0.4, h1: C.flash.size * 0.4, alpha: C.flash.alpha, color0: 0xffe8a0, color1: C.flash.color });
     w.effects.burst(p.x, p.y, Math.random() * TAU, { ...C.sparks, coneDeg: 180 });
     w.sound('ignite', p);

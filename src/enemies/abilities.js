@@ -119,6 +119,16 @@ class Ability {
 
   notifyAttackStarted() { this.enemy.ai.onAbilityAttackStarted(this); }
 
+  // Called off by a stun from outside (Enemy.stun): a wind-up comes to nothing and a strike
+  // stops hurting. A parried zone still playing out is left to it, its own stun to follow.
+  interrupt() {
+    if (this.phase === 'windup') this.phase = 'ready';
+    else if (this.phase === 'active' && this.parriedStunEndsAt == null) {
+      this.endActive?.();
+      this.setPhase('recovery', 0);
+    }
+  }
+
   // Damage taken when parried, plus the player's parry-streak bonus, both scaled by Exalted.
   parryDamage() {
     const base = this.data.damageMultiplier * this.enemy.damage;

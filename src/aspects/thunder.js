@@ -1,9 +1,10 @@
-// Thunderclap: strings of hits call down thick, jagged purple thunder. Hit enemies one after
+// Thunderclap: strings of hits call down jagged purple thunder. Hit enemies one after
 // another, each one not hit yet in the chain, and on the chainHits-th it bursts out of the
 // last one hit, runs back along the chain through every enemy in it and forks off to any
 // enemy near its lines, each fork reaching further, until maxTargets are struck or no more
 // are in reach. Hit one enemy sameHits times in a row and it strikes that one alone, arcs
-// crawling out around it into the empty air. Either way the count starts over.
+// crawling out around it into the empty air. Either way the count starts over. Until then,
+// static crackles over every enemy counted so far.
 // The bolts are white-hot down the middle in a wide band of purple under a soft glow, with
 // thin sprouts forking off them. Once all laid down they hold still, twitch into a new shape
 // once with a second thunderclap, then fade.
@@ -26,6 +27,14 @@ export class ThunderAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     this.reset();
+    // The static, drawn like the bolts: a glow of added light under purple lines.
+    this.staticGlow = new Graphics();
+    this.staticGlow.blendMode = 'add';
+    this.staticLines = new Graphics();
+    for (const g of [this.staticGlow, this.staticLines]) g.scale.set(1 / U);
+    player.world.layers.fx.addChild(this.staticGlow, this.staticLines);
+    this.crackles = new Map(); // enemy → its arcs, around its centre: [{ pts, alpha }]
+    this.recrackleAt = -Infinity;
   }
 
   reset() {
@@ -61,7 +70,45 @@ export class ThunderAspect extends Aspect {
     this.used();
   }
 
-  dispose() { this.reset(); }
+  // Static over every enemy counted so far, its arcs laid anew every so often; more of them
+  // on the enemy hit last for each hit in a row on it.
+  render(alpha) {
+    const S = this.data.fx.static, F = this.data.fx, now = this.now;
+    const relay = now >= this.recrackleAt;
+    if (relay) {
+      this.recrackleAt = now + S.every;
+      this.crackles.clear();
+    }
+    this.staticGlow.clear();
+    this.staticLines.clear();
+    for (const { enemy } of this.chain) {
+      if (!alive(enemy)) continue;
+      if (relay) {
+        const n = Math.min(S.maxArcs, S.arcs + (enemy === this.last ? this.same - 1 : 0));
+        this.crackles.set(enemy, Array.from({ length: n }, () => this.crackle(enemy.body.radius)));
+      }
+      const c = enemy.body.lerpPos(alpha);
+      for (const arc of this.crackles.get(enemy) ?? []) {
+        const pts = arc.pts.map((p) => ({ x: c.x + p.x, y: c.y + p.y }));
+        stroke(this.staticGlow, pts, S.glowWidth, F.glow, S.glowAlpha * arc.alpha);
+        stroke(this.staticLines, pts, S.width, F.color, arc.alpha);
+      }
+    }
+  }
+
+  // One little arc of static hugging an outline of radius `r`, around its centre.
+  crackle(r) {
+    const S = this.data.fx.static, a = Math.random() * TAU, b = a + side() * pick(S.turnDeg) * DEG;
+    const p = { x: Math.cos(a) * r * pick(S.from), y: Math.sin(a) * r * pick(S.from) };
+    const q = { x: Math.cos(b) * r * pick(S.to), y: Math.sin(b) * r * pick(S.to) };
+    return { pts: place(jagged(Math.hypot(q.x - p.x, q.y - p.y), S.step, S.rough), p, q), alpha: pick(S.alpha) };
+  }
+
+  dispose() {
+    this.reset();
+    this.staticGlow.destroy();
+    this.staticLines.destroy();
+  }
 }
 
 // One clap of thunder: a tree of bolts, each running from an anchor to an anchor. An anchor is

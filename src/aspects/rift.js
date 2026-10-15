@@ -1,5 +1,5 @@
 // Rift: a successful parry unfolds blades on both sides of the player for a moment.
-// It cuts props too, but only enemy hits halve the damage of the next one, down to a floor.
+// It cuts enemies and props alike, every one for full damage.
 // While out, the blades shed motes; both take the player's tint, so they burn red while Exalted.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
@@ -22,7 +22,6 @@ export class RiftAspect extends Aspect {
     this.activeUntil = 0;
     this.hiddenAt = Infinity; // when the closing animation finishes
     this.damage = data.damage;
-    this.minDamage = data.minDamage;
     this.contacts = new ContactSet();
     this.sprite = new Sprite(anims.rift_open[0]);
     this.sprite.anchor.set(0.5);
@@ -35,9 +34,7 @@ export class RiftAspect extends Aspect {
   }
 
   onParry() {
-    const mult = this.world.adrenaline.damageMultiplier;
-    this.damage = this.data.damage * mult;
-    this.minDamage = this.data.minDamage * mult;
+    this.damage = this.data.damage * this.world.adrenaline.damageMultiplier;
     this.active = true;
     this.activeUntil = this.now + Math.max(0, this.data.activeTime);
     this.hiddenAt = Infinity;
@@ -76,7 +73,6 @@ export class RiftAspect extends Aspect {
     if (enemy.dead) return;
     enemy.takeDamage(this.damage, enemy.closestPoint(source), source, this.data.id);
     if (!enemy.dead && !enemy.isProp) enemy.applyKnockback(this.data.enemyKnockbackForce, source);
-    if (!enemy.isProp) this.damage = Math.max(this.minDamage, this.damage * 0.5); // props don't wear the blades down
   }
 
   render(alpha, dt) {

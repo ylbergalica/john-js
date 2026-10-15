@@ -21,7 +21,9 @@ export const ASPECTS = [
     quote: "Now you see me, now you don't.",
     description: 'Throw an anchor which you can teleport to at any time.',
     throwImpulse: 25, settleSpeedThreshold: 0.2, settleGraceTime: 0.25, retrievalRadius: 0.45,
-    teleportWindUpTime: 0.5, teleportRecoverTime: 0.5, windRadius: 5, windDuration: 1, windForce: 30,
+    // The shockwave where you land stuns every enemy it sweeps over for stunTime, calling off
+    // whatever it was about to do, and knocks it back.
+    teleportWindUpTime: 0.5, teleportRecoverTime: 0.5, windRadius: 5, windDuration: 1, windForce: 30, stunTime: 2.5,
     anchorMass: 1, anchorDamping: 5, anchorSize: 0.36 * 2, anchorRadius: 0.18,
     teleportDotScale: 0.08, windRingWidth: 0.45,
     // The look (src/aspects/anchor.js): blue light pinches in on you as you shrink away
@@ -87,9 +89,14 @@ export const ASPECTS = [
     quote: 'F for flash.',
     description: 'Blink a short distance. Every parry or kill reduces the active cooldown.',
     maxBlinkDistance: 6, baseCooldown: 5, cooldownReductionPerTrigger: 1,
+    // Where you land, a star of light flashes out (arrive.star and its fainter twin, `cross`),
+    // striking every enemy and prop its points or its middle touch, once, as it flashes:
+    // within armWidth of a point's line, or `core` of its centre.
+    damage: 1, enemyKnockbackForce: 6, armWidth: 0.3, core: 0.9,
     // The blink's look (src/aspects/flash.js): light folds in where you leave, a streak
-    // of it joins the two spots, and it bursts out where you land. Sizes in world units,
-    // times in seconds, [min, max] picks at random.
+    // of it joins the two spots, and it bursts out where you land in a star like its icon's:
+    // two four-point flares crossed `cross.deg` apart, the one behind `cross.scale` the size.
+    // Sizes in world units, times in seconds, [min, max] picks at random.
     fx: {
       color: 0xffb81f, hot: 0xffe27a,
       depart: {
@@ -100,7 +107,9 @@ export const ASPECTS = [
       streak: { width: 0.7, time: 0.22, alpha: 0.7 },
       arrive: {
         flash: { size: 1.4, grow: 2.2, time: 0.5, alpha: 1 },
-        star: { size: 3.2, time: 0.55, spin: 1.2 }, // spin: radians a second, either way
+        star: { size: 6, time: 0.55, spin: 1.2 }, // spin: radians a second, either way
+        cross: { deg: 38, scale: 0.75, alpha: 0.7 },
+        hit: { sparks: { count: 10, speed: 8, lifetime: 0.3, size: 0.3, coneDeg: 40, color: 0xffd04a }, impactTint: 0xffe27a },
         sparks: { count: 20, speed: 8, lifetime: 0.6, size: 0.3, coneDeg: 180 },
         glints: { count: 12, speed: [2, 5], size: [0.16, 0.3], life: [0.8, 1.4] },
       },
@@ -110,7 +119,7 @@ export const ASPECTS = [
     id: 'rift', displayName: 'Rift', tier: AspectTier.Gift, icon: 'rift_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'Compact violent solutions.',
     description: 'Connecting a parry unfolds damaging rift-blades on each side.',
-    activeTime: 1, damage: 1, enemyKnockbackForce: 5, minDamage: 0.2,
+    activeTime: 1, damage: 1, enemyKnockbackForce: 5,
     hitboxDepth: 0.6074743 * 0.8, hitboxWidth: 4.5242996 * 0.8, spriteW: 1 * 0.8, spriteH: 5 * 0.8,
     // Motes shed off the blades while they're out, in the player's tint (src/aspects/rift.js): `rate` a
     // second, drifting `outward` from the player and `back` from its facing, world units
@@ -179,10 +188,15 @@ export const ASPECTS = [
     // flies at it (or, if it's dead, at whichever enemy is nearest the player) at `speed`,
     // turning toward it at up to turnRate radians a second, through walls. It breaks on the
     // first enemy it meets, cutting props on the way without stopping, and gives up after
-    // `lifetime` in flight.
+    // `lifetime` in flight. With no enemy left to fly at, it keeps guard at its spot behind the
+    // player (from the way they face), trailing after them and easing in by `follow` a
+    // second, swaying up to `sway` radians round and `bob` of its distance out and in, and
+    // pointing the way they face, until the next parry sets them all on the enemy parried,
+    // `stagger` apart.
     damage: 2, enemyKnockbackForce: 4, hitRadius: 0.15,
     stagger: [0.4, 0.1], arcDeg: 150, distance: [1.7, 2.2], settleTime: 1, launchDelay: 1,
     speed: 20, turnRate: 10, aimRate: 8, lifetime: 4,
+    guard: { follow: 5, sway: 0.12, swaySpeed: 1.3, bob: 0.06, bobSpeed: 2.1, stagger: 0.08 },
     // The look (src/aspects/astral.js): a small sword-shaped silhouette of bright blue light,
     // `length` long, growing out of the player over growTime as it leaves them, trailing a thin line
     // of blue light `trail` seconds long, `width` at the head and tapering away. It bursts in a
@@ -214,11 +228,11 @@ export const ASPECTS = [
     // loses it. The HUD shows the chain so far. twitchDelay after it's all
     // out it twitches once into a new shape, with a second clap of thunder, then holds still
     // for `hold` and fades over `fade`.
-    chainHits: 4, sameHits: 5, comboTime: 6, reach: 7, maxTargets: 10,
+    chainHits: 5, sameHits: 5, comboTime: 6, reach: 7, maxTargets: 10,
     damage: 2, soloDamage: 4, arcDamage: 1, hitRadius: 0.3, enemyKnockbackForce: 2,
     speed: 150, minJumpTime: 0.01, // how fast it runs along a line, and the least any one jump takes
     twitchDelay: 0.05, hold: 0.35, fade: 0.35, soloTime: 0.06, soloReach: 4.5, // how far out from the enemy alone its arcs crawl
-    // The look (src/aspects/thunder.js): thick jagged bolts, white-hot down the middle in a
+    // The look (src/aspects/thunder.js): jagged bolts, white-hot down the middle in a
     // wide band of purple, under a soft purple glow, with thin forked sprouts off them, each
     // laid down once where things are as it sets off. Every line is cut into pieces no longer
     // than `step` and its midpoints knocked sideways by up to `rough` of each piece's length.
@@ -226,16 +240,23 @@ export const ASPECTS = [
     // fork of an arc already out, up to soloReach away. World units and seconds, [min, max] at random.
     fx: {
       color: 0xa94dff, core: 0xffffff, glow: 0x7a2cff,
-      width: 0.21, coreWidth: 0.075, glowWidth: [0.8, 0.42], glowAlpha: [0.12, 0.22],
+      width: 0.14, coreWidth: 0.05, glowWidth: [0.55, 0.28], glowAlpha: [0.1, 0.2],
       step: 0.28, rough: 0.42,
       // Sprouts: off a share of a bolt's points, `width` of the bolt's and thinning to `taper` of
       // that. A `share` of them are long, out to 5 units though mostly nearer the low end, with
       // short twigs off them `twig` as wide as a short sprout.
       sprouts: {
-        chance: 0.38, length: [0.3, 1], spreadDeg: [25, 70], width: 0.45, taper: 0.4, step: 0.14, rough: 0.5,
-        long: { share: 0.12, length: [1.5, 5], width: 0.6, twig: 0.8, step: 0.2, rough: 0.42 },
+        chance: 0.2, length: [0.3, 1], spreadDeg: [25, 70], width: 0.45, taper: 0.4, step: 0.14, rough: 0.5,
+        long: { share: 0.08, length: [1.5, 4], width: 0.6, twig: 0.8, step: 0.2, rough: 0.42 },
       },
-      solo: { rate: 110, burst: 9, length: [1.2, 2.8], fork: 0.45, width: 0.75 },
+      solo: { rate: 60, burst: 6, length: [1.2, 2.8], fork: 0.45, width: 0.75 },
+      // Static crackling over every enemy in the count so far: `arcs` little jagged arcs hugging
+      // its outline (one more for each hit in a row on the enemy hit last, up to maxArcs), from
+      // `from` to `to` times its radius out, each `turnDeg` round it, laid anew every `every`.
+      static: {
+        arcs: 2, maxArcs: 6, from: [0.9, 1.15], to: [0.9, 1.3], turnDeg: [30, 75], step: 0.12, rough: 0.7,
+        width: 0.05, glowWidth: 0.24, glowAlpha: 0.35, alpha: [0.6, 1], every: 0.06,
+      },
       strike: { size: 2.6, time: 0.32, alpha: 0.95 }, // the flash where it comes out
       hit: {
         flash: { size: 1.3, time: 0.22, alpha: 0.8 },
@@ -260,11 +281,11 @@ export const ASPECTS = [
     // the last [1] of it (flapEase, foldEase). Every
     // enemy and prop the wings or the dashing
     // player (within bodyReach of its body) touch catches fire, up to burnUntil of the way
-    // through the fade: it burns for burnTime, taking `burn` damage in all, a little every
-    // step. Catching fire counts as a hit by the player (dealing nothing itself), and catching
-    // again only starts the burn over, counting again; the burn itself isn't a hit: no flinch,
-    // flash or knockback, so it interrupts nothing, and nothing that counts hits counts it.
-    length: 2.8, burn: 5, burnTime: 5, bodyReach: 0.2,
+    // through the fade: catching fire is a hit for catchDamage, and then it burns for burnTime,
+    // taking `burn` damage more in all, a little every step. Catching again hits again and starts
+    // the burn over; the burn itself isn't a hit: no flinch, flash or knockback, so it
+    // interrupts nothing, and nothing that counts hits counts it.
+    length: 2.8, catchDamage: 1, burn: 9, burnTime: 5, bodyReach: 0.2,
     openTime: 0.07, flapAt: 0.03, flapTime: 0.18, flapEase: [0.3, 0.15], flapDeg: 35, bendDeg: 80,
     foldTime: 0.17, foldEase: [0.15, 0.3], foldDeg: 30, foldBendDeg: 40, foldScale: 0.7, fadeAt: 0.36, fadeTime: 0.12, burnUntil: 0.5,
     // The look (src/aspects/phoenix.js): nothing but fire in the shape of wings. Each is a

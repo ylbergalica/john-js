@@ -119,6 +119,16 @@ export const GUARDIAN_RAGE = {
   roarVolume: 0.7, // heard at least this loud however far off it is
 };
 
+// A stunned enemy (parried, or by Anchor's shockwave; not one just recovering) has `count`
+// little stars circling over it (src/enemies/stunMark.js): on a ring `orbit` × its radius
+// out, squashed to `tilt` of that, centred `lift` × its radius up the screen (as if round its
+// head), `speed` turns a second, each `size` × its radius across and twinkling `twinkle`
+// times a second; they pop in over `popTime` and out the same.
+export const STUN_MARK = {
+  count: 3, orbit: 1.1, tilt: 0.4, lift: 0.8, speed: 0.8, size: 1.15, twinkle: 3, popTime: 0.12,
+  color: 0xffe680, glow: { color: 0xffc830, size: 2.2, alpha: 0.6 }, alpha: 1,
+};
+
 // How many enemies can be attacking the player at once (from wind-up through the strike;
 // the rest wait their turn), by floor (attackersOn in src/level/difficulty.js): `steps`
 // set it from each listed floor on, and past the last one more joins every `every` + (as

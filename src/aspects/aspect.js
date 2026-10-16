@@ -15,6 +15,8 @@ export class Aspect {
   get available() { return this.cooldownFraction <= 0; }
   // A count it's building toward, shown on its HUD icon; null for none.
   get counter() { return null; }
+  // Scales the player's attack damage (each aspect's multiplies together).
+  get damageMultiplier() { return 1; }
 
   // It fired: pops its HUD icon, and counts toward its summary stat if that's uses.
   used() {
@@ -30,6 +32,7 @@ export class Aspect {
   beforeAttack() {}
   onDash(_dir) {} // the player set off on a dash along unit `dir`
   onHitEnemy(_enemy, _hitPoint) {} // the player's attack landed
+  onHitProp(_prop, _hitPoint) {} // the player's attack landed on a prop (a crate and the like)
   // Any damage or kill, with its cause (a DamageCause or an aspect id). The controller
   // never sends an aspect its own hits.
   onEnemyDamaged(_enemy, _damage, _cause) {}

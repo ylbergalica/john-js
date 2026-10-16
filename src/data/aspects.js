@@ -215,6 +215,29 @@ export const ASPECTS = [
     },
   },
   {
+    id: 'momentum', displayName: 'Momentum', tier: AspectTier.Gift, icon: 'momentum_icon', activatable: false, stat: AspectStat.Uses,
+    quote: 'Never let them see you stop.',
+    description: 'Dashing empowers your next attack.',
+    // Charged the moment a dash starts; the next swing to land on an enemy or a prop strikes
+    // everything it hits for `multiplier` times the damage (src/aspects/momentum.js).
+    multiplier: 2.5,
+    // The look: while charged the player sheds embers (`motes`, `rate` a second, `spread` from its
+    // centre, drifting outward at `drift`); a charged hit lands in a flash, a ring, the hit impact
+    // at `impact` times its size in `hot`, a spray of sparks and a shake. World units and seconds,
+    // [min, max] at random.
+    fx: {
+      color: 0xff7a2e, hot: 0xffd9a8,
+      motes: { rate: 45, size: [0.14, 0.26], life: [0.3, 0.5], spread: [0.3, 0.6], drift: [0.6, 1.4], alpha: 0.9 },
+      hit: {
+        flash: { size: 1.2, grow: 2, time: 0.22, alpha: 0.9 },
+        ring: { from: 0.4, to: 3.2, time: 0.25, alpha: 0.7 },
+        impact: 1.8,
+        sparks: { count: 16, speed: 10, lifetime: 0.3, size: 0.35, coneDeg: 50 },
+        shake: { duration: 0.14, strength: 0.12, frequency: 28 },
+      },
+    },
+  },
+  {
     id: 'astral', displayName: 'Astral Blades', tier: AspectTier.Prestige, icon: 'astral_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'The stars remember who struck first.',
     description: 'Parrying conjures a blade of light that hunts down the attacker.',

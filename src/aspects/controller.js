@@ -44,6 +44,8 @@ export class AspectController {
   beforeAttack() { for (const a of this.aspects) a.beforeAttack(); }
   onDash(dir) { for (const a of this.aspects) a.onDash(dir); }
   onHitEnemy(enemy, hitPoint) { for (const a of this.aspects) a.onHitEnemy(enemy, hitPoint); }
+  onHitProp(prop, hitPoint) { for (const a of this.aspects) a.onHitProp(prop, hitPoint); }
+  get damageMultiplier() { return this.aspects.reduce((m, a) => m * a.damageMultiplier, 1); }
   refreshCooldowns() { for (const a of this.aspects) a.refreshCooldown(); }
 
   dispose() {

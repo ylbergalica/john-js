@@ -181,7 +181,7 @@ export class Player extends Entity {
     this.view.hideSwing();
   }
 
-  get attackDamage() { return A.attackDamage * this.world.adrenaline.damageMultiplier * this.buffs.damageMultiplier; }
+  get attackDamage() { return A.attackDamage * this.world.adrenaline.damageMultiplier * this.buffs.damageMultiplier * this.aspects.damageMultiplier; }
 
   onAttackHit(enemy) {
     if (enemy.dead) return;
@@ -196,7 +196,7 @@ export class Player extends Entity {
   }
 
   // Props land like enemy hits (the quicker follow-up, the recoil) but aren't enemies to
-  // the aspects or the adrenaline meter.
+  // the aspects (they hear of them through onHitProp) or the adrenaline meter.
   onAttackProp(prop) {
     if (prop.dead) return;
     const src = this.attackPoint;
@@ -205,6 +205,7 @@ export class Player extends Entity {
     this.view.playHitImpact(hitPoint);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
     this.applyRecoil(A.playerKnockbackForce);
+    this.aspects.onHitProp(prop, hitPoint);
   }
 
   // Capsule `forward` ahead of the player, long axis perpendicular to facing.

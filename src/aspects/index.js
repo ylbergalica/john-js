@@ -9,6 +9,7 @@ import { AstralAspect } from './astral.js';
 import { ThunderAspect } from './thunder.js';
 import { PhoenixAspect } from './phoenix.js';
 import { NeedleAspect } from './needle.js';
+import { MomentumAspect } from './momentum.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -21,6 +22,7 @@ const ASPECT_TYPES = {
   thunder: ThunderAspect,
   phoenix: PhoenixAspect,
   needle: NeedleAspect,
+  momentum: MomentumAspect,
 };
 
 export function createAspect(player, data) {

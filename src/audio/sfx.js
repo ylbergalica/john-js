@@ -662,6 +662,15 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 4200, to: 8000, dur: 0.06, vol: 0.05, attack: 0.004 });
     tone(v, { type: 'triangle', freq: 2400, to: 3000, dur: 0.05, vol: 0.015 });
   },
+  // Momentum: a charged hit lands over the usual hit as a deep boom dropping away, a gritty
+  // crunch, a sharp crack on top and a low rumble trailing after.
+  momentum(v) {
+    tone(v, { freq: 120, to: 30, dur: 0.4, vol: 0.5 });
+    tone(v, { type: 'sawtooth', freq: 190, to: 50, dur: 0.15, vol: 0.12 });
+    noise(v, { freq: 900, to: 160, q: 0.8, dur: 0.22, vol: 0.45 });
+    noise(v, { filter: 'highpass', freq: 2200, to: 5000, dur: 0.05, vol: 0.2 });
+    tone(v, { type: 'triangle', freq: 70, to: 38, at: 0.05, dur: 0.32, vol: 0.18 });
+  },
   // Astral Blades: a soft glassy shimmer as each blade is drawn, and a thin rising zip as it flies.
   astralDraw(v) {
     noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 0.12, vol: 0.06, attack: 0.03 });

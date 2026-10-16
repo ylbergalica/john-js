@@ -52,7 +52,10 @@ export class Enemy extends Entity {
     this.stunMark = new StunMark(this);
   }
 
-  get damage() { return this.type.damage; }  get player() { return this.world.livePlayer; }
+  get damage() { return this.type.damage; }
+  // Who it hunts: the player, or a decoy standing in for them (World.quarry). Blows it takes
+  // still come from the player itself.
+  get player() { return this.world.quarry; }
 
   // Stunned by a parry (the abilities set and clear it) or from outside, whichever lasts longer.
   get stunned() { return this.parryStunned || this.world.time < this.stunUntil; }
@@ -108,7 +111,8 @@ export class Enemy extends Entity {
   // `cause`: what dealt the hit (a DamageCause or an aspect id).
   takeDamage(damage, hitPoint = null, source = null, cause = null) {
     if (this.dead || this.dying) return;
-    source ??= this.player ? { ...this.player.body.pos } : { ...this.body.pos };
+    const p = this.world.livePlayer;
+    source ??= p ? { ...p.body.pos } : { ...this.body.pos };
     hitPoint ??= { ...this.body.pos };
     if (damage > 0) this.onHurt(hitPoint, source);
     if (devFlags.noDamage) return; // hits still land, they just don't hurt
@@ -146,7 +150,7 @@ export class Enemy extends Entity {
     const eff = force * (1 - this.type.knockbackResistance);
     if (eff <= 0) return;
     const b = this.body;
-    source ??= this.player ? this.player.body.pos : b.pos;
+    source ??= this.world.livePlayer?.body.pos ?? b.pos;
     let dir = norm({ x: b.pos.x - source.x, y: b.pos.y - source.y });
     if (dir.x === 0 && dir.y === 0) {
       const f = fromAngle(b.rotation);

@@ -83,6 +83,7 @@ export class World {
     this.floorTextures = []; // made for this floor alone (a spawner's art), destroyed with it
     this.hostileAttacks = new Set(); // enemy hitboxes/projectiles the player can parry
     this.player = null;
+    this.decoy = null; // { body }: a stand-in the enemies hunt instead of the player (Afterimage)
     this.level = null;
     this.exit = null;
     this.exitTrailAt = Infinity; // when to lay the trail to the exit (see guardianBurst)
@@ -111,6 +112,8 @@ export class World {
 
   // The player while still in the fight: null once killed, through their death too.
   get livePlayer() { return this.player && !this.player.dead && !this.player.death ? this.player : null; }
+  // What enemies hunt: the live player, or a decoy standing in for them while there is one.
+  get quarry() { const p = this.livePlayer; return p && this.decoy ? this.decoy : p; }
   // The player as enemy attacks see them: null while intangible or mist, so attacks pass through.
   get hittablePlayer() { const p = this.livePlayer; return p && !p.intangible && !p.shrouded ? p : null; }
   get isGameOver() { return this.gameOverAt !== Infinity; }
@@ -485,11 +488,12 @@ export class World {
   }
 
   // ── shared services ──────────────────────────────────────────────
-  // Flow field toward the player for actors of the given footprint (tiles).
+  // Flow field toward the player (or what enemies hunt in their place) for actors of the
+  // given footprint (tiles).
   navField(footprint, searchRadius, refreshInterval) {
     let field = this.navFields.get(footprint);
     if (!field) this.navFields.set(footprint, (field = new NavField(this.level.grid, footprint)));
-    const p = this.livePlayer;
+    const p = this.quarry;
     if (p) field.update(p.body.pos, this.time, refreshInterval, searchRadius);
     return field;
   }

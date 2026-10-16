@@ -23,6 +23,7 @@ export class Player extends Entity {
     this.movement = { x: 0, y: 0 };
     this.sizeScale = 1; // shrunk by the Anchor teleport
     this.bodyScale = 1; // the drawn body's size alone (not its reach), eased by aspects re-forming it
+    this.bodyAlpha = 1; // how solid the body and tail are drawn: faded by aspects while enemies can't see the player
     this.teleporting = false; // set by aspects; locks out other actions
     this.intangible = false; // set by aspects; enemy attacks pass through
     this.shrouded = false; // turned to mist by an aspect: drawn as its form instead of the body, and enemy attacks and walls pass through

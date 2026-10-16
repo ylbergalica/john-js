@@ -2,7 +2,7 @@
 // sprites, the hurt flash/blink (derived from the time of the last hit), the dash's stretch,
 // afterimages and trails (DashView), the Exalted state's fire and wings (ExaltedView), and
 // the body trembling, buckling and caving in as the player dies (PlayerDeath.posed).
-import { Container, MeshSimple, Sprite, Texture } from 'pixi.js';
+import { AlphaFilter, Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, lerpColor, smoothDamp, smoothStep01, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
@@ -28,11 +28,12 @@ export class PlayerView {
       const size = Math.max(0.1, T.firstFollowerScale - T.scaleStep * i);
       sprite.anchor.set(0.5);
       sprite.width = sprite.height = size;
-      sprite.alpha = Math.max(0, Math.min(1, T.firstFollowerAlpha - T.alphaStep * i));
+      const alpha = Math.max(0, Math.min(1, T.firstFollowerAlpha - T.alphaStep * i));
+      sprite.alpha = alpha;
       sprite.position.set(x, y);
       sprite.zIndex = T.followerCount - i; // nearer followers draw over farther ones
       layers.playerBack.addChild(sprite);
-      return { sprite, size, x, y, vx: { v: 0 }, vy: { v: 0 }, smoothTime: T.baseSmoothTime + T.smoothTimeStep * i };
+      return { sprite, size, alpha, x, y, vx: { v: 0 }, vy: { v: 0 }, smoothTime: T.baseSmoothTime + T.smoothTimeStep * i };
     });
 
     this.body = new Container();
@@ -42,6 +43,8 @@ export class PlayerView {
     this.blob = new BlobMesh(Math.max(3, B.resolution));
     this.body.addChild(this.tailSource, this.blob.outline, this.blob.fill);
     layers.player.addChild(this.body);
+    this.fade = new AlphaFilter(); // fades the body as one piece (Player.bodyAlpha), so the tail doesn't show through
+    this.faded = false;
     this.waveTime = 0;
     this.breathingTime = 0;
     this.flashing = false;
@@ -196,7 +199,10 @@ export class PlayerView {
     // the hurt flash stays white.
     const tailTint = this.flashing ? 0xffffff : death ? this.blob.outline.tint : this.tint;
     this.tailSource.tint = tailTint;
-    for (const fl of this.followers) { fl.sprite.visible = visible; fl.sprite.tint = tailTint; }
+    for (const fl of this.followers) { fl.sprite.visible = visible; fl.sprite.tint = tailTint; fl.sprite.alpha = fl.alpha * player.bodyAlpha; }
+    this.fade.alpha = player.bodyAlpha;
+    const faded = player.bodyAlpha < 1;
+    if (faded !== this.faded) this.body.filters = (this.faded = faded) ? [this.fade] : null;
   }
 
   setFlash(on) {
@@ -210,6 +216,7 @@ export class PlayerView {
 
   destroy() {
     this.body.destroy({ children: true });
+    this.fade.destroy();
     this.attackPoint.destroy({ children: true });
     this.exalted.destroy();
     this.dash.destroy();
@@ -219,7 +226,7 @@ export class PlayerView {
 
 // Wobbling, breathing circle drawn as two meshes (outline band + fill) whose vertex
 // buffers are rewritten each frame — no re-triangulation.
-class BlobMesh {
+export class BlobMesh {
   constructor(n) {
     this.n = n;
     const fanIdx = [], bandIdx = [];

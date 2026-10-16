@@ -238,6 +238,39 @@ export const ASPECTS = [
     },
   },
   {
+    id: 'afterimage', displayName: 'Afterimage', tier: AspectTier.Gift, icon: 'afterimage_icon', activatable: false, stat: AspectStat.Uses,
+    quote: 'They never saw you leave.',
+    description: 'Dashing leaves an afterimage behind that draws the enemies away.',
+    // Setting off on a dash leaves a copy of the player where they stood, for `lifetime`: every
+    // enemy hunts it instead of the player meanwhile (src/aspects/afterimage.js). Their blows
+    // still hurt the player if they happen to land. `cooldown` from when it's left; each kill
+    // takes cooldownReductionPerKill off.
+    lifetime: 3, cooldown: 10, cooldownReductionPerKill: 2,
+    // The look: the copy is the player's body and tail exactly, wobbling and breathing on, its
+    // tail settling in behind it. Meanwhile the real player is drawn see-through (`unseen`),
+    // easing there over `time`. Left behind, a ring closes onto it in a faint flash and a few
+    // glints; over its last `flicker.from` seconds it flickers, down to `flicker.alpha`, `rate`
+    // times a second; then it swells by `grow` and fades over `time` in a flash, a ring racing
+    // out, glints and pale mist. World units and seconds, [min, max] picks at random.
+    fx: {
+      color: 0xa8c4ff, hot: 0xffffff,
+      unseen: { alpha: 0.35, time: 0.15 },
+      appear: {
+        ring: { from: 1.5, to: 0.5, time: 0.22, alpha: 0.6 }, // band radius
+        flash: { size: 1.4, time: 0.2, alpha: 0.35 },
+        glints: { count: 5, speed: [0.4, 1.2], size: [0.1, 0.18], life: [0.3, 0.5] },
+      },
+      flicker: { from: 0.5, rate: 12, alpha: 0.45 },
+      vanish: {
+        time: 0.25, grow: 1.3,
+        flash: { size: 1, grow: 1.8, time: 0.25, alpha: 0.6 },
+        ring: { from: 0.5, to: 1.4, time: 0.3, alpha: 0.5 }, // band radius
+        glints: { count: 9, speed: [1, 2.6], size: [0.1, 0.2], life: [0.35, 0.6] },
+        mist: { count: 7, speed: [0.4, 1.2], size: [0.4, 0.7], life: [0.35, 0.55], alpha: 0.25, grow: 1.8 },
+      },
+    },
+  },
+  {
     id: 'astral', displayName: 'Astral Blades', tier: AspectTier.Prestige, icon: 'astral_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'The stars remember who struck first.',
     description: 'Parrying conjures a blade of light that hunts down the attacker.',

@@ -39,9 +39,9 @@ export class Projectile extends Entity {
     this.body.vel.y = this.dir.y * this.speed;
   }
 
-  // Turns toward the player, at most turnRate radians a second.
+  // Turns toward the player (or what enemies hunt in their place), at most turnRate radians a second.
   home(dt) {
-    const p = this.world.livePlayer, b = this.body;
+    const p = this.world.quarry, b = this.body;
     if (!p || this.world.time < this.homingFrom || this.world.time >= this.homingUntil) return;
     const want = Math.atan2(p.body.pos.y - b.pos.y, p.body.pos.x - b.pos.x), max = this.turnRate * dt;
     b.rotation += clamp(deltaAngle(b.rotation, want), -max, max);

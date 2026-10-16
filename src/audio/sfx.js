@@ -671,6 +671,17 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 2200, to: 5000, dur: 0.05, vol: 0.2 });
     tone(v, { type: 'triangle', freq: 70, to: 38, at: 0.05, dur: 0.32, vol: 0.18 });
   },
+  // Afterimage: left behind with an airy breath drawn in and two pale glassy notes ringing
+  // apart; gone in a soft breathy puff under a note falling away.
+  afterimage(v) {
+    noise(v, { filter: 'highpass', freq: 1800, to: 5200, dur: 0.22, vol: 0.07, attack: 0.12 });
+    tone(v, { type: 'triangle', freq: 1175, to: 1110, dur: 0.35, vol: 0.03, attack: 0.02 });
+    tone(v, { type: 'triangle', freq: 1760, to: 1865, at: 0.03, dur: 0.3, vol: 0.02, attack: 0.02 });
+  },
+  afterimageFade(v) {
+    noise(v, { freq: 2400, to: 700, q: 0.7, dur: 0.2, vol: 0.08, attack: 0.01 });
+    tone(v, { type: 'triangle', freq: 1400, to: 700, dur: 0.22, vol: 0.025 });
+  },
   // Astral Blades: a soft glassy shimmer as each blade is drawn, and a thin rising zip as it flies.
   astralDraw(v) {
     noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 0.12, vol: 0.06, attack: 0.03 });

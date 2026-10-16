@@ -682,6 +682,15 @@ const SOUNDS = {
     noise(v, { freq: 2400, to: 700, q: 0.7, dur: 0.2, vol: 0.08, attack: 0.01 });
     tone(v, { type: 'triangle', freq: 1400, to: 700, dur: 0.22, vol: 0.025 });
   },
+  // Feral: driven to the brink, a sharp hiss over a low rattling growl and two heavy heartbeats.
+  feral(v) {
+    noise(v, { filter: 'highpass', freq: 2600, to: 5200, dur: 0.38, vol: 0.14, attack: 0.012 });
+    noise(v, { freq: 3400, to: 2200, q: 1.4, dur: 0.3, vol: 0.08, attack: 0.02 });
+    const growl = tone(v, { type: 'sawtooth', freq: 95, to: 70, dur: 0.45, vol: 0.06, attack: 0.03 });
+    lfo(v, growl.frequency, { rate: 26, depth: 14, dur: 0.45 });
+    tone(v, { freq: 62, to: 38, dur: 0.16, vol: 0.4 });
+    tone(v, { freq: 56, to: 36, at: 0.2, dur: 0.14, vol: 0.28 });
+  },
   // Astral Blades: a soft glassy shimmer as each blade is drawn, and a thin rising zip as it flies.
   astralDraw(v) {
     noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 0.12, vol: 0.06, attack: 0.03 });

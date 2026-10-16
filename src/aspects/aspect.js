@@ -17,6 +17,9 @@ export class Aspect {
   get counter() { return null; }
   // Scales the player's attack damage (each aspect's multiplies together).
   get damageMultiplier() { return 1; }
+  // Scales every bit of damage the player deals, whatever deals it (attacks, parries, aspects,
+  // burns), applied where it lands (each aspect's multiplies together).
+  get damageDealtMultiplier() { return 1; }
 
   // It fired: pops its HUD icon, and counts toward its summary stat if that's uses.
   used() {

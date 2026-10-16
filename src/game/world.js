@@ -116,6 +116,9 @@ export class World {
   get quarry() { const p = this.livePlayer; return p && this.decoy ? this.decoy : p; }
   // The player as enemy attacks see them: null while intangible or mist, so attacks pass through.
   get hittablePlayer() { const p = this.livePlayer; return p && !p.intangible && !p.shrouded ? p : null; }
+  // Scales all damage dealt to enemies and props, all of which is the player's doing (their
+  // aspects' damageDealtMultiplier). Dying Exalted, it still scales the blast.
+  get damageDealtMultiplier() { return this.player?.aspects.damageDealtMultiplier ?? 1; }
   get isGameOver() { return this.gameOverAt !== Infinity; }
   get finished() { return this.time >= this.gameOverAt; }
   get hasRequiredCores() { return this.cores.collected >= this.cores.required; }

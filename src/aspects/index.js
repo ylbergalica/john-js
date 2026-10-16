@@ -11,6 +11,7 @@ import { PhoenixAspect } from './phoenix.js';
 import { NeedleAspect } from './needle.js';
 import { MomentumAspect } from './momentum.js';
 import { AfterimageAspect } from './afterimage.js';
+import { CorneredAspect } from './cornered.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -25,6 +26,7 @@ const ASPECT_TYPES = {
   needle: NeedleAspect,
   momentum: MomentumAspect,
   afterimage: AfterimageAspect,
+  cornered: CorneredAspect,
 };
 
 export function createAspect(player, data) {

@@ -271,6 +271,41 @@ export const ASPECTS = [
     },
   },
   {
+    id: 'cornered', displayName: 'Feral', tier: AspectTier.Gift, icon: 'feral_icon', activatable: false, stat: AspectStat.Uses,
+    quote: 'Nothing fights like a cornered cat.',
+    description: 'The lower your health, the harder you hit.',
+    // Every bit of damage the player deals, whatever deals it, grows with the health they've
+    // lost, from 1x at full up to `multiplier` at `threshold` of their health and below
+    // (src/aspects/cornered.js). Driven that low counts as a use.
+    multiplier: 2.5, threshold: 0.3,
+    // The look, only while it's at its height: the player burns with a dark red light, a wide
+    // soft `halo`, a brighter `core` close round the body and a `rim` of light hugging its
+    // edge, all swelling with a heartbeat (`beat` seconds apart, a second softer beat `second`
+    // after the first) and flickering a little, and motes of light drift off it. Driven there,
+    // the light flares up `flare` times its size and settles over `time`, in a flash, a ring
+    // and a spray of sparks; healed out of it, it all eases away over `fadeOut`. Sizes scale
+    // with the body. World units and seconds, [min, max] at random.
+    fx: {
+      color: 0xa8101c, hot: 0xff6a5e, deep: 0x2a0206,
+      fadeOut: 0.3,
+      light: {
+        halo: { size: 4.2, alpha: 1 },
+        core: { size: 2, alpha: 0.75 },
+        rim: { radius: 0.46, alpha: 0.65 }, // band radius
+        flicker: { rate: 7, amount: 0.08 },
+      },
+      beat: { every: 0.8, second: 0.2, decay: 10, swell: 0.15 },
+      motes: { rate: 22, size: [0.1, 0.18], life: [0.5, 0.9], spread: 0.3, speed: [0.3, 0.9], alpha: 0.8 },
+      enter: {
+        flare: 1.8, time: 0.4,
+        flash: { size: 1.4, grow: 1.8, time: 0.25, alpha: 0.7 },
+        ring: { from: 0.4, to: 2.2, time: 0.3, alpha: 0.7 }, // band radius
+        sparks: { count: 24, speed: 9, lifetime: 0.3, size: 0.3, coneDeg: 180 },
+        shake: { duration: 0.12, strength: 0.08, frequency: 30 },
+      },
+    },
+  },
+  {
     id: 'astral', displayName: 'Astral Blades', tier: AspectTier.Prestige, icon: 'astral_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'The stars remember who struck first.',
     description: 'Parrying conjures a blade of light that hunts down the attacker.',

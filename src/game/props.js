@@ -70,7 +70,7 @@ export class Prop extends Entity {
     const w = this.world, b = this.body, T = this.type, H = T.hit;
     let dir = norm({ x: b.pos.x - source.x, y: b.pos.y - source.y });
     if (dir.x === 0 && dir.y === 0) dir = { x: 1, y: 0 };
-    this.health -= damage;
+    this.health -= damage * w.damageDealtMultiplier;
     if (this.health <= 0) { this.shatter(dir); return; }
 
     this.crack();
@@ -90,7 +90,7 @@ export class Prop extends Entity {
   // still cracks and, worn through, bursts (away from `source`).
   sap(damage, source) {
     if (this.dead || damage <= 0) return;
-    this.health -= damage;
+    this.health -= damage * this.world.damageDealtMultiplier;
     if (this.health > 0) { this.crack(); return; }
     const b = this.body.pos, dir = norm({ x: b.x - source.x, y: b.y - source.y });
     this.shatter(dir.x === 0 && dir.y === 0 ? { x: 1, y: 0 } : dir);

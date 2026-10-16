@@ -116,6 +116,7 @@ export class Enemy extends Entity {
     hitPoint ??= { ...this.body.pos };
     if (damage > 0) this.onHurt(hitPoint, source);
     if (devFlags.noDamage) return; // hits still land, they just don't hurt
+    damage *= this.world.damageDealtMultiplier;
     this.health -= damage;
     if (damage > 0) this.world.events.enemyDamaged.emit(this, damage, cause);
     if (this.health <= 0) this.die(cause);
@@ -125,7 +126,7 @@ export class Enemy extends Entity {
   // enemyDamaged, so nothing that counts hits counts it. Only a kill is announced.
   sap(damage, cause = null) {
     if (this.dead || this.dying || damage <= 0 || devFlags.noDamage) return;
-    this.health -= damage;
+    this.health -= damage * this.world.damageDealtMultiplier;
     if (this.health <= 0) this.die(cause);
   }
 

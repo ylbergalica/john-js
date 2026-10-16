@@ -177,6 +177,44 @@ export const ASPECTS = [
     },
   },
   {
+    id: 'needle', displayName: 'Needle', tier: AspectTier.Gift, icon: 'needle_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'Death by a thousand pricks.',
+    description: 'Every third hit sends a needle homing in on the enemy struck.',
+    // Counts any damage to enemies but its own. Every everyHits-th hit sends a needle out of the
+    // player's side or back (spawnDistance from its centre, spawnDeg round from the line to the
+    // enemy hit), heading launchDeg off that line on the same side, flying at
+    // `speed` and curving round to that enemy in one smooth arc (an even turn all the way, re-fitted
+    // as the enemy moves), turning at no more than maxTurnRate radians a second. It breaks on
+    // the first enemy it meets (within hitRadius of its tip) or on a wall. If its enemy dies it
+    // never picks another, flying on straight for orphanTime; it gives up after `lifetime`.
+    everyHits: 3, damage: 1, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
+    // The look (src/aspects/needle.js): a small pale grey spike, white along one edge to its tip,
+    // trailing a streak of pale light `length` long back from its tip and shedding grey motes. It
+    // leaves in a flash, a ring and a puff of glints along its flight; it breaks on an enemy or a
+    // wall (`hit`) in a brighter flash and a spray of sparks, with the usual hit impact shown at
+    // `impact` of its size; giving out in the air (`fizzle`) is a smaller one. World units and
+    // seconds, [min, max] picks at random.
+    fx: {
+      length: 0.42, width: 0.07, color: 0xb8bcc6, tip: 0xffffff,
+      streak: { length: 1.6, width: 0.3, anchor: 0.92, color: 0xc8ccd8, alpha: 0.55 },
+      motes: { rate: 90, size: [0.07, 0.14], life: [0.15, 0.3], spread: 0.6, color: 0xe4e6ec, fade: 0x50535c, alpha: 0.7 },
+      spawn: {
+        flash: { size: 0.7, grow: 1.6, time: 0.16, alpha: 0.8 },
+        ring: { from: 0.2, to: 0.9, time: 0.18, alpha: 0.6 },
+        glints: { count: 6, speed: 5, lifetime: 0.18, size: 0.2, coneDeg: 30, color: 0xe4e6ec },
+      },
+      hit: {
+        flash: { size: 0.9, grow: 1.8, time: 0.2, alpha: 0.9 },
+        sparks: { count: 10, speed: 8, lifetime: 0.2, size: 0.24, coneDeg: 45, color: 0xe2e4ea },
+        impact: 0.6,
+      },
+      fizzle: {
+        flash: { size: 0.5, grow: 1.4, time: 0.15, alpha: 0.6 },
+        sparks: { count: 5, speed: 4, lifetime: 0.15, size: 0.18, coneDeg: 60, color: 0xc8ccd8 },
+      },
+    },
+  },
+  {
     id: 'astral', displayName: 'Astral Blades', tier: AspectTier.Prestige, icon: 'astral_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'The stars remember who struck first.',
     description: 'Parrying conjures a blade of light that hunts down the attacker.',

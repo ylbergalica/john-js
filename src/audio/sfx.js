@@ -657,6 +657,11 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 1500, to: 6000, dur: 0.3, vol: 0.18, attack: 0.02 });
     arp(v, [659, 988], 0.04, { type: 'triangle', dur: 0.35, vol: 0.09 });
   },
+  // Needle: a tiny high flick, quiet since it comes every few hits.
+  needle(v) {
+    noise(v, { filter: 'highpass', freq: 4200, to: 8000, dur: 0.06, vol: 0.05, attack: 0.004 });
+    tone(v, { type: 'triangle', freq: 2400, to: 3000, dur: 0.05, vol: 0.015 });
+  },
   // Astral Blades: a soft glassy shimmer as each blade is drawn, and a thin rising zip as it flies.
   astralDraw(v) {
     noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 0.12, vol: 0.06, attack: 0.03 });

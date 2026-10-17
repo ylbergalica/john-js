@@ -13,7 +13,10 @@ import { BoxBreak } from './boxBreak.js';
 const tierOf = (a) => TIERS.find((t) => t.tier === a.tier);
 const COIN_COUNT_TIME = 0.6; // seconds the coin counter takes to roll to a new balance
 const TOAST_TIME = 2.6;
-const REVEAL_GUARD = 0.6; // seconds before a key or click can dismiss an unlock
+const REVEAL_ICON_AT = 0.15; // seconds into an unlock that its icon pops in (matches .reveal-icon)
+const REVEAL_TEXT_AFTER = 1; // seconds after the icon that the name pops in
+const REVEAL_STEP = 2; // seconds between the name, the quote and the description popping in
+const REVEAL_GUARD = 2; // seconds after the description before a key or click can dismiss an unlock
 const BREAKER_LINGER = 0.4; // seconds the broken box stays under the unlock card as it fades in
 const DRAG_START = 6; // pixels the pointer moves before a press on an aspect becomes a drag
 const CONTROLS = [
@@ -304,24 +307,31 @@ export class MenuScene {
     });
   }
 
-  // Full-screen unlock card, built fresh so its entrance plays every time; the next
-  // key press or click (after a short guard) dismisses it.
+  // Full-screen unlock card, built fresh so its entrance plays every time. The icon pops in
+  // alone, then a few seconds later the name, the quote and the description one after
+  // another; the next key press or click once the description has had a moment dismisses it.
   openReveal(a) {
+    const lines = [
+      h('div', { class: 'reveal-name title-in', text: a.displayName }),
+      a.quote && h('div', { class: 'reveal-quote', text: `"${a.quote}"` }),
+      h('div', { class: 'reveal-desc', text: a.description }),
+    ].filter(Boolean);
+    const lineAt = (i) => REVEAL_ICON_AT + REVEAL_TEXT_AFTER + i * REVEAL_STEP;
+    lines.forEach((el, i) => { el.style.animationDelay = `${lineAt(i)}s`; });
     this.revealPanel.replaceChildren(
       h('div', { class: 'reveal-stage' },
         mistFx('reveal-mist', { puffs: 30, embers: 22, x: [0.08, 0.92], y: [0.35, 0.95], size: [70, 140], dur: [2.6, 4.2], emberSize: [2, 4], emberDur: [1.8, 3.2] }),
         h('img', { class: 'reveal-icon', src: iconUrls[a.icon], alt: '' }),
       ),
-      h('div', { class: 'reveal-name title-in', text: a.displayName }),
-      a.quote ? h('div', { class: 'reveal-quote', text: `"${a.quote}"` }) : null,
-      h('div', { class: 'reveal-desc', text: a.description }),
+      ...lines,
     );
     setTier(this.revealPanel, a).classList.remove('hidden');
     sfx.play('unlock');
     this.revealListeners = new AbortController();
     const opts = { signal: this.revealListeners.signal };
     const openedAt = performance.now();
-    const close = () => { if (performance.now() - openedAt >= REVEAL_GUARD * 1000) this.closeReveal(); };
+    const guard = lineAt(lines.length - 1) + REVEAL_GUARD;
+    const close = () => { if (performance.now() - openedAt >= guard * 1000) this.closeReveal(); };
     window.addEventListener('keydown', close, opts);
     window.addEventListener('pointerdown', close, opts);
   }

@@ -540,9 +540,10 @@ kbd {
 @keyframes spin { to { transform: rotate(1turn); } }
 .reveal-icon { width: 168px; height: 168px; border-radius: 16px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 70%, transparent), 0 0 70px color-mix(in srgb, var(--tier) 55%, transparent); animation: reveal-icon 0.9s var(--spring) 0.15s both; }
 @keyframes reveal-icon { from { opacity: 0; transform: scale(0.3) rotate(-14deg); filter: brightness(3) blur(6px); } }
-.reveal-name { font-size: 46px; text-transform: uppercase; --ls: 8px; letter-spacing: 8px; padding-left: 8px; --glow: var(--tier); --glow-soft: color-mix(in srgb, var(--tier) 45%, transparent); --title-color: #fff; animation-delay: 0.45s; }
-.reveal-quote { max-width: 560px; font-size: 18px; font-style: italic; color: #c8c8c8; animation: rise 0.6s var(--ease) 0.9s both; }
-.reveal-desc { max-width: 520px; font-size: 17px; line-height: 1.45; animation: rise 0.6s var(--ease) 1.05s both; }
+.reveal-name { font-size: 46px; text-transform: uppercase; --ls: 8px; letter-spacing: 8px; padding-left: 8px; --glow: var(--tier); --glow-soft: color-mix(in srgb, var(--tier) 45%, transparent); --title-color: #fff; }
+/* The name, quote and description are held back after the icon; menu.js sets their delays. */
+.reveal-quote { max-width: 560px; font-size: 18px; font-style: italic; color: #c8c8c8; animation: rise 0.6s var(--ease) both; }
+.reveal-desc { max-width: 520px; font-size: 17px; line-height: 1.45; animation: rise 0.6s var(--ease) both; }
 @keyframes breathe { 50% { opacity: 0.4; } }
 
 /* Buying a box: a small card asking first, over the shop. */

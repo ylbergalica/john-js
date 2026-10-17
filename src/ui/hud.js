@@ -190,7 +190,7 @@ export class Hud {
     d.set(this.exaltedGlow, 'opacity', a.isExalted ? '1' : '0');
     d.set(this.exaltedGlow, 'animation-play-state', a.isExalted ? 'running' : 'paused');
 
-    this.updateAspectIcons(p);
+    this.updateAspectIcons(p, world.time);
     this.angerSign.update(world, this.scene.alpha);
   }
 
@@ -276,10 +276,13 @@ export class Hud {
     }
   }
 
-  // Icon per equipped aspect with a radial cooldown overlay, dimmed while it can't fire. It
-  // rekindles with starlight when it comes back (readyFx), and pops with a ring bursting off
-  // it each time it fires.
-  updateAspectIcons(player) {
+  // Icon per equipped aspect with a radial cooldown overlay, dimmed while it can't fire. The
+  // overlay eases down as it fills and snaps back up when it starts over. It rekindles with
+  // starlight when it comes back (readyFx), and pops with a ring bursting off it each time it
+  // fires.
+  updateAspectIcons(player, now) {
+    const ease = 1 - Math.exp(-HUD.cooldownEaseRate * Math.max(0, now - (this.iconsAt ?? now)));
+    this.iconsAt = now;
     const aspects = player ? player.aspects.aspects : [];
     if (aspects !== this.iconsFor) {
       this.iconsFor = aspects;
@@ -293,14 +296,16 @@ export class Hud {
           count,
           aspect.data.activatable ? keycap(String(aspect.slot + 1)) : null,
         );
-        return { el, overlay, count, counter: null, cooling: false, procs: aspect.procs };
+        return { el, overlay, count, counter: null, cooling: false, shown: 0, procs: aspect.procs };
       });
       this.icons.replaceChildren(...this.iconSlots.map((s) => s.el));
     }
     aspects.forEach((aspect, i) => {
       const slot = this.iconSlots[i];
-      const pct = Math.round(Math.min(1, Math.max(0, aspect.cooldownFraction)) * 200) / 2;
-      const cooling = pct > 0 || !aspect.available;
+      const frac = Math.min(1, Math.max(0, aspect.cooldownFraction));
+      slot.shown = frac >= slot.shown ? frac : slot.shown + (frac - slot.shown) * ease;
+      const pct = Math.round(slot.shown * 200) / 2;
+      const cooling = frac > 0 || !aspect.available;
       if (cooling !== slot.cooling) {
         slot.cooling = cooling;
         slot.el.classList.toggle('cooling', cooling);
@@ -310,7 +315,7 @@ export class Hud {
         slot.procs = aspect.procs;
         replay(slot.el, 'used');
       }
-      this.dom.set(slot.overlay, 'background', cooling ? `conic-gradient(${HUD.cooldownOverlay} ${pct}%, transparent ${pct}%)` : 'none');
+      this.dom.set(slot.overlay, 'background', pct > 0 ? `conic-gradient(${HUD.cooldownOverlay} ${pct}%, transparent ${pct}%)` : 'none');
       // Its counter, popping as it climbs.
       const counter = aspect.counter;
       if (counter !== slot.counter) {

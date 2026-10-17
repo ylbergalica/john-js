@@ -42,6 +42,8 @@ export class CorneredAspect extends Aspect {
   // 0 at full health, 1 at the threshold and below.
   get fury() { return clamp01((1 - this.player.healthFraction) / (1 - this.data.threshold)); }
   get damageDealtMultiplier() { return lerp(1, this.data.multiplier, this.fury); }
+  // The HUD fills its icon as health is lost, full at the threshold.
+  get cooldownFraction() { return 1 - this.fury; }
   get available() { return this.raging; }
 
   step() {

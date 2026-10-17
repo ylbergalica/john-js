@@ -21,12 +21,18 @@ export class NeedleAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     this.count = 0;
+    this.lastHitAt = -Infinity;
     this.motes = new Plume(player.world.layers.fx, tex.glint, { drag: 3 });
   }
 
-  get counter() { return this.count || null; }
+  // The HUD fills its icon toward the next needle.
+  get cooldownFraction() { return 1 - this.count / this.data.everyHits; }
+
+  // comboTime without a hit and the count is lost.
+  step() { if (this.count && this.now - this.lastHitAt > this.data.comboTime) this.count = 0; }
 
   onEnemyDamaged(enemy) {
+    this.lastHitAt = this.now;
     if (++this.count < this.data.everyHits) return;
     this.count = 0;
     const d = this.data, p = this.player.body.pos, t = enemy.body.pos;

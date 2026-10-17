@@ -187,7 +187,8 @@ export const ASPECTS = [
     // as the enemy moves), turning at no more than maxTurnRate radians a second. It breaks on
     // the first enemy it meets (within hitRadius of its tip) or on a wall. If its enemy dies it
     // never picks another, flying on straight for orphanTime; it gives up after `lifetime`.
-    everyHits: 3, damage: 1, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
+    // comboTime without a hit loses the count. The HUD fills its icon toward the next one.
+    everyHits: 3, comboTime: 30, damage: 1, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
     // The look (src/aspects/needle.js): a small pale grey spike, white along one edge to its tip,
     // trailing a streak of pale light `length` long back from its tip and shedding grey motes. It
     // leaves in a flash, a ring and a puff of glints along its flight; it breaks on an enemy or a
@@ -276,7 +277,8 @@ export const ASPECTS = [
     description: 'The lower your health, the harder you hit.',
     // Every bit of damage the player deals, whatever deals it, grows with the health they've
     // lost, from 1x at full up to `multiplier` at `threshold` of their health and below
-    // (src/aspects/cornered.js). Driven that low counts as a use.
+    // (src/aspects/cornered.js). Driven that low counts as a use. The HUD fills its icon
+    // as health is lost, full at `threshold`.
     multiplier: 2.5, threshold: 0.3,
     // The look, only while it's at its height: the player burns with a dark red light, a wide
     // soft `halo`, a brighter `core` close round the body and a `rim` of light hugging its
@@ -354,10 +356,11 @@ export const ASPECTS = [
     // enemy and prop they touch for arcDamage, once each. A chain's bolts hit every prop they
     // touch for `damage` (sprouts don't hit anything). Touching: within hitRadius of the bolt.
     // Either way the count starts over; there's no cooldown, but comboTime without a hit
-    // loses it. The HUD shows the chain so far. twitchDelay after it's all
-    // out it twitches once into a new shape, with a second clap of thunder, then holds still
-    // for `hold` and fades over `fade`.
-    chainHits: 5, sameHits: 10, comboTime: 6, reach: 7, maxTargets: 10,
+    // loses it. The HUD fills its icon as it builds, by the chain so far or, once past
+    // sameShownAfter hits in a row on one enemy, by those (whichever is further). twitchDelay
+    // after it's all out it twitches once into a new shape, with a second clap of thunder, then
+    // holds still for `hold` and fades over `fade`.
+    chainHits: 5, sameHits: 10, sameShownAfter: 5, comboTime: 6, reach: 7, maxTargets: 10,
     damage: 2, soloDamage: 4, arcDamage: 1, hitRadius: 0.3, enemyKnockbackForce: 2,
     speed: 150, minJumpTime: 0.01, // how fast it runs along a line, and the least any one jump takes
     twitchDelay: 0.05, hold: 0.35, fade: 0.35, soloTime: 0.06, soloReach: 4.5, // how far out from the enemy alone its arcs crawl

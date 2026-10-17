@@ -44,8 +44,12 @@ export class ThunderAspect extends Aspect {
     this.lastHitAt = -Infinity;
   }
 
-  // Enemies in the chain so far: nothing until the first is hit.
-  get counter() { return this.chain.length || null; }
+  // The HUD fills its icon as it builds: by the chain so far, or by the hits in a row on one
+  // enemy past sameShownAfter, whichever is further along.
+  get cooldownFraction() {
+    const d = this.data, solo = Math.max(0, this.same - d.sameShownAfter) / (d.sameHits - d.sameShownAfter);
+    return 1 - Math.max(this.chain.length / d.chainHits, solo);
+  }
 
   onEnemyDamaged(enemy) {
     const d = this.data, at = { enemy, x: enemy.body.pos.x, y: enemy.body.pos.y };

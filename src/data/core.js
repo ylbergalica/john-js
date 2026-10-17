@@ -83,6 +83,7 @@ export const HUD = {
   healthyColor: 0x25b92c,
   lowHealthColor: 0xe94600,
   pixelsPerAdrenalinePoint: 7,
-  cooldownOverlay: 'rgba(89,89,89,0.9)',
+  cooldownOverlay: 'rgba(0,0,0,0.5)',
+  cooldownEaseRate: 10, // how fast an aspect icon's overlay eases down as it fills (exponential, per second)
   tooltipHoverDelay: 0.25,
 };

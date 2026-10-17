@@ -545,4 +545,38 @@ export const ASPECTS = [
     // fills its icon toward the next one.
     everyAttacks: 5,
   },
+  {
+    id: 'bloodthirst', displayName: 'Bloodthirst', tier: AspectTier.Prestige, icon: 'bloodthirst_icon', activatable: false, stat: AspectStat.Uses,
+    quote: 'Every wound a mouthful.',
+    description: 'Draw life from every wound you deal.',
+    // Every hit on an enemy (any damage dealt but a burn's) heals the player `heal`
+    // (src/aspects/bloodthirst.js), once the mist it draws out reaches them.
+    heal: 0.1,
+    // The look: faint red mist. Each hit draws `count` lines of it out of the enemy (no more
+    // than `max` about at once), each setting off `delay` after the hit and taking `time`
+    // to run in to the player, its trail `trail` of its length long, rushing in faster as it
+    // goes (`rush`, the power of its ease); the player is healed as the first one's head
+    // reaches them. Each leaves the enemy turned up to `spreadDeg` (plus `jitterDeg`) off
+    // the straight line, wavering (`amp`, `freq`: two random turns laid over each other,
+    // dying away as it nears) and steered toward the player by `pull`, ever harder toward the
+    // end (`tighten`), so it curls in. `layers`: haze, band and thread (half-width, alpha,
+    // colour), over `points` points each. A puff of red mist and motes where it's drawn out,
+    // and a faint red bloom on the player as each line sinks in. World units and seconds,
+    // [min, max] at random.
+    fx: {
+      red: 0xe0162a, deep: 0x5a0008, bright: 0xff6a6a,
+      lines: {
+        count: [2, 3], max: 36, delay: [0, 0.12], time: 0.55, trail: 0.6, rush: 1.6, points: 16,
+        wander: { spreadDeg: 70, jitterDeg: 20, amp: [2, 5], freq: [1.5, 4], pull: 3, tighten: 8 },
+        layers: [
+          { width: 0.14, alpha: 0.32, color: 0xa0081a },
+          { width: 0.045, alpha: 0.5, color: 0xe0162a },
+          { width: 0.012, alpha: 0.8, color: 0xff8a8a },
+        ],
+      },
+      puff: { size: 0.7, grow: 1.6, time: 0.3, alpha: 0.3 },
+      motes: { count: 4, speed: [0.3, 1], size: [0.06, 0.12], life: [0.4, 0.8], alpha: 0.7 },
+      absorb: { size: 0.9, grow: 1.4, time: 0.25, alpha: 0.22 },
+    },
+  },
 ];

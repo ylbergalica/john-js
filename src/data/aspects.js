@@ -19,7 +19,7 @@ export const ASPECTS = [
   {
     id: 'anchor', displayName: 'Anchor', tier: AspectTier.Gift, icon: 'anchor_icon', activatable: true, stat: AspectStat.Uses,
     quote: "Now you see me, now you don't.",
-    description: 'Throw an anchor which you can teleport to at any time.',
+    description: 'Throw an anchor which you can teleport to at any time. Expanding a stunning shockwave at the destination.',
     throwImpulse: 25, settleSpeedThreshold: 0.2, settleGraceTime: 0.25, retrievalRadius: 0.45,
     // The shockwave where you land stuns every enemy it sweeps over for stunTime, calling off
     // whatever it was about to do, and knocks it back.
@@ -87,7 +87,7 @@ export const ASPECTS = [
   {
     id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true, stat: AspectStat.Uses,
     quote: 'F for flash.',
-    description: 'Blink a short distance. Every parry or kill reduces the active cooldown.',
+    description: 'Blink a short distance, flashing damage at the destination. Parries and kills reduce the active cooldown.',
     maxBlinkDistance: 6, baseCooldown: 5, cooldownReductionPerTrigger: 1,
     // Where you land, a star of light flashes out (arrive.star and its fainter twin, `cross`),
     // striking every enemy and prop its points or its middle touch, once, as it flashes:

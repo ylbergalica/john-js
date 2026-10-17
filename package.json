@@ -2,7 +2,7 @@
   "name": "john-js",
   "productName": "Starspite",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "John - top-down 2D roguelite, JavaScript port of the Unity project.",
   "author": "Ylber Galica",

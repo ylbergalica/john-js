@@ -150,7 +150,6 @@ export class MendOrb extends MagnetPickup {
 }
 
 // A buff's glyph (BUFFS) in a breathing halo of its colour, bobbing, a glint turning over it.
-// A ward lies waiting while the player already has one.
 export class BuffPickup extends MagnetPickup {
   constructor(world, x, y, kind) {
     const c = PICKUPS.buff, color = BUFFS[kind].color;
@@ -174,7 +173,6 @@ export class BuffPickup extends MagnetPickup {
     this.parts = { halo, glyph, glint };
     this.t = Math.random() * 10;
   }
-  wanted(player) { return this.kind !== 'ward' || !player.buffs.has('ward'); }
   pulse(dt) {
     const c = this.cfg, { halo, glyph, glint } = this.parts;
     const t = (this.t += dt), beat = 0.5 + 0.5 * Math.sin(t * 2.2);

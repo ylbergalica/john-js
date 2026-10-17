@@ -1,8 +1,7 @@
 // Things the player picks up: adrenaline orbs, chaser cores, mend orbs and buffs (from
 // broken props) and the floor exit.
 // mendOrb: heals `heal`; it ignores the player at full health, so it waits for them.
-// buff: a boon's glyph (BUFFS) in a breathing halo, bobbing `bob` units at `bobHz`. A ward
-//   ignores a player already warded.
+// buff: a boon's glyph (BUFFS) in a breathing halo, bobbing `bob` units at `bobHz`.
 // launch: loot pops out of a broken prop, flung `distance` units (picked in range) and
 //   hopping `hop` units high over `time`; it can't be picked up until it has landed.
 

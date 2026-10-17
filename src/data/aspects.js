@@ -535,4 +535,14 @@ export const ASPECTS = [
       wilt: { petals: 5 },
     },
   },
+  {
+    id: 'warding', displayName: 'Warding Amulet', tier: AspectTier.Prestige, icon: 'warding_icon', activatable: false, stat: AspectStat.Uses,
+    quote: 'Strike true, and be spared.',
+    description: 'Land consecutive attacks to gain protection.',
+    // Every everyAttacks swings in a row that land on an enemy (one count a swing, however many
+    // it strikes) give the player a ward, the one props drop (BUFFS.ward), stacking with any
+    // held (src/aspects/warding.js); a swing that strikes no enemy loses the count. The HUD
+    // fills its icon toward the next one.
+    everyAttacks: 5,
+  },
 ];

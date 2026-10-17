@@ -13,6 +13,7 @@ import { MomentumAspect } from './momentum.js';
 import { AfterimageAspect } from './afterimage.js';
 import { CorneredAspect } from './cornered.js';
 import { GravebloomAspect } from './gravebloom.js';
+import { WardingAspect } from './warding.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -29,6 +30,7 @@ const ASPECT_TYPES = {
   afterimage: AfterimageAspect,
   cornered: CorneredAspect,
   gravebloom: GravebloomAspect,
+  warding: WardingAspect,
 };
 
 export function createAspect(player, data) {

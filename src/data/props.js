@@ -299,19 +299,29 @@ export const PROP_SPAWN = {
 // Small boons dropped by props (src/player/buffs.js). `time`: seconds it lasts (picking
 // another up starts it over). swift: × move speed; fury: × attack damage; haste: × the
 // wait between attacks (lower is faster); ward: blocks the next hit outright, however long
-// that takes, with a moment of invulnerability after.
+// that takes, with a moment of invulnerability after. Wards stack, each blocking one hit;
+// one given by an aspect sounds at quietVolume.
 // While one holds the player shows it (`color`), and the HUD lists it with what's left.
 export const BUFFS = {
   swift: { time: 30, speed: 1.3, color: 0x7fe8ff },
   fury: { time: 30, damage: 1.5, color: 0xff5fc8 },
   haste: { time: 30, cooldown: 0.6, color: 0xffe95a },
-  ward: { color: 0xc8d4ff },
+  ward: { color: 0xc8d4ff, quietVolume: 0.45 },
 };
 
 // The look of buffs on the player (src/player/buffView.js). Sizes in world units.
 //   gain: a flash, a ring and sparks in its colour, as the exit's flare.
-//   ward: a bubble around the body (`radius`, its rim breathing at `pulse` Hz) with glints
-//     circling it (`orbit` rad/s); struck, it bursts (`burst`) into shards.
+//   ward: a bubble around the body, a ring per ward held, the first at `radius` and each
+//     further one `gap` out, until there are `spread` of them; past that the outermost
+//     stays put and they close in on one another instead. Each ring's rim breathes at `pulse`
+//     Hz (the breath rippling outward, `ripple` rad from one ring to the next), each one in
+//     a little fainter (×layerFade, down to minLayer), with glints circling it (`orbit`
+//     rad/s, every other ring the other way); a soft fill under them grows by fillPerLayer
+//     with each. The rings ease to their places (`ease`, per second). A new one comes in
+//     from `appear.from` × its place, fading in over appear.time, motes drifting in with it
+//     when an aspect gives it (no flare then). Struck, the outermost bursts (`burst`): its
+//     rim shatters into `pieces` arcs flung out (faster away from the blow), spinning and
+//     fading, and shards; the rings left are jolted in a little (×jolt.pull) and flash.
 //   swift: wisps peeling off the body as it moves (`rate` per second at full speed) and
 //     motes left in its wake.
 //   fury: embers rising off the body (`rate` per second) and now and then a crackle of sparks.
@@ -321,10 +331,14 @@ export const BUFF_FX = {
   gain: { flash: 2.6, ring: 3, time: 0.45, sparks: { count: 18, speed: 8, lifetime: 0.4, size: 0.32, coneDeg: 180 } },
   end: { count: 8, speed: [0.5, 1.5], size: [0.12, 0.22], life: [0.5, 0.9] },
   ward: {
-    radius: 0.62, alpha: [0.45, 0.7], pulse: 0.8, fill: 0.14,
+    radius: 0.62, gap: 0.17, spread: 4,
+    alpha: [0.45, 0.7], pulse: 0.8, ripple: 0.8, layerFade: 0.8, minLayer: 0.45, fill: 0.14, fillPerLayer: 0.2,
     glints: 3, orbit: 1.6, glintSize: 0.22,
-    appear: 0.25,
+    ease: 7,
+    appear: { from: 1.35, time: 0.45, motes: { count: 7, speed: [0.4, 0.9], size: [0.08, 0.15], life: [0.35, 0.6] } },
+    jolt: { pull: 0.93, fade: 5, bright: 0.45 },
     burst: {
+      shatter: { pieces: [7, 10], gap: 0.12, speed: [1.6, 3], away: 1.3, drag: 3.5, spin: 2.4, life: [0.4, 0.6], width: 0.06, glow: 3.5, glowAlpha: 0.4, shrink: 0.35 },
       ring: 3.2, flash: 2.6, time: 0.4,
       sparks: { count: 26, speed: 11, lifetime: 0.45, size: 0.38, coneDeg: 180 },
       shards: { count: 14, speed: [3, 7], size: [0.1, 0.22], spin: 14, life: [0.8, 1.3] },

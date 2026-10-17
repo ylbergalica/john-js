@@ -3029,9 +3029,10 @@ function gravebloomIcon(S = 256) {
 // ---------------------------------------------------------------- warding
 
 // The amulet in freefall: the ward's crystal shield (as props drop it) tumbling down at a
-// slant, turned on every axis so its face shows foreshortened over a lit edge, its chain
-// streaming up after it in a loose wavering curve out of the top right, faint rings of ward
-// light round it and streaks of light trailing up.
+// slant, turned on every axis so its face shows foreshortened over a lit edge, both ends of
+// its chain streaming up after it in loose wavering curves, one out of the top right and one
+// out of the right halfway down, faint rings of ward light round it and streaks of light
+// trailing up.
 function wardingIcon(S = 256) {
   const { c, ctx, px } = surface(S);
   const rand = seededRandom(2503);
@@ -3092,8 +3093,8 @@ function wardingIcon(S = 256) {
   }
   ctx.restore();
 
-  // The chain, streaming up from the bail to off the top right in a loose curve, wavering a
-  // little along the way: links along it, every other one seen edge on.
+  // The chain, both ends streaming up from the bail in loose curves, wavering a little along
+  // the way: links along them, every other one seen edge on.
   const bail = onScreen(0, -0.56);
   const strand = (ends, phase, freq, amp) => {
     const bez = (t, i) => { const w = 1 - t; return w * w * w * ends[0][i] + 3 * w * w * t * ends[1][i] + 3 * w * t * t * ends[2][i] + t * t * t * ends[3][i]; };
@@ -3126,6 +3127,8 @@ function wardingIcon(S = 256) {
     });
   };
   strand([bail, [bail[0] - 0.14, bail[1] - 0.2], [0.94, 0.34], [1.08, -0.06]], rand() * TAU, 1.6 + rand() * 0.6, 0.05);
+  // Its other end, streaming up and over to off the right, halfway down.
+  strand([bail, [bail[0] + 0.1, bail[1] - 0.16], [0.84, 0.34], [1.08, 0.54]], rand() * TAU, 1.4 + rand() * 0.6, 0.045);
   // The bail, a ring through the shield's tip.
   ctx.save();
   inPlane(ctx);

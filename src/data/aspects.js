@@ -579,4 +579,80 @@ export const ASPECTS = [
       absorb: { size: 0.9, grow: 1.4, time: 0.25, alpha: 0.22 },
     },
   },
+  {
+    id: 'antlers', displayName: 'Antlers', tier: AspectTier.Prestige, icon: 'antlers_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'A crown is grown, not given.',
+    description: 'Gore whatever your antlers touch. Charge in to strike harder.',
+    // Antlers on the player's brow (src/aspects/antlers.js), facing where they aim. An enemy
+    // they touch takes touchDamage (once every touchCooldown seconds, each); one the player
+    // dashes into them takes ramDamage instead (once a dash, each), as does a prop. Both are
+    // scaled by `scale`: `start`, plus `step` for every `every` kills of the run (by
+    // anything), up to maxKills. The antlers grow with every kill until halfway there, then
+    // whiten instead, from the base out, over the other half.
+    touchDamage: 0.5, ramDamage: 2, touchCooldown: 0.5,
+    touchKnockback: 6, ramKnockback: 22,
+    scale: { start: 0.5, step: 0.5, every: 20, maxKills: 480 },
+    // The antler (the right one; the left mirrors it), +x forward, world units (src/render/
+    // antlerShape.js, which the icon draws full grown too): its beam leaves `base`, inside the
+    // body, `length` long when full grown, and grows out to it by beamBy of the way to full growth
+    // from `nub` of it (two little nubs to begin with), its heading along it running smoothly
+    // through `curve` ([how far along, degrees off forward]); young, it curls ahead instead, from
+    // nubCurve[0] degrees at its root to nubCurve[1] at its tip, giving way to that sweep over the
+    // first nubFor of its growth, and while it's still growing its tip curls ahead (to curl.to
+    // degrees over its last curl.length). `width`: its half-width at the
+    // base, nub to full grown. Every branch thins to `taper` of its base width toward its tip,
+    // coming to a sharp point over the last tipLength (thinning as its distance from the tip to
+    // the power `point`), with a point every `spacing` or so along it. A branch (`tines`, on the
+    // beam or on another branch) forks off at `at` of its parent's length, `width` of the
+    // parent's width there, `angle` degrees off the parent's heading there (out and back
+    // positive, ahead and in negative), bending by `bend` over its `length` and swaying `sway`
+    // degrees one way then the other along it (its own, or the shape's toward the side it left
+    // on); it grows out once its parent reaches it, over tineTime of the way to full
+    // growth (forkTime times that for each fork deeper). Hit, each part strikes `reach` beyond
+    // its half-width.
+    shape: {
+      base: [0.1, 0.15], length: 2.15, nub: 0.15, nubCurve: [55, -25], nubFor: 0.35, curl: { length: 0.4, to: -20 }, beamBy: 0.72, points: 60,
+      curve: [[0, 34], [0.1, 30], [0.3, 126], [0.42, 120], [0.56, 10], [0.8, -6], [1, -10]], // ahead, out and back to the side, ahead again
+      width: [0.05, 0.085], taper: 0.6, tipLength: 0.2, point: 0.9, sway: 14, spacing: 0.04, tineTime: 0.22, forkTime: 0.6, reach: 0.04,
+      tines: [
+        { at: 0.12, angle: -32, bend: -4, length: 0.56, width: 0.92, tines: [ // brow
+          { at: 0.4, angle: 58, bend: -14, length: 0.27, width: 0.85 },
+        ] },
+        { at: 0.33, angle: 78, bend: -20, length: 0.46, width: 0.9, tines: [ // out behind
+          { at: 0.42, angle: -62, bend: 6, length: 0.23, width: 0.82 },
+        ] },
+        { at: 0.48, angle: -108, bend: 8, length: 0.64, width: 0.92, tines: [ // straight ahead off the bend
+          { at: 0.45, angle: -52, bend: 10, length: 0.27, width: 0.85 },
+        ] },
+        { at: 0.63, angle: 58, bend: -30, length: 0.46, width: 0.9, tines: [ // out behind
+          { at: 0.42, angle: -62, bend: 6, length: 0.22, width: 0.8 },
+        ] },
+        { at: 0.77, angle: -96, bend: 10, length: 0.48, width: 0.9, tines: [ // the crown, fanning out
+          { at: 0.32, angle: -50, bend: 8, length: 0.27, width: 0.8 },
+        ] },
+        { at: 0.92, angle: 78, bend: -14, length: 0.32, width: 0.86 },
+      ],
+    },
+    // The look: bone (`color`), all one shade, in an `outline` (`outer` outside its edge and
+    // `inner` within, but never more than `keep` of its half-width, carried on `point` times
+    // `outer` past each tip; `color`, cooling to `white` as the bone whitens). They come out of
+    // the body black (`root`), coming into colour from `from` to `to` out from its centre,
+    // inside its outline. Whitening, the white spreads out from the base
+    // along each part, `band` of the way out between the two, and glows: soft light along it
+    // (`glow`, each puff `size` times the width across, breathing at `pulse` Hz) and glints
+    // drifting off the white (`glints`, `rate` a second when all white). It eases into each
+    // new size over `ease` seconds. A touch throws off a few bone-coloured sparks, a ram
+    // more and a hit flash, with a little shake.
+    fx: {
+      color: 0xc8955a, white: 0xffffff, outline: { outer: 0.012, inner: 0.026, keep: 0.5, point: 2.5, color: 0x3a2210, white: 0xb4bcd4 },
+      root: { from: 0.11, to: 0.29, color: 0x000000 }, band: 0.22, ease: 0.35,
+      glow: { size: 7, spacing: 0.05, alpha: 0.13, pulse: 0.4, breathe: 0.25 },
+      glints: { rate: 3, size: [0.08, 0.15], life: [0.5, 0.9], speed: [0.1, 0.4], alpha: 0.85 },
+      touch: { sparks: { count: 5, speed: 5, lifetime: 0.2, size: 0.22, coneDeg: 50 } },
+      ram: {
+        sparks: { count: 12, speed: 9, lifetime: 0.3, size: 0.32, coneDeg: 40 },
+        shake: { duration: 0.1, strength: 0.08, frequency: 30 },
+      },
+    },
+  },
 ];

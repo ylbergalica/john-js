@@ -343,7 +343,7 @@ export const ASPECTS = [
   {
     id: 'thunder', displayName: 'Thunderclap', tier: AspectTier.Prestige, icon: 'thunder_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'The sky keeps count.',
-    description: 'Stringing hits together calls down thunder that leaps between foes.',
+    description: 'Stringing hits on different enemies calls down thunder that leaps between foes.',
     // Counts any damage to enemies but its own. Hits on chainHits different enemies (hitting
     // one already in the chain again neither adds to it nor breaks it) call thunder out of the
     // last enemy hit, back along the chain through every enemy in it. Any enemy within `reach`
@@ -357,7 +357,7 @@ export const ASPECTS = [
     // loses it. The HUD shows the chain so far. twitchDelay after it's all
     // out it twitches once into a new shape, with a second clap of thunder, then holds still
     // for `hold` and fades over `fade`.
-    chainHits: 5, sameHits: 5, comboTime: 6, reach: 7, maxTargets: 10,
+    chainHits: 5, sameHits: 10, comboTime: 6, reach: 7, maxTargets: 10,
     damage: 2, soloDamage: 4, arcDamage: 1, hitRadius: 0.3, enemyKnockbackForce: 2,
     speed: 150, minJumpTime: 0.01, // how fast it runs along a line, and the least any one jump takes
     twitchDelay: 0.05, hold: 0.35, fade: 0.35, soloTime: 0.06, soloReach: 4.5, // how far out from the enemy alone its arcs crawl
@@ -452,6 +452,84 @@ export const ASPECTS = [
         haze: { rate: 12, color: 0xff6a14, fade: 0x400400, size: [1.8, 2.4], life: [0.4, 0.7], alpha: 0.4 }, // sizes in units of its radius
         embers: { rate: 9, color: 0xffd070, fade: 0xff2a00, size: [0.06, 0.12], life: [0.5, 0.9], speed: [1, 2.4] },
       },
+    },
+  },
+  {
+    id: 'gravebloom', displayName: 'Gravebloom', tier: AspectTier.Prestige, icon: 'gravebloom_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'Every grave a garden.',
+    description: 'Fallen enemies leave lotus flowers behind. Striking one bursts it.',
+    // Every enemy killed (its own bursts' kills too) leaves a lotus where it fell
+    // (src/aspects/gravebloom.js); armTime after, it can be struck by anything of the player's
+    // that deals damage, like a prop. Struck, it bursts in a wave out along the blow (along the
+    // swing, for the player's own; else away from where the blow came from): a `cone`
+    // `halfDeg` either side, its front racing out from `from` to `range` over `time` (easing
+    // out), striking every enemy and prop it passes over, not through walls, once. Set off any
+    // other way, it bursts all round instead, in a `ring`: struck by another's burst, `delay`
+    // after an enemy is killed within `nearby` of it while it's ready, or grown from a burst's
+    // kill, which sets itself off once it's bloomed (doom.at after it appears, bursting
+    // doom.delay later, swelling meanwhile). And every streak.hits hits in a row on one enemy
+    // (any damage but its bursts'; streak.time without one loses the count) grow a lotus
+    // somewhere up to streak.reach out from its edge, clear of walls. There's
+    // no limit to how many there are; each wilts after `lifetime`, over wiltTime. radius: how far
+    // out from its centre it can be struck (a little past its petals).
+    doom: { at: 0.75, delay: 0.12 },
+    streak: { hits: 7, time: 6, reach: 2 },
+    lifetime: 20, wiltTime: 0.8, armTime: 0.4, radius: 0.3, nearby: 2.5, delay: 0.12,
+    cone: { damage: 3, enemyKnockbackForce: 8, halfDeg: 50, from: 0.4, range: 5.5, time: 0.4 },
+    ring: { damage: 2, enemyKnockbackForce: 6, from: 0.3, range: 4.2, time: 0.4 },
+    // The look: a small pale lotus (about half the player's size), pink at its petal tips and
+    // white within round a pale green seed pod, see-through, breathing and swaying a little
+    // under a soft pink glow and shedding motes (pink, white and a little green). It blooms out of
+    // nothing (`open`): a closed bud swells up over `emerge`, its petals `closed` (length,
+    // width) of their full size; each ring's petals start opening at its `starts` (plus up to
+    // `jitter`, each), taking `time` to fall open, turning `twist` radians as they go; the
+    // seed pod shows from core[0] over core[1]. The glow comes up over growTime. It glints once
+    // when it's ready. Set off, it swells by `swell` and brightens until it goes. Its burst: a flash, the flower's petals popping out in light, a
+    // wave of pink light with a white edge and a faint green haze trailing it, petals and glints
+    // flung along it (`spreadDeg` either side of it, or all round) and a spray of sparks. Wilting,
+    // it sheds its petals and fades. World units and seconds, [min, max] at random.
+    fx: {
+      pink: 0xff7eb6, white: 0xfff2f8, green: 0x9fe0b4, deep: 0xc0306e,
+      size: 0.48, alpha: 0.75, growTime: 1, swell: 1.35,
+      // As it blooms, `count` misty lines (`lime` of them lime, the rest pink) wander in to it from
+      // `radius` out, each setting off `delay` after it appears and taking `time` to run in, its
+      // trail `trail` of its length long; `layers`: haze, band and thread (half-width, alpha,
+      // colour), over `points` points each. src/aspects/gravebloom.js (gather) for `wander`.
+      gather: {
+        count: 7, lime: 2, radius: [1, 2], delay: [0, 0.3], time: 0.75, trail: 0.55, points: 16,
+        wander: { amp: [2, 5], freq: [1.5, 4], free: 35, pull: 8 },
+        layers: [{ width: 0.07, alpha: 0.3 }, { width: 0.025, alpha: 0.45 }, { width: 0.008, alpha: 0.75 }],
+        colors: { pink: [0xff6aa8, 0xff9cc8, 0xffe0ee], lime: [0x9fe060, 0xc4f580, 0xeaffc8] },
+      },
+      open: { emerge: 0.35, starts: [0.1, 0.24, 0.4, 0.55], jitter: 0.08, time: 0.6, closed: [0.25, 0.45], twist: 0.35, core: [0.6, 0.35] },
+      glow: { size: 1.1, alpha: [0.22, 0.34], pulse: 0.5, color: 0xff6aa8 },
+      breathe: { rate: 2.2, amount: 0.03, sway: 0.05 },
+      motes: { rate: 2, size: [0.06, 0.12], life: [0.9, 1.6], spread: 0.22, rise: [0.3, 0.7], alpha: 0.75, greenShare: 0.25 },
+      sprout: {
+        flash: { size: 0.6, grow: 1.6, time: 0.3, alpha: 0.4 },
+        motes: { count: 6, speed: [0.4, 1.2], size: [0.08, 0.16], life: [0.5, 0.9] }, // green, rising out of the ground
+      },
+      ready: { ring: { from: 0.15, to: 0.5, time: 0.35, alpha: 0.5 }, glints: { count: 4, speed: [0.3, 0.9], size: [0.1, 0.18], life: [0.3, 0.5] } },
+      burst: {
+        flash: { size: 1.6, grow: 1.8, time: 0.28, alpha: 0.85 },
+        // All round: a bigger, brighter flash, a disc of pink haze swelling out to the ring's
+        // range under its rings, and a harder shake.
+        round: { flash: { size: 2.6, grow: 2, time: 0.35, alpha: 1 }, disc: { alpha: 0.4, time: 1.2 }, shake: { duration: 0.16, strength: 0.12, frequency: 30 } },
+        pop: { grow: 1.9, time: 0.3, alpha: 0.9 },
+        wave: { alpha: 0.9, fade: 0.6, edge: 0.65, green: 0.3, lag: 0.05 }, // the white edge and the green haze behind
+        rings: [
+          { from: 0.1, to: 1, time: 1, alpha: 1, fade: 0.4, mist: true }, // band radius in units of the ring's range, time in units of its
+          { from: 0.08, to: 1, time: 1, alpha: 1, fade: 0.5 },
+          { from: 0.05, to: 0.82, time: 1.2, alpha: 0.6, delay: 0.05, mist: true },
+          { from: 0.1, to: 0.7, time: 1.4, alpha: 0.35, delay: 0.08, mist: true, green: true },
+        ],
+        petals: { count: 26, ringCount: 40, speed: [4, 11], spreadDeg: 50, size: [0.35, 0.55], life: [0.55, 1], alpha: 0.9, sway: 6 },
+        glints: { count: 10, ringCount: 22, speed: [2, 6], size: [0.12, 0.24], life: [0.35, 0.65] },
+        sparks: { count: 14, ringCount: 30, speed: 9, lifetime: 0.3, size: 0.3 },
+        shake: { duration: 0.1, strength: 0.07, frequency: 30 },
+      },
+      hit: { sparks: { count: 8, speed: 7, lifetime: 0.25, size: 0.26, coneDeg: 40, color: 0xffb3d4 }, impactTint: 0xffc2dc },
+      wilt: { petals: 5 },
     },
   },
 ];

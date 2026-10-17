@@ -691,6 +691,26 @@ const SOUNDS = {
     tone(v, { freq: 62, to: 38, dur: 0.16, vol: 0.4 });
     tone(v, { freq: 56, to: 36, at: 0.2, dur: 0.14, vol: 0.28 });
   },
+  // Gravebloom: a lotus opens with a faint breath and two soft glassy notes, kept quiet since
+  // every kill leaves one. It bursts with a soft round thump, a swell of breathy air rushing
+  // out and a bright little chord of chimes; all round, lower and wider, the chimes rolling.
+  bloom(v) {
+    noise(v, { filter: 'highpass', freq: 2400, to: 4800, dur: 0.25, vol: 0.035, attack: 0.1 });
+    tone(v, { type: 'triangle', freq: 1568, to: 1661, at: 0.04, dur: 0.4, vol: 0.016, attack: 0.03 });
+    tone(v, { type: 'triangle', freq: 2349, at: 0.1, dur: 0.35, vol: 0.01, attack: 0.03 });
+  },
+  bloomBurst(v) {
+    tone(v, { freq: 140, to: 55, dur: 0.22, vol: 0.32 });
+    noise(v, { freq: 700, to: 2600, q: 0.7, dur: 0.32, vol: 0.2, attack: 0.02 });
+    noise(v, { filter: 'highpass', freq: 3600, to: 7000, at: 0.03, dur: 0.22, vol: 0.06, attack: 0.03 });
+    arp(v, [1568, 2093, 2637], 0.02, { type: 'triangle', at: 0.02, dur: 0.5, vol: 0.035, attack: 0.008 });
+  },
+  bloomRing(v) {
+    tone(v, { freq: 110, to: 42, dur: 0.3, vol: 0.38 });
+    noise(v, { filter: 'lowpass', freq: 1400, to: 300, dur: 0.35, vol: 0.25, attack: 0.01 });
+    noise(v, { freq: 900, to: 2200, q: 0.6, dur: 0.4, vol: 0.14, attack: 0.04 });
+    arp(v, [1319, 1760, 2093, 2637], 0.035, { type: 'triangle', at: 0.02, dur: 0.6, vol: 0.03, attack: 0.008 });
+  },
   // Astral Blades: a soft glassy shimmer as each blade is drawn, and a thin rising zip as it flies.
   astralDraw(v) {
     noise(v, { filter: 'highpass', freq: 3000, to: 7000, dur: 0.12, vol: 0.06, attack: 0.03 });

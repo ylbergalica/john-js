@@ -42,7 +42,10 @@ export class AntlersAspect extends Aspect {
 
   get kills() { return Math.min(this.state.kills, this.data.scale.maxKills); }
   // How hard they strike: a multiple of their base damage.
-  get strength() { const S = this.data.scale; return S.start + S.step * Math.floor(this.kills / S.every); }
+  get strength() {
+    const S = this.data.scale, n = Math.floor(this.kills / S.every);
+    return S.start + S.step * n + (S.grow * n * (n - 1)) / 2;
+  }
   // Growth over the first half of the way to full strength, whiteness over the second.
   get target() {
     const k = this.kills / this.data.scale.maxKills;

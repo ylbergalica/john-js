@@ -40,7 +40,7 @@ export const PLAYER = {
     fadeTime: 0.12,
     // Successful parries within comboWindow seconds of each other build a streak (capped
     // at comboMax); each level adds bonus damage and grows the shake, sound and sparks.
-    comboWindow: 3,
+    comboWindow: 5,
     comboMax: 5,
     comboDamageFraction: 0.3, // bonus damage per level, as a fraction of the parried attack's base damage
     comboShakeStep: 0.45, // extra shake strength per level, as a fraction of the base

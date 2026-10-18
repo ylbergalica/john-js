@@ -92,7 +92,7 @@ export const ASPECTS = [
     // Where you land, a star of light flashes out (arrive.star and its fainter twin, `cross`),
     // striking every enemy and prop its points or its middle touch, once, as it flashes:
     // within armWidth of a point's line, or `core` of its centre.
-    damage: 1, enemyKnockbackForce: 6, armWidth: 0.3, core: 0.9,
+    damage: 3, enemyKnockbackForce: 6, armWidth: 0.3, core: 0.9,
     // The blink's look (src/aspects/flash.js): light folds in where you leave, a streak
     // of it joins the two spots, and it bursts out where you land in a star like its icon's:
     // two four-point flares crossed `cross.deg` apart, the one behind `cross.scale` the size.
@@ -188,7 +188,7 @@ export const ASPECTS = [
     // the first enemy it meets (within hitRadius of its tip) or on a wall. If its enemy dies it
     // never picks another, flying on straight for orphanTime; it gives up after `lifetime`.
     // comboTime without a hit loses the count. The HUD fills its icon toward the next one.
-    everyHits: 3, comboTime: 30, damage: 1, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
+    everyHits: 3, comboTime: 30, damage: 1.5, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
     // The look (src/aspects/needle.js): a small pale grey spike, white along one edge to its tip,
     // trailing a streak of pale light `length` long back from its tip and shedding grey motes. It
     // leaves in a flash, a ring and a puff of glints along its flight; it breaks on an enemy or a
@@ -460,7 +460,7 @@ export const ASPECTS = [
   {
     id: 'gravebloom', displayName: 'Gravebloom', tier: AspectTier.Prestige, icon: 'gravebloom_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'Every grave a garden.',
-    description: 'Fallen enemies leave lotus flowers behind. Striking one bursts it.',
+    description: 'Fallen enemies leave lotus flowers behind that burst when shaken.',
     // Every enemy killed (its own bursts' kills too) leaves a lotus where it fell
     // (src/aspects/gravebloom.js); armTime after, it can be struck by anything of the player's
     // that deals damage, like a prop. Struck, it bursts in a wave out along the blow (along the
@@ -478,8 +478,8 @@ export const ASPECTS = [
     doom: { at: 0.75, delay: 0.12 },
     streak: { hits: 7, time: 6, reach: 2 },
     lifetime: 20, wiltTime: 0.8, armTime: 0.4, radius: 0.3, nearby: 2.5, delay: 0.12,
-    cone: { damage: 3, enemyKnockbackForce: 8, halfDeg: 50, from: 0.4, range: 5.5, time: 0.4 },
-    ring: { damage: 2, enemyKnockbackForce: 6, from: 0.3, range: 4.2, time: 0.4 },
+    cone: { damage: 4, enemyKnockbackForce: 8, halfDeg: 50, from: 0.4, range: 5.5, time: 0.4 },
+    ring: { damage: 3, enemyKnockbackForce: 6, from: 0.3, range: 4.2, time: 0.4 },
     // The look: a small pale lotus (about half the player's size), pink at its petal tips and
     // white within round a pale green seed pod, see-through, breathing and swaying a little
     // under a soft pink glow and shedding motes (pink, white and a little green). It blooms out of
@@ -541,9 +541,9 @@ export const ASPECTS = [
     description: 'Land consecutive attacks to gain protection.',
     // Every everyAttacks swings in a row that land on an enemy (one count a swing, however many
     // it strikes) give the player a ward, the one props drop (BUFFS.ward), stacking with any
-    // held (src/aspects/warding.js); a swing that strikes no enemy loses the count. The HUD
-    // fills its icon toward the next one.
-    everyAttacks: 5,
+    // held, unless they already hold maxWards or more (src/aspects/warding.js); a swing that
+    // strikes no enemy loses the count. The HUD fills its icon toward the next one.
+    everyAttacks: 8, maxWards: 3,
   },
   {
     id: 'bloodthirst', displayName: 'Bloodthirst', tier: AspectTier.Prestige, icon: 'bloodthirst_icon', activatable: false, stat: AspectStat.Uses,
@@ -586,12 +586,13 @@ export const ASPECTS = [
     // Antlers on the player's brow (src/aspects/antlers.js), facing where they aim. An enemy
     // they touch takes touchDamage (once every touchCooldown seconds, each); one the player
     // dashes into them takes ramDamage instead (once a dash, each), as does a prop. Both are
-    // scaled by `scale`: `start`, plus `step` for every `every` kills of the run (by
-    // anything), up to maxKills. The antlers grow with every kill until halfway there, then
-    // whiten instead, from the base out, over the other half.
+    // scaled by `scale`: `start`, plus a step for every `every` kills of the run (by
+    // anything), up to maxKills, the first `step` and each after `grow` more than the last.
+    // The antlers grow with every kill until halfway there, then whiten instead, from the
+    // base out, over the other half.
     touchDamage: 0.5, ramDamage: 2, touchCooldown: 0.5,
     touchKnockback: 6, ramKnockback: 22,
-    scale: { start: 0.5, step: 0.5, every: 20, maxKills: 480 },
+    scale: { start: 0.1, step: 0.2, grow: 0.02, every: 20, maxKills: 500 },
     // The antler (the right one; the left mirrors it), +x forward, world units (src/render/
     // antlerShape.js, which the icon draws full grown too): its beam leaves `base`, inside the
     // body, `length` long when full grown, and grows out to it by beamBy of the way to full growth

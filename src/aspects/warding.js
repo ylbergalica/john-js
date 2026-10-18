@@ -1,6 +1,6 @@
 // Warding Amulet: every few swings in a row that land on an enemy ward the player against a
-// hit, the same ward a broken prop can drop, stacking with any already held. A swing that
-// lands on nothing loses the count.
+// hit, the same ward a broken prop can drop, stacking with any already held up to a few. A
+// swing that lands on nothing loses the count.
 import { Aspect } from './aspect.js';
 
 export class WardingAspect extends Aspect {
@@ -34,6 +34,7 @@ export class WardingAspect extends Aspect {
     this.landed = true;
     if (++this.count < this.data.everyAttacks) return;
     this.count = 0;
+    if (this.player.buffs.wards >= this.data.maxWards) return;
     this.player.buffs.grant('ward', { quiet: true });
     this.used();
   }

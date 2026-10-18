@@ -51,6 +51,18 @@ export class AspectController {
   get damageDealtMultiplier() { return this.aspects.reduce((m, a) => m * a.damageDealtMultiplier, 1); }
   refreshCooldowns() { for (const a of this.aspects) a.refreshCooldown(); }
 
+  // What each aspect carries to the next floor's player, by id.
+  carry() {
+    const out = {};
+    for (const a of this.aspects) {
+      const state = a.carry();
+      if (state !== undefined) out[a.data.id] = state;
+    }
+    return out;
+  }
+
+  restore(carried) { for (const a of this.aspects) if (a.data.id in carried) a.restore(carried[a.data.id]); }
+
   dispose() {
     for (const off of this.unsubscribe) off();
     for (const a of this.aspects) a.dispose();

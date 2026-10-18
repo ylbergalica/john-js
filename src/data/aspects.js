@@ -9,15 +9,26 @@ export const TIERS = [
   { tier: AspectTier.Mythic, name: 'Mythic', price: 15000, hits: 10, color: 'var(--mythic)' },
 ];
 export const MAX_EQUIPPED_ASPECTS = 3;
-// What the run summary counts for an aspect: times it was used (activated, or for a passive,
-// triggered), or every hit it landed — each enemy struck, every time it's struck.
-// `label` is shown when hovering it there.
-export const AspectStat = { Uses: { label: 'Times used' }, Hits: { label: 'Hits landed' } };
+// What the run summary counts for an aspect (none for `stat: null`). `counts` is what adds to it:
+// 'uses', each time it fires (Aspect.used: activated, or for a passive, triggered); 'hits',
+// every hit it lands (each enemy struck, every time it's struck); or 'tally', amounts the
+// aspect adds itself (Aspect.tally). `label` is shown when hovering it there, and `unit` is
+// how its number reads: 'times' (×n, the default), 'seconds' or 'health' (+n).
+export const AspectStat = {
+  Uses: { counts: 'uses', label: 'Times used' },
+  Hits: { counts: 'hits', label: 'Hits landed' },
+  Bursts: { counts: 'uses', label: 'Blooms burst' },
+  Fooled: { counts: 'tally', label: 'Enemies fooled' },
+  FeralTime: { counts: 'tally', label: 'Time at full fury', unit: 'seconds' },
+  StunTime: { counts: 'tally', label: 'Stun dealt', unit: 'seconds' },
+  BurnTime: { counts: 'tally', label: 'Burn dealt', unit: 'seconds' },
+  Healed: { counts: 'tally', label: 'Life drained', unit: 'health' },
+};
 
 // `id` values are save keys; never rename them.
 export const ASPECTS = [
   {
-    id: 'anchor', displayName: 'Anchor', tier: AspectTier.Gift, icon: 'anchor_icon', activatable: true, stat: AspectStat.Uses,
+    id: 'anchor', displayName: 'Anchor', tier: AspectTier.Gift, icon: 'anchor_icon', activatable: true, stat: AspectStat.StunTime,
     quote: "Now you see me, now you don't.",
     description: 'Throw an anchor which you can teleport to at any time. Expanding a stunning shockwave at the destination.',
     throwImpulse: 25, settleSpeedThreshold: 0.2, settleGraceTime: 0.25, retrievalRadius: 0.45,
@@ -177,7 +188,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'needle', displayName: 'Needle', tier: AspectTier.Gift, icon: 'needle_icon', activatable: false, stat: AspectStat.Hits,
+    id: 'needle', displayName: 'Needle', tier: AspectTier.Gift, icon: 'needle_icon', activatable: false, stat: AspectStat.Uses,
     quote: 'Death by a thousand pricks.',
     description: 'Every third hit sends a needle homing in on the enemy struck.',
     // Counts any damage to enemies but its own. Every everyHits-th hit sends a needle out of the
@@ -239,7 +250,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'afterimage', displayName: 'Afterimage', tier: AspectTier.Gift, icon: 'afterimage_icon', activatable: false, stat: AspectStat.Uses,
+    id: 'afterimage', displayName: 'Afterimage', tier: AspectTier.Gift, icon: 'afterimage_icon', activatable: false, stat: AspectStat.Fooled,
     quote: 'They never saw you leave.',
     description: 'Dashing leaves an afterimage behind that draws the enemies away.',
     // Setting off on a dash leaves a copy of the player where they stood, for `lifetime`: every
@@ -272,7 +283,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'cornered', displayName: 'Feral', tier: AspectTier.Gift, icon: 'feral_icon', activatable: false, stat: AspectStat.Uses,
+    id: 'cornered', displayName: 'Feral', tier: AspectTier.Gift, icon: 'feral_icon', activatable: false, stat: AspectStat.FeralTime,
     quote: 'Nothing fights like a cornered cat.',
     description: 'The lower your health, the harder you hit.',
     // Every bit of damage the player deals, whatever deals it, grows with the health they've
@@ -344,7 +355,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'thunder', displayName: 'Thunderclap', tier: AspectTier.Prestige, icon: 'thunder_icon', activatable: false, stat: AspectStat.Hits,
+    id: 'thunder', displayName: 'Thunderclap', tier: AspectTier.Prestige, icon: 'thunder_icon', activatable: false, stat: AspectStat.Uses,
     quote: 'The sky keeps count.',
     description: 'Stringing hits on different enemies calls down thunder that leaps between foes.',
     // Counts any damage to enemies but its own. Hits on chainHits different enemies (hitting
@@ -400,7 +411,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'phoenix', displayName: 'Phoenix', tier: AspectTier.Prestige, icon: 'phoenix_icon', activatable: false, stat: AspectStat.Hits,
+    id: 'phoenix', displayName: 'Phoenix', tier: AspectTier.Prestige, icon: 'phoenix_icon', activatable: false, stat: AspectStat.BurnTime,
     quote: 'Ash remembers the shape of wings.',
     description: 'Dashing unfurls wings of fire that set alight whatever they touch.',
     // Every dash bursts out as fire and unfurls a wing of it on each side of the player,
@@ -459,7 +470,7 @@ export const ASPECTS = [
     },
   },
   {
-    id: 'gravebloom', displayName: 'Gravebloom', tier: AspectTier.Prestige, icon: 'gravebloom_icon', activatable: false, stat: AspectStat.Hits,
+    id: 'gravebloom', displayName: 'Gravebloom', tier: AspectTier.Prestige, icon: 'gravebloom_icon', activatable: false, stat: AspectStat.Bursts,
     quote: 'Every grave a garden.',
     description: 'Fallen enemies leave lotus flowers behind that burst when shaken.',
     // Every enemy killed (its own bursts' kills too) leaves a lotus where it fell
@@ -547,7 +558,7 @@ export const ASPECTS = [
     everyAttacks: 8, maxWards: 3,
   },
   {
-    id: 'bloodthirst', displayName: 'Bloodthirst', tier: AspectTier.Prestige, icon: 'bloodthirst_icon', activatable: false, stat: AspectStat.Uses,
+    id: 'bloodthirst', displayName: 'Bloodthirst', tier: AspectTier.Prestige, icon: 'bloodthirst_icon', activatable: false, stat: AspectStat.Healed,
     quote: 'Every wound a mouthful.',
     description: 'Draw life from every wound you deal.',
     // Every hit on an enemy (any damage dealt but a burn's) heals the player `heal`
@@ -707,7 +718,7 @@ export const ASPECTS = [
   },
   {
     // No quote and no description: it explains nothing.
-    id: 'blackrose', displayName: 'Black Rose', tier: AspectTier.Mythic, icon: 'blackrose_icon', activatable: false, stat: AspectStat.Hits,
+    id: 'blackrose', displayName: 'Black Rose', tier: AspectTier.Mythic, icon: 'blackrose_icon', activatable: false, stat: null,
     // Two events at the cursor (src/aspects/blackrose.js), each `time` long and striking at
     // `strikeAt` everything (enemies and props) touching the circle of `radius` round it:
     // - a swing landing (once a swing, on an enemy: props don't count) sets off a pulse: black energy

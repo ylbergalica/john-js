@@ -106,7 +106,7 @@ export class AnchorAspect extends Aspect {
         this.player.body.stop();
       }
       this.arriveFx(this.player.body.pos);
-      this.world.add(new WindPulse(this.world, target, this.data));
+      this.world.add(new WindPulse(this, target));
       this.world.sound('shockwave');
       this.stow();
       // Back in control the moment they land; the regrow is only for show.
@@ -202,11 +202,12 @@ class AnchorObject extends Entity {
 // Expanding ring that stuns and knocks back each enemy it sweeps over, once. Drawn as a thick ring
 // of blue mist: two hazy layers turning opposite ways under a soft edge, shedding puffs.
 class WindPulse extends Entity {
-  constructor(world, origin, data) {
-    super(world);
+  constructor(aspect, origin) {
+    super(aspect.world);
+    this.aspect = aspect;
     this.origin = origin;
-    this.data = data;
-    this.look = data.fx.ring;
+    this.data = aspect.data;
+    this.look = this.data.fx.ring;
     this.elapsed = 0;
     this.radius = 0;
     this.puffDebt = 0;
@@ -217,7 +218,7 @@ class WindPulse extends Entity {
     const layer = (texture, tint) => this.view.addChild(new Sprite({ texture, anchor: 0.5, blendMode: 'add', tint, rotation: Math.random() * TAU }));
     this.haze = [layer(tex.mist_ring, this.look.color), layer(tex.mist_ring, this.look.color)];
     this.edge = layer(tex.ring, this.look.edge);
-    world.layers.fx.addChild(this.view);
+    this.world.layers.fx.addChild(this.view);
   }
 
   get progress() { return this.data.windDuration > 0 ? clamp01(this.elapsed / this.data.windDuration) : 1; }
@@ -231,7 +232,9 @@ class WindPulse extends Entity {
       const d2 = (e.body.pos.x - this.origin.x) ** 2 + (e.body.pos.y - this.origin.y) ** 2;
       if (hurtDistance(e, this.origin.x, this.origin.y) > this.radius || d2 < inner * inner) continue;
       this.knocked.add(e);
+      const until = Math.max(e.stunUntil, this.world.time);
       e.stun(this.data.stunTime);
+      this.aspect.tally(Math.max(0, e.stunUntil - until)); // the stun it adds (none to the dying)
       e.applyKnockback(this.data.windForce, this.origin);
     }
     this.shedPuffs(dt);

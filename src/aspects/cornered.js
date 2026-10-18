@@ -46,8 +46,9 @@ export class CorneredAspect extends Aspect {
   get cooldownFraction() { return 1 - this.fury; }
   get available() { return this.raging; }
 
-  step() {
+  step(dt) {
     const p = this.player, raging = !p.death && this.fury >= 1;
+    if (raging) this.tally(dt);
     if (raging === this.raging) return;
     this.raging = raging;
     if (!raging) return;

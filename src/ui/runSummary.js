@@ -17,6 +17,12 @@ const TILE_STAGGER = 0.09; // between tiles popping in; shrinks so a full panel 
 const TILES_MAX = 1.2;
 
 const times = (n) => `×${n}`;
+// How an aspect's stat reads, by its AspectStat `unit`: the format, and the decimals it counts in.
+const UNITS = {
+  times: { format: times, decimals: 0 },
+  seconds: { format: (s) => (s < 60 ? `${s}s` : formatTime(s)), decimals: 0 },
+  health: { format: (n) => `+${n.toFixed(1)}`, decimals: 1 },
+};
 // Bigger numbers count for longer, within limits.
 const countDuration = (n, max = 1) => Math.min(max, 0.3 + Math.abs(n) * 0.03);
 
@@ -58,13 +64,14 @@ export class RunSummary {
     // ── timeline ──
     this.beat(0.15, 0.9, { start: () => { this.title.classList.add('in'); this.sound('summary'); } });
 
-    // Run: floor, time, Exalted, then each equipped aspect's uses or hits (its AspectStat).
+    // Run: floor, time, Exalted, then each equipped aspect's stat (its AspectStat), if it has one.
     this.showPanel(0.1, run.el);
     this.tiles(run.body, [
       this.statTile('Floor', floor),
       this.statTile('Time', Math.floor(stats.timeSurvived), formatTime),
       this.statTile('Exalted', adrenaline.uses, times),
-      ...profile.equippedAspects().map((a) => this.iconTile(iconUrls[a.icon], stats.aspectCounts[a.id] ?? 0, 'rs-aspect', a.stat.label)),
+      ...profile.equippedAspects().filter((a) => a.stat)
+        .map((a) => this.iconTile(iconUrls[a.icon], stats.aspectCounts[a.id] ?? 0, 'rs-aspect', a.stat.label, UNITS[a.stat.unit ?? 'times'])),
     ]);
 
     // Slain, most killed first, guardians apart from the rest, and the spawners broken after the guardians.
@@ -126,19 +133,22 @@ export class RunSummary {
     return { el, dur: countDuration(value, 0.8), run: this.counter(num, 0, value, format, 'tally') };
   }
 
-  // An icon over a ×count, with an optional hover label saying what's counted.
-  iconTile(src, count, cls, tip = null) {
-    const num = h('span', { class: 'rs-count', text: times(0) });
+  // An icon over a count (×n unless `unit` says otherwise, see UNITS), with an optional hover
+  // label saying what's counted.
+  iconTile(src, count, cls, tip = null, { format, decimals } = UNITS.times) {
+    const num = h('span', { class: 'rs-count', text: format(0) });
     const el = h('div', { class: `rs-tile ${cls} rs-pending` }, h('img', { src, alt: '' }), num);
     if (tip) el.dataset.tip = tip;
-    return { el, dur: countDuration(count, 0.8), run: this.counter(num, 0, count, times, 'tally') };
+    return { el, dur: countDuration(count, 0.8), run: this.counter(num, 0, count, format, 'tally', decimals) };
   }
 
-  // run(p) for a beat: writes the eased count, ticking as it climbs and popping at the end.
-  counter(el, from, to, format, tick) {
+  // run(p) for a beat: writes the eased count (to `decimals` places), ticking as it climbs and
+  // popping at the end.
+  counter(el, from, to, format, tick, decimals = 0) {
+    const k = 10 ** decimals;
     let shown = from;
     return (p) => {
-      const n = Math.round(from + (to - from) * easeOut(p));
+      const n = Math.round((from + (to - from) * easeOut(p)) * k) / k;
       if (n !== shown) {
         shown = n;
         el.textContent = format(n);

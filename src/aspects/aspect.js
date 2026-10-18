@@ -24,8 +24,10 @@ export class Aspect {
   // It fired: pops its HUD icon, and counts toward its summary stat if that's uses.
   used() {
     this.procs++;
-    this.world.session.aspectUsed(this.data.id);
+    this.world.session.countAspect(this.data.id, 'uses');
   }
+  // Adds `n` to its summary stat if that's a tally it keeps itself (AspectStat).
+  tally(n) { this.world.session.countAspect(this.data.id, 'tally', n); }
 
   step(_dt) {}
   afterPhysics() {}

@@ -8,6 +8,7 @@ import { EXALTED_FX, PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
 import { BlobMesh } from '../player/playerView.js';
+import { AIState } from '../enemies/ai.js';
 
 const B = PLAYER.blob, T = PLAYER.tail;
 const easeOut = (t) => 1 - (1 - t) ** 3;
@@ -25,6 +26,17 @@ export class AfterimageAspect extends Aspect {
   step(dt) {
     this.remaining = Math.max(0, this.remaining - dt);
     if (this.image && this.now >= this.image.endsAt) this.vanish();
+    if (this.image) this.countFooled();
+  }
+
+  // Every enemy that comes hunting the copy (out of idling) while it stands, once a copy.
+  countFooled() {
+    const fooled = this.image.fooled;
+    for (const e of this.world.enemies) {
+      if (e.dead || e.dying || fooled.has(e) || e.ai.state === AIState.Idle || e.ai.state === AIState.Dead) continue;
+      fooled.add(e);
+      this.tally(1);
+    }
   }
 
   onDash() {
@@ -82,6 +94,7 @@ class Afterimage {
     this.endsAt = this.world.time + data.lifetime;
     this.size = PLAYER.scale * player.sizeScale * player.bodyScale;
     this.dissolve = null; // seconds into fading away, once gone (see vanish)
+    this.fooled = new Set(); // the enemies that have come hunting it
 
     this.view = new Container();
     this.tailSource = new Sprite(tex.tail);

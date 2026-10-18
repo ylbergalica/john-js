@@ -4,7 +4,7 @@
 import { Emitter } from '../engine/events.js';
 import { Adrenaline } from './adrenaline.js';
 import { profile } from '../meta/profile.js';
-import { AspectStat, COINS } from '../data/config.js';
+import { COINS } from '../data/config.js';
 
 export const RunMode = { Run: 'run', Playground: 'playground' };
 
@@ -26,7 +26,7 @@ export class RunSession {
     this.ended = false; // set once coins are banked; later kills (after the dying player's body bursts) don't count
     this.stats = {
       kills: {}, // by enemy type key
-      aspectCounts: {}, // by aspect id: uses or hits, per its AspectStat
+      aspectCounts: {}, // by aspect id: what its AspectStat counts
       floorsCleared: 0,
       spawnersBroken: 0,
       coins: { enemies: 0, guardians: 0, spawners: 0, achievements: 0 }, // earned, by source
@@ -34,7 +34,7 @@ export class RunSession {
       timeSurvived: 0,
     };
     this.events.enemyKilled.on((e) => this.enemyKilled(e));
-    this.events.enemyDamaged.on((_e, _damage, cause) => this.countAspect(cause, AspectStat.Hits));
+    this.events.enemyDamaged.on((_e, _damage, cause) => this.countAspect(cause, 'hits'));
   }
 
   get scalesDifficulty() { return this.mode === RunMode.Run; }
@@ -66,13 +66,12 @@ export class RunSession {
   // A COINS yield on the current floor.
   coinsFor({ base, perFloor }) { return base + perFloor * (this.floor - 1); }
 
-  aspectUsed(id) { this.countAspect(id, AspectStat.Uses); }
-
-  // Counts toward the aspect `id`'s summary stat if it's the kind that aspect counts.
-  countAspect(id, stat) {
-    if (this.ended || profile.getAspect(id)?.stat !== stat) return;
-    const counts = this.stats.aspectCounts;
-    counts[id] = (counts[id] ?? 0) + 1;
+  // Adds `n` to the aspect `id`'s summary stat if that's what it counts ('uses', 'hits' or
+  // 'tally', see AspectStat).
+  countAspect(id, counts, n = 1) {
+    if (this.ended || profile.getAspect(id)?.stat?.counts !== counts) return;
+    const all = this.stats.aspectCounts;
+    all[id] = (all[id] ?? 0) + n;
   }
 
   addCoins(n, source) {

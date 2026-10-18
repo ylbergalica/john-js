@@ -39,7 +39,9 @@ export class BloodthirstAspect extends Aspect {
     for (const d of this.drains) {
       if (d.heal <= 0 || this.now < d.healAt) continue;
       if (!p.dead && p.health < p.maxHealth) {
+        const was = p.health;
         p.heal(d.heal);
+        this.tally(p.health - was);
         this.used();
       }
       d.heal = 0;

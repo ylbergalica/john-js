@@ -430,7 +430,10 @@ class Burns extends Entity {
       const left = Math.min(dt, b.until - (now - dt));
       if (!t.dead && left > 0) {
         if (t.isProp) t.sap(b.rate * left, b.source);
-        else t.sap(b.rate * left, this.data.id);
+        else {
+          t.sap(b.rate * left, this.data.id);
+          this.world.session.countAspect(this.data.id, 'tally', left); // enemy-seconds burned
+        }
       }
       if (t.dead || t.dying || now >= b.until) this.burning.delete(t);
     }

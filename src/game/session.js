@@ -29,7 +29,7 @@ export class RunSession {
       aspectCounts: {}, // by aspect id: uses or hits, per its AspectStat
       floorsCleared: 0,
       spawnersBroken: 0,
-      coins: { enemies: 0, guardians: 0, spawners: 0, floors: 0, achievements: 0 }, // earned, by source
+      coins: { enemies: 0, guardians: 0, spawners: 0, achievements: 0 }, // earned, by source
       coinsBanked: 0,
       timeSurvived: 0,
     };
@@ -61,7 +61,6 @@ export class RunSession {
     if (!this.earns) return;
     this.stats.floorsCleared++;
     profile.recordFloorCleared();
-    this.addCoins(this.coinsFor(COINS.floorCleared), 'floors');
   }
 
   // A COINS yield on the current floor.

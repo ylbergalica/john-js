@@ -70,12 +70,12 @@ export const TUTORIAL = {
 // Coins a run earns (banked on death): `base` on floor 1, plus `perFloor` for each floor
 // after it. Kills don't grow: deeper floors already hold more enemies, and growing both
 // makes a run's coins snowball with depth. Achievements will name their own rewards.
-// Breaking a spawner (src/game/spawner.js) is worth `spawnerBroken`.
+// Breaking a spawner (src/game/spawner.js) is worth `spawnerBroken`. Clearing a floor is
+// worth nothing in itself.
 export const COINS = {
   enemyKill: { base: 3, perFloor: 0 },
-  guardianKill: { base: 10, perFloor: 2 },
-  spawnerBroken: { base: 10, perFloor: 0 },
-  floorCleared: { base: 50, perFloor: 5 },
+  guardianKill: { base: 30, perFloor: 5 },
+  spawnerBroken: { base: 5, perFloor: 0 },
 };
 
 export const HUD = {

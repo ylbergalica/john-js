@@ -14,6 +14,9 @@ export const ADRENALINE = {
   // state's full duration, so it lasts as long as the player keeps fighting.
   extendPerHit: 1,
   extendPerParry: 2,
+  // Points of adrenaline for every swing landing on a guardian, and every parry of one.
+  perGuardianHit: 0.1,
+  perGuardianParry: 0.5,
 };
 
 // Exalted state visuals (src/player/exaltedView.js, src/render/screenRipple.js).

@@ -1,8 +1,10 @@
 // Adrenaline meter: filled by orbs, spent all at once to enter the Exalted state.
 // Each use raises the meter's capacity ("tolerance") and the Exalted duration.
-// Landing hits and parries while Exalted refills it (see extend).
+// Landing hits and parries while Exalted refills it (see extend). Swings landing on a
+// guardian and parries of one add a little to it.
 import { ADRENALINE as A } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
+import { DamageCause } from './damage.js';
 
 export class Adrenaline {
   constructor(events) {
@@ -12,7 +14,14 @@ export class Adrenaline {
     this.max = A.baseMaxAdrenaline;
     this.exaltedRemaining = 0;
     this.exaltedDuration = 0;
-    events.enemyDamaged.on(() => this.extend(A.extendPerHit));
+    events.enemyDamaged.on((enemy, _damage, cause) => {
+      this.extend(A.extendPerHit);
+      if (cause === DamageCause.Attack && enemy.type.isChaser) this.add(A.perGuardianHit);
+    });
+    events.parried.on((attack) => {
+      const enemy = attack?.enemy ?? attack?.sourceAbility?.enemy;
+      if (enemy?.type.isChaser) this.add(A.perGuardianParry);
+    });
   }
 
   get isExalted() { return this.exaltedRemaining > 0; }

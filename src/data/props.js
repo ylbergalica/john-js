@@ -246,15 +246,15 @@ export const LOOT = {
 // (wherever it fits nearest, if a wall stands there). Every `every` seconds or
 // so one births a foe of the floor's own mix (enemySpawn) `distance` units off, where it
 // can see, at least `clearOfPlayer` from the player, unless `crowd` foes are already
-// within `radius` of it. It starts `firstAfter` seconds into the floor and stops once the
+// within `radius` of it. It starts `firstAfter` seconds into the floor (a grace period) and stops once the
 // floor's guardians are down. The birth: red mist streams out over `telegraph` seconds and
 // gathers at the spot (`gather`), then the foe tears out of it (`flare`).
 export const SPAWNERS = {
   count: [2, 3],
   margin: 0.1,
   center: 0.2,
-  every: [7, 11],
-  firstAfter: [4, 9],
+  every: [15, 15],
+  firstAfter: [60, 65],
   distance: [2.2, 4.5],
   clearOfPlayer: 3.5,
   radius: 16,
@@ -305,7 +305,7 @@ export const PROP_SPAWN = {
 export const BUFFS = {
   swift: { time: 30, speed: 1.3, color: 0x7fe8ff },
   fury: { time: 30, damage: 1.5, color: 0xff5fc8 },
-  haste: { time: 30, cooldown: 0.6, color: 0xffe95a },
+  haste: { time: 30, cooldown: 0.8, color: 0xffe95a },
   ward: { color: 0xc8d4ff, quietVolume: 0.45 },
 };
 

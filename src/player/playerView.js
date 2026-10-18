@@ -64,9 +64,9 @@ export class PlayerView {
     // Scaled `P.size` about the player's centre, as the parry's hitbox is.
     const parry = new Sprite(anims.parry[0]);
     parry.anchor.set(0.5);
-    parry.position.set((A.attackRange - 0.35 * PLAYER.scale) * P.size - A.attackRange, 0);
-    parry.width = 2 * 1.4 * PLAYER.scale * P.size * (1 + 2 * PARRY_PAD);
-    parry.height = 2 * 0.9 * PLAYER.scale * P.size * (1 + 2 * PARRY_PAD);
+    parry.position.set(P.look.forward * P.size - A.attackRange, 0);
+    parry.width = P.look.width * P.size * (1 + 2 * PARRY_PAD);
+    parry.height = P.look.height * P.size * (1 + 2 * PARRY_PAD);
     parry.visible = false;
     this.attackPoint.addChild(parry);
     this.parryAnim = new FrameAnim(parry, anims.parry, { fps: anims.parry.length / P.clipLength });

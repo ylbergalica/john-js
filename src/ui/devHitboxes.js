@@ -33,7 +33,7 @@ export class DevHitboxes {
     if (p) {
       this.draw({ type: 'circle', x: p.body.pos.x, y: p.body.pos.y, r: p.body.radius }, BODY, 0, 0.6);
       if (p.attacking) this.draw({ type: 'capsule', ...p.attackCapsule() }, OWN, 0.15, 0.9);
-      if (p.parrying) this.draw({ type: 'capsule', ...p.parryCapsule() }, OWN, 0.25, 1);
+      if (p.parrying) for (const cap of p.parryCapsules()) this.draw({ type: 'capsule', ...cap }, OWN, 0.25, 1);
     }
 
     for (const [a, { shape, at }] of this.recent) {

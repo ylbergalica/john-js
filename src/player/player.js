@@ -220,7 +220,49 @@ export class Player extends Entity {
   }
   attackCapsule() { return this.capsuleAt(A.attackRange, A.hitboxDepth, A.hitboxWidth); }
 
-  parryCapsule() { return this.capsuleAt(P.hitboxForward * P.size, P.hitboxDepth * P.size, P.hitboxWidth * P.size); }
+  // The parry's hitbox: a chain of capsules along the curve its look sweeps (see
+  // PLAYER.parry.look), placed as the look is, scaled about the attack point.
+  parryCapsules(segments = 8) {
+    const L = P.look, { cx, cy, r } = L.arc, s = this.sizeScale;
+    const f = isZero(this.facing) ? { x: 1, y: 0 } : this.facing;
+    const a = r * L.width * P.size, b = r * L.height * P.size; // the ellipse's radii, ahead and across
+    const x0 = (L.forward + (cx - 0.5) * L.width) * P.size, y0 = (cy - 0.5) * L.height * P.size;
+    const points = Array.from({ length: segments + 1 }, (_, i) => {
+      const t = ((i / segments) * 2 - 1) * L.sweepDeg * (Math.PI / 180), c = Math.cos(t), sn = Math.sin(t);
+      const n = Math.hypot(b * c, a * sn);
+      const u = A.attackRange + s * (x0 + a * c - (P.hitboxInset * b * c) / n - A.attackRange);
+      const v = s * (y0 + b * sn - (P.hitboxInset * a * sn) / n);
+      return { x: this.body.pos.x + f.x * u - f.y * v, y: this.body.pos.y + f.y * u + f.x * v };
+    });
+    const rad = P.hitboxRadius * s;
+    return points.slice(1).map((q, i) => {
+      const p = points[i];
+      return { ax: p.x, ay: p.y, bx: q.x, by: q.y, r: rad, cx: (p.x + q.x) / 2, cy: (p.y + q.y) / 2 };
+    });
+  }
+
+  // The first of the parry's capsules `attack` reaches, if any.
+  parryCapsuleHit(attack) { return this.parryCapsules().find((cap) => attack.overlapsCapsule(cap)) ?? null; }
+
+  // Whether `point` lies ahead of the player, within the angle the parry's band wraps round to.
+  inParryArc(point) {
+    const b = this.body.pos, f = isZero(this.facing) ? { x: 1, y: 0 } : this.facing;
+    const caps = this.parryCapsules(1), end = { x: caps[0].ax - b.x, y: caps[0].ay - b.y };
+    const dx = point.x - b.x, dy = point.y - b.y, l = Math.hypot(dx, dy);
+    return l < 1e-6 || (dx * f.x + dy * f.y) / l >= (end.x * f.x + end.y * f.y) / Math.hypot(end.x, end.y);
+  }
+
+  // Whether the parry takes `attack`: it reaches the parry's band, or it has reached the player
+  // (or, given `hitPoint`, struck them there) from ahead. Nothing from behind.
+  parryCovers(attack, hitPoint = null) {
+    if (this.parryCapsuleHit(attack)) return true;
+    const b = this.body;
+    if (!hitPoint) {
+      if (!attack.overlapsCircle(b.pos.x, b.pos.y, b.radius)) return false;
+      hitPoint = attack.closestPoint({ ax: b.pos.x, ay: b.pos.y, bx: b.pos.x, by: b.pos.y, r: 0, cx: b.pos.x, cy: b.pos.y });
+    }
+    return this.inParryArc(hitPoint);
+  }
 
   // ── dash ─────────────────────────────────────────────────────────
   tryStartDash() {
@@ -250,8 +292,9 @@ export class Player extends Entity {
     this.parriedThisWindow.clear();
     this.view.playParry();
     this.world.sound('parryStart');
-    // A hit about to land is parried as if the parry had been in time.
-    if (this.pendingHit && this.tryParry(this.pendingHit.attack)) this.pendingHit = null;
+    // A hit about to land is parried as if the parry had been in time, if it came from ahead.
+    const hit = this.pendingHit;
+    if (hit && this.parryCovers(hit.attack, hit.hitPoint) && this.tryParry(hit.attack)) this.pendingHit = null;
     this.parryOverlapping(); // attacks already inside the window count immediately
     return true;
   }
@@ -265,23 +308,21 @@ export class Player extends Entity {
   }
 
   parryOverlapping() {
-    const cap = this.parryCapsule();
-    for (const attack of [...this.world.hostileAttacks]) if (attack.overlapsCapsule(cap)) this.tryParry(attack);
+    const caps = this.parryCapsules();
+    for (const attack of [...this.world.hostileAttacks]) if (caps.some((cap) => attack.overlapsCapsule(cap))) this.tryParry(attack);
   }
 
   // Called by an enemy attack right before it would deal damage: a parry wins ties.
   tryParryIncoming(attack) {
-    if (!this.parrying) return false;
-    const b = this.body;
-    if (!attack.overlapsCapsule(this.parryCapsule()) && !attack.overlapsCircle(b.pos.x, b.pos.y, b.radius)) return false;
-    return this.tryParry(attack);
+    return this.parrying && this.parryCovers(attack) && this.tryParry(attack);
   }
 
   // The attack that hurt the player passes through their parries.
   tryParry(attack) {
     if (attack === this.hurtBy) return false;
     if (this.parriedThisWindow.has(attack)) return true;
-    const contact = attack.closestPoint(this.parryCapsule());
+    const b = this.body.pos;
+    const contact = attack.closestPoint(this.parryCapsuleHit(attack) ?? { ax: b.x, ay: b.y, bx: b.x, by: b.y, r: 0, cx: b.x, cy: b.y });
     // The window's first connect extends the streak before attack.parry() reads the bonus damage.
     const first = !this.parrySucceeded, prevStreak = this.parryStreak;
     if (first) this.parryStreak = this.now - this.lastParryAt <= P.comboWindow ? Math.min(prevStreak + 1, P.comboMax) : 1;

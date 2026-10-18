@@ -5,6 +5,7 @@
 // Drawing happens in normalised units (1 = canvas width) unless noted otherwise.
 import { seededRandom, lerp, lerpColor, clamp01, smoothStep01, TAU } from '../engine/math.js';
 import { ASPECTS } from '../data/aspects.js';
+import { PLAYER } from '../data/player.js';
 import { antlerParts, mirrored } from './antlerShape.js';
 
 const DEG = Math.PI / 180;
@@ -328,18 +329,20 @@ function swingFrames(def, S = 256) {
 
 // ---------------------------------------------------------------- parry
 
-// A thin crescent on a circle centred off to the left; it sweeps from bottom to top.
-const PARRY_ARC = { cx: 0.051, cy: 0.5, r: 0.559, width: 0.045 };
+// A thin crescent on a circle centred off to the left (PLAYER.parry.look, which the hitbox
+// follows too); it sweeps from bottom to top.
+const PARRY_LOOK = PLAYER.parry.look;
+const PARRY_ARC = { ...PARRY_LOOK.arc, width: 0.045 };
 // Its head (degrees; 0 is straight ahead along the aim) sweeps up from `head[0]` to
 // `head[1]` along the timing curve `ease` (gentle at both ends, quick between), and its tail
 // follows from `tail[0]` to `tail[1]` along the same curve run backwards, hanging back
 // before catching up. So the crescent starts short, stretches out and draws back in behind
 // the head as it fades (PLAYER.parry.fadeTime). The tail's path mirrors the head's across
 // the aim, so the sweep is symmetrical about it: each frame is the mirror image of its
-// counterpart from the other end. The star at its head grows from `star` of its full size
-// to full halfway, then shrinks back. `PARRY_FRAMES` frames, played over the same time
-// whatever their number (see PlayerView).
-const PARRY_SWEEP = { head: [48, -62], tail: [62, -48], ease: [0.5, 0.02, 0.18, 1], star: 0.5 };
+// counterpart from the other end. The star on the line at its head grows from `star` of
+// its full size to full halfway, then shrinks back. `PARRY_FRAMES` frames, played over the
+// same time whatever their number (see PlayerView).
+const PARRY_SWEEP = { head: [48, -PARRY_LOOK.sweepDeg], tail: [PARRY_LOOK.sweepDeg, -48], ease: [0.5, 0.02, 0.18, 1], star: 0.5 };
 const PARRY_FRAMES = 12;
 const PARRY_STAR = 0.068; // the solid star at its head, shrinking as it sweeps
 // Room around the parry's art (a fraction of it, each side) so the star at the head isn't
@@ -371,7 +374,7 @@ function parryFrames(S = 256) {
     ctx.translate(PARRY_PAD, PARRY_PAD);
     const path = arcBlade({ ...PARRY_ARC, from, to, profile: (s) => s ** 0.6 });
     paintSlash(ctx, px, path, polar(PARRY_ARC.cx, PARRY_ARC.cy, from, PARRY_ARC.r), polar(PARRY_ARC.cx, PARRY_ARC.cy, to, PARRY_ARC.r));
-    const [hx, hy] = polar(PARRY_ARC.cx, PARRY_ARC.cy, to, PARRY_ARC.r + 0.04);
+    const [hx, hy] = polar(PARRY_ARC.cx, PARRY_ARC.cy, to, PARRY_ARC.r);
     sparkle(ctx, hx, hy, PARRY_STAR * starSize, '#ffffff', 1, 1.5 * t);
     return c;
   });

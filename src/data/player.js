@@ -28,9 +28,16 @@ export const PLAYER = {
     // The hitbox and its look reach `size` times as far from the player's centre, covering
     // the same angle.
     size: 1.25,
-    hitboxForward: 0.36,
-    hitboxDepth: 0.5 * 1.75 * 0.8,
-    hitboxWidth: 1.25,
+    // Its look (src/render/sprites.js) is a crescent along the circle `arc`, in a unit square
+    // drawn `width` × `height` and centred `forward` ahead of the player's centre (all × size),
+    // so on part of an ellipse; it sweeps over ±sweepDeg of that circle.
+    look: { forward: 0.7 - 0.35 * 0.8, width: 2 * 1.4 * 0.8, height: 2 * 0.9 * 0.8, arc: { cx: 0.051, cy: 0.5, r: 0.559 }, sweepDeg: 62 },
+    // The hitbox is a band along the same curve over its whole sweep, its middle set
+    // hitboxInset in toward the player and reaching hitboxRadius either side. It wraps round to
+    // the player's flanks but stays clear of their body, so what reaches them from behind
+    // isn't parried.
+    hitboxInset: 0.14,
+    hitboxRadius: 0.24,
     shakeDuration: 0.08,
     shakeStrength: 0.08,
     shakeFrequency: 45,

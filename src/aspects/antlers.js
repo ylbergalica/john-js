@@ -1,7 +1,8 @@
 // Antlers: a stag's antlers on the player's brow that gore whatever they meet, a little at a
 // touch and hard when dashed into. They begin as two nubs and grow with every kill of the run
 // into a full crown, and once grown they whiten from the base out until they glow; the harm
-// they do grows all the while.
+// they do grows all the while. They keep their size and keep goring while an aspect turns
+// the body to mist (Wraith) and as it re-forms.
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { clamp01, deltaAngle, isZero, lerp, lerpColor, randRange, smoothStep01, TAU } from '../engine/math.js';
@@ -63,8 +64,8 @@ export class AntlersAspect extends Aspect {
 
   afterPhysics() {
     const p = this.player, w = this.world;
-    if (p.hidden || p.shrouded) return;
-    const segs = this.segments(), { x, y } = p.body.pos, reach = this.extent * p.sizeScale * p.bodyScale;
+    if (p.hidden) return;
+    const segs = this.segments(), { x, y } = p.body.pos, reach = this.extent * p.sizeScale;
     const struck = (t) => {
       const r = reach + t.body.radius + 1; // past their furthest point, it can't be touching
       if ((t.body.pos.x - x) ** 2 + (t.body.pos.y - y) ** 2 > r * r) return false;
@@ -105,7 +106,7 @@ export class AntlersAspect extends Aspect {
 
   // Where they strike, in the world: capsules [ax, ay, bx, by, radius] along each part.
   segments() {
-    const p = this.player, k = p.sizeScale * p.bodyScale, { x, y } = p.body.pos;
+    const p = this.player, k = p.sizeScale, { x, y } = p.body.pos;
     const c = Math.cos(this.angle) * k, s = Math.sin(this.angle) * k;
     return this.hits.map(([ax, ay, bx, by, r]) => [x + c * ax - s * ay, y + s * ax + c * ay, x + c * bx - s * by, y + s * bx + c * by, r * k]);
   }
@@ -123,12 +124,12 @@ export class AntlersAspect extends Aspect {
       if (done || Math.abs(s.growth - this.drawn.growth) + Math.abs(s.white - this.drawn.white) > 5e-4) this.rebuild();
     }
 
-    const shown = body.visible && !p.death && !p.hidden && !p.shrouded;
+    const shown = (body.visible || p.shrouded) && !p.death && !p.hidden;
     this.view.visible = shown;
     if (!shown) return;
     this.view.position.copyFrom(body.position);
     this.view.rotation = this.prevAngle + deltaAngle(this.prevAngle, this.angle) * alpha;
-    this.view.scale.set(p.sizeScale * p.bodyScale);
+    this.view.scale.set(p.sizeScale);
     this.view.alpha = p.bodyAlpha;
     // The glow breathes; glints drift off the white.
     const G = F.glow, I = F.glints;

@@ -656,4 +656,50 @@ export const ASPECTS = [
       },
     },
   },
+  {
+    id: 'oracle', displayName: 'Oracle Discs', tier: AspectTier.Prestige, icon: 'oracle_icon', activatable: false, stat: AspectStat.Hits,
+    quote: 'Every path already walked.',
+    description: 'Parrying launches a disc that ricochets between enemies.',
+    // Every parry throws a disc out of the player (src/aspects/oracle.js) at the enemy nearest
+    // them within `reach` (none there, it's thrown off in a random direction to roam, below),
+    // flying at `speed` and turning instantly, through walls, always straight for its target's
+    // centre, passing over anything else. Reaching it,
+    // it strikes it and ricochets on to the live enemy nearest it that it hasn't struck yet,
+    // within `reach`. It has `targets` strikes in all, plus perStreak for every level of the
+    // parry streak past the first. If its target dies on the way it picks the next the same way.
+    // With no enemy it hasn't struck in reach:
+    // - only one enemy in the fight (in reach of the player): it's knocked off that one in a random direction, flies on
+    //   (bouncing off walls) for arc.out, then swings back round, either way, at arc.turnRate
+    //   radians a second until it faces it, and curves in to strike it again, over and over;
+    // - else it flies off the way it was heading, bouncing off walls, for `roam` seconds, striking
+    //   every enemy it passes through (once each time through, struck before or not), and
+    //   setting off after any enemy it hasn't struck that comes in reach, or arcing in at the
+    //   only enemy left in the fight.
+    // Out of strikes, or roamed out, it flies on and fades out; it gives up after `lifetime`
+    // going for a target without reaching it.
+    damage: 0.5, enemyKnockbackForce: 4, targets: 5, perStreak: 1, speed: 21, reach: 13, lifetime: 3, roam: 5,
+    arc: { out: 0.1, turnRate: 20 },
+    // The look: a disc almost the player's size, a thin ring of white metal (its hole 70% of its
+    // radius) with teal round the outside of half of it, spinning so fast it blurs into one pale
+    // teal and glows: a ring of teal light under it (`glow`, `size` times the disc's) and white
+    // over it (`core`), breathing with the spin. It comes out of the player growing from `grow`
+    // of its size over growTime in a teal flash; each strike is a flash, the hit impact in teal
+    // and a spray of sparks; each bounce off a wall, a few sparks; done, it flies on, slowing,
+    // for `fade` while it shrinks and dims. While the player is Exalted it all turns crimson
+    // (`exalted`). World units and seconds.
+    fx: {
+      size: 0.7, spin: 30, grow: 0.4, growTime: 0.08, fade: 0.2,
+      color: 0x2fe0cc, hot: 0xe8fffb,
+      glow: { size: 1.9, alpha: 0.4, pulse: 0.15 },
+      core: { alpha: 0.175 },
+      launch: { size: 1.2, grow: 1.6, time: 0.18, alpha: 0.8 },
+      hit: {
+        flash: { size: 1.1, grow: 1.6, time: 0.16, alpha: 0.85 },
+        sparks: { count: 10, speed: 9, lifetime: 0.22, size: 0.28, coneDeg: 50, color: 0x9ff7ec },
+        impact: 0.8, impactTint: 0x9ff7ec,
+      },
+      bounce: { sparks: { count: 6, speed: 6, lifetime: 0.2, size: 0.22, coneDeg: 60, color: 0x9ff7ec } },
+      exalted: { color: 0xe8142e, hot: 0xffe4e8, sparks: 0xff8090 }, // the teal turned crimson while the player is Exalted
+    },
+  },
 ];

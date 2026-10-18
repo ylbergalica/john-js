@@ -16,6 +16,7 @@ import { GravebloomAspect } from './gravebloom.js';
 import { WardingAspect } from './warding.js';
 import { BloodthirstAspect } from './bloodthirst.js';
 import { AntlersAspect } from './antlers.js';
+import { OracleAspect } from './oracle.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -35,6 +36,7 @@ const ASPECT_TYPES = {
   warding: WardingAspect,
   bloodthirst: BloodthirstAspect,
   antlers: AntlersAspect,
+  oracle: OracleAspect,
 };
 
 export function createAspect(player, data) {

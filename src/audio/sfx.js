@@ -720,6 +720,26 @@ const SOUNDS = {
     noise(v, { freq: 1200, to: 5200, q: 1.8, dur: 0.12, vol: 0.12, attack: 0.01 });
     tone(v, { type: 'triangle', freq: 1320, to: 2640, dur: 0.1, vol: 0.03 });
   },
+  // Oracle Discs: a disc is thrown with an airy shimmer and a quick rising sweep of chimes over
+  // a soft warble, like it sings as it spins; on every enemy it ricochets off, a glassy bell note
+  // with a sparkle of tiny chimes (pitched a step higher each time by the caller).
+  oracleLaunch(v) {
+    noise(v, { filter: 'highpass', freq: 3200, to: 7500, dur: 0.3, vol: 0.06, attack: 0.04 });
+    arp(v, [1047, 1319, 1568, 2093], 0.035, { type: 'sine', dur: 0.35, vol: 0.03, attack: 0.006 });
+    const hum = tone(v, { type: 'sine', freq: 523, to: 784, dur: 0.3, vol: 0.025, attack: 0.03 });
+    lfo(v, hum.frequency, { rate: 14, depth: 12, dur: 0.3 });
+  },
+  oracleHit(v) {
+    noise(v, { filter: 'highpass', freq: 5000, to: 8000, dur: 0.05, vol: 0.04, attack: 0.002 });
+    tone(v, { type: 'sine', freq: 1568, dur: 0.4, vol: 0.05, attack: 0.003 });
+    tone(v, { type: 'sine', freq: 3136, dur: 0.25, vol: 0.015, attack: 0.003 });
+    tinkles(v, 3, { at: 0.02, spread: 0.18, vol: 0.02, lo: 3000, hi: 6500 });
+  },
+  // Off a wall: just a faint glassy tick and a chime, quieter than a strike.
+  oracleBounce(v) {
+    noise(v, { filter: 'highpass', freq: 4500, to: 7000, dur: 0.04, vol: 0.025, attack: 0.002 });
+    tone(v, { type: 'sine', freq: 2349, dur: 0.18, vol: 0.02, attack: 0.003 });
+  },
   // Thunderclap (twice: as it strikes and as it twitches): a split-second crack tearing into a
   // deep boom, then a long low rumble that rolls on in waves, all pushed hard into a soft
   // clipper so it's loud and thick without peaking; and a smaller crack and

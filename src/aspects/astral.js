@@ -4,8 +4,9 @@
 // a moment later it flies at it (or, if it's dead, at the enemy nearest the player), homing
 // in through walls, cutting props on the way and breaking on the first enemy it meets. With
 // no enemy left, it keeps guard behind the player, trailing after them, until the next parry
-// sends it at the enemy parried. It
-// trails a thin, tapering line of blue light; all of it crimson while the player is Exalted.
+// sends it at the enemy parried. Blades still out when the player takes the exit come with
+// them to the next floor, keeping guard there. It trails a thin, tapering line of blue
+// light; all of it crimson while the player is Exalted.
 import { Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
@@ -25,6 +26,26 @@ export class AstralAspect extends Aspect {
     super(player, data);
     this.queue = []; // blades still to come: { at, target, offset (from straight behind) }
     this.guards = new Set(); // blades with nothing to hunt, keeping behind the player
+    this.blades = new Set(); // every blade still out (not yet spent)
+  }
+
+  // Blades still out (and still to come) go on to the next floor, keeping guard there: their
+  // slots behind the player.
+  carry() {
+    const slots = [...this.blades].map((b) => b.slot);
+    for (const q of this.queue) slots.push({ offset: q.offset, r: randRange(...this.data.distance) });
+    return slots.length ? slots : undefined;
+  }
+
+  // Each carried blade keeping guard behind the new player, appearing with them.
+  restore(slots) {
+    const p = this.player.body;
+    for (const slot of slots) {
+      const a = p.rotation + Math.PI + slot.offset, at = { x: p.pos.x + Math.cos(a) * slot.r, y: p.pos.y + Math.sin(a) * slot.r };
+      const blade = this.world.add(new AstralBlade(this, at, at, null, slot));
+      blade.startGuard();
+      blade.waiting = true;
+    }
   }
 
   onParry(attack) {
@@ -78,6 +99,7 @@ export class AstralAspect extends Aspect {
   dispose() {
     this.queue = [];
     this.guards.clear();
+    this.blades.clear();
   }
 }
 
@@ -100,6 +122,7 @@ class AstralBlade extends Entity {
     this.launchAt = world.time + this.data.launchDelay;
     this.flownAt = null; // set on launch
     this.guarding = false; // nothing to hunt: keeping behind the player until the next parry
+    this.waiting = false; // carried from the last floor: unseen until the player appears, then growing out
     this.spentAt = null; // broke on an enemy or gave out: gone, while its trail fades
     this.cut = new Set(); // props already cut
     this.points = []; // the trail: { x, y, t } each step
@@ -122,6 +145,7 @@ class AstralBlade extends Entity {
     this.halo.alpha = H.alpha;
     this.halo.visible = false;
     world.layers.fx.addChild(this.halo, this.trail, this.sprite, this.exalted);
+    aspect.blades.add(this);
   }
 
   // How far its colours have turned to Exalted crimson, with the player's own glow.
@@ -144,6 +168,16 @@ class AstralBlade extends Entity {
     if (this.spentAt !== null) {
       if (w.time - this.spentAt >= this.trailTime) this.destroy();
       return;
+    }
+    if (this.waiting) {
+      if (this.aspect.player.hidden) {
+        this.guard(dt);
+        this.prev.x = this.pos.x;
+        this.prev.y = this.pos.y;
+        return;
+      }
+      this.waiting = false;
+      this.born = w.time; // grows out as the player appears
     }
     if (this.guarding) this.guard(dt);
     else if (this.flownAt === null) this.hover(dt);
@@ -254,6 +288,7 @@ class AstralBlade extends Entity {
 
   spend() {
     this.spentAt = this.world.time;
+    this.aspect.blades.delete(this);
     this.sprite.visible = false;
     this.exalted.visible = false;
     this.halo.visible = false;
@@ -261,6 +296,11 @@ class AstralBlade extends Entity {
 
   render(alpha) {
     const w = this.world, F = this.data.fx;
+    if (this.waiting) {
+      for (const s of [this.sprite, this.exalted, this.halo]) s.visible = false;
+      this.trail.clear();
+      return;
+    }
     const now = w.time - (1 - alpha) * FIXED_DT;
     const spent = this.spentAt !== null;
     const x = lerp(this.prev.x, this.pos.x, alpha), y = lerp(this.prev.y, this.pos.y, alpha);
@@ -324,6 +364,7 @@ class AstralBlade extends Entity {
 
   dispose() {
     this.aspect.guards.delete(this);
+    this.aspect.blades.delete(this);
     this.trail.destroy();
     this.sprite.destroy();
     this.exalted.destroy();

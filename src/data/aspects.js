@@ -323,7 +323,8 @@ export const ASPECTS = [
     // player (from the way they face), trailing after them and easing in by `follow` a
     // second, swaying up to `sway` radians round and `bob` of its distance out and in, and
     // pointing the way they face, until the next parry sets them all on the enemy parried,
-    // `stagger` apart.
+    // `stagger` apart. Blades still out (or still to come) at the end of a floor carry over to
+    // the next, keeping guard there from when the player appears.
     damage: 2, enemyKnockbackForce: 4, hitRadius: 0.15,
     stagger: [0.4, 0.1], arcDeg: 150, distance: [1.7, 2.2], settleTime: 1, launchDelay: 1,
     speed: 20, turnRate: 10, aimRate: 8, lifetime: 4,
@@ -709,7 +710,7 @@ export const ASPECTS = [
     id: 'blackrose', displayName: 'Black Rose', tier: AspectTier.Mythic, icon: 'blackrose_icon', activatable: false, stat: AspectStat.Hits,
     // Two events at the cursor (src/aspects/blackrose.js), each `time` long and striking at
     // `strikeAt` everything (enemies and props) touching the circle of `radius` round it:
-    // - a swing landing (once a swing, on an enemy or a prop) sets off a pulse: black energy
+    // - a swing landing (once a swing, on an enemy: props don't count) sets off a pulse: black energy
     //   bursting out, striking for pulse.damage and driving whatever it strikes out to
     //   pulse.to from the centre (at least pulse.min) over pulse.moveTime;
     // - a parry sets off an implosion: black energy caving in, striking for implode.damage

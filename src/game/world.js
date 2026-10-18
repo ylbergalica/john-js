@@ -293,10 +293,11 @@ export class World {
   advanceFloor() {
     this.session.floorCleared();
     if (this.session.scalesDifficulty) this.session.floor++;
-    const health = this.player.health, buffs = this.player.buffs.carry(); // the player is rebuilt each floor
+    const health = this.player.health, buffs = this.player.buffs.carry(), aspects = this.player.aspects.carry(); // the player is rebuilt each floor
     this.startFloor();
     if (health > 0) this.carryHealth(health);
     this.player.buffs.restore(buffs);
+    this.player.aspects.restore(aspects);
   }
 
   // ── taking the exit ──────────────────────────────────────────────

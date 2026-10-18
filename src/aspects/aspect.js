@@ -42,5 +42,9 @@ export class Aspect {
   onEnemyKilled(_enemy, _cause) {}
   onParry(_attack) {} // the player parried `attack` (the first connect of a parry)
   refreshCooldown() {}
+  // What it carries to the next floor's player (the player is rebuilt each floor): anything
+  // but undefined is handed to the new one's `restore`.
+  carry() { return undefined; }
+  restore(_state) {}
   dispose() {}
 }

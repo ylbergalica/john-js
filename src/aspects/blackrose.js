@@ -1,4 +1,4 @@
-// Black Rose: the first swing of each attack to land sets off a pulse at the cursor, black
+// Black Rose: the first swing of each attack to land on an enemy sets off a pulse at the cursor, black
 // energy bursting out that strikes everything round it and drives it outward; every parry sets
 // off an implosion there instead, black energy caving in that strikes harder and drags it all
 // into the centre. Both strike halfway through. Where they happen the world itself tears (see
@@ -26,8 +26,7 @@ export class BlackRoseAspect extends Aspect {
   }
 
   beforeAttack() { this.landed = false; }
-  onHitEnemy() { this.swingLanded(); }
-  onHitProp() { this.swingLanded(); }
+  onHitEnemy() { this.swingLanded(); } // props don't set it off
 
   swingLanded() {
     if (this.landed) return;

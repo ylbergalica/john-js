@@ -643,9 +643,11 @@ export const ASPECTS = [
     // (`glow`, each puff `size` times the width across, breathing at `pulse` Hz) and glints
     // drifting off the white (`glints`, `rate` a second when all white). It eases into each
     // new size over `ease` seconds. A touch throws off a few bone-coloured sparks, a ram
-    // more and a hit flash, with a little shake.
+    // more and a hit flash, with a little shake. While the player is Exalted it all turns to
+    // `exalted`'s colours, the bone crimson and the white purple.
     fx: {
       color: 0xc8955a, white: 0xffffff, outline: { outer: 0.012, inner: 0.026, keep: 0.5, point: 2.5, color: 0x3a2210, white: 0xb4bcd4 },
+      exalted: { color: 0xc42430, white: 0xc98cff, outline: { color: 0x3c0408, white: 0x6e3cb4 } },
       root: { from: 0.11, to: 0.29, color: 0x000000 }, band: 0.22, ease: 0.35,
       glow: { size: 7, spacing: 0.05, alpha: 0.13, pulse: 0.4, breathe: 0.25 },
       glints: { rate: 3, size: [0.08, 0.15], life: [0.5, 0.9], speed: [0.1, 0.4], alpha: 0.85 },

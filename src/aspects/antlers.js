@@ -2,7 +2,8 @@
 // touch and hard when dashed into. They begin as two nubs and grow with every kill of the run
 // into a full crown, and once grown they whiten from the base out until they glow; the harm
 // they do grows all the while. They keep their size and keep goring while an aspect turns
-// the body to mist (Wraith) and as it re-forms.
+// the body to mist (Wraith) and as it re-forms. While the player is Exalted the bone turns
+// crimson and the white purple.
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { clamp01, deltaAngle, isZero, lerp, lerpColor, randRange, smoothStep01, TAU } from '../engine/math.js';
@@ -25,7 +26,10 @@ export class AntlersAspect extends Aspect {
     this.halo = new Container();
     this.gfx = new Graphics();
     this.gfx.scale.set(1 / U);
-    this.view.addChild(this.halo, this.gfx);
+    // The same antlers in their Exalted colours, faded in over them while the player is Exalted.
+    this.exaltedGfx = new Graphics();
+    this.exaltedGfx.scale.set(1 / U);
+    this.view.addChild(this.halo, this.gfx, this.exaltedGfx);
     w.layers.player.addChild(this.view); // over the body
     this.puffs = [];
     this.glints = new Plume(w.layers.fx, tex.glint, { drag: 1.5 });
@@ -52,6 +56,11 @@ export class AntlersAspect extends Aspect {
     const k = this.kills / this.data.scale.maxKills;
     return { growth: clamp01(k * 2), white: clamp01(k * 2 - 1) };
   }
+
+  // How far they've turned to their Exalted colours, with the player's own glow.
+  get exaltedGlow() { return this.player.view?.exalted.glow ?? 0; }
+  // `color`, turned toward `exalted` while the player is Exalted.
+  tone(color, exalted) { return lerpColor(color, exalted, this.exaltedGlow); }
 
   onDash() { this.rammed.clear(); }
 
@@ -96,7 +105,8 @@ export class AntlersAspect extends Aspect {
     t.takeDamage(damage, at, src, d.id);
     if (!t.dead && !t.isProp) t.applyKnockback(ram ? d.ramKnockback : d.touchKnockback, src);
     this.touchedAt.set(t, this.now);
-    const angle = Math.atan2(at.y - src.y, at.x - src.x), color = lerpColor(F.color, F.white, this.shown.white);
+    const E = F.exalted, angle = Math.atan2(at.y - src.y, at.x - src.x);
+    const color = lerpColor(this.tone(F.color, E.color), this.tone(F.white, E.white), this.shown.white);
     w.effects.burst(at.x, at.y, angle, { ...(ram ? F.ram : F.touch).sparks, color });
     if (!ram) return;
     p.view.playHitImpact(at);
@@ -131,10 +141,14 @@ export class AntlersAspect extends Aspect {
     this.view.rotation = this.prevAngle + deltaAngle(this.prevAngle, this.angle) * alpha;
     this.view.scale.set(p.sizeScale);
     this.view.alpha = p.bodyAlpha;
+    const exalted = this.exaltedGlow, white = this.tone(F.white, F.exalted.white);
+    this.exaltedGfx.alpha = exalted;
+    this.exaltedGfx.visible = exalted > 0;
     // The glow breathes; glints drift off the white.
     const G = F.glow, I = F.glints;
     this.breath += dt * G.pulse * TAU;
     this.halo.alpha = 1 - G.breathe * (0.5 + 0.5 * Math.sin(this.breath));
+    this.halo.tint = white; // over puffs of plain white
     if (!this.whitePts.length || dt <= 0) return;
     this.glintDebt += dt * I.rate * s.white;
     const c = Math.cos(this.view.rotation), sn = Math.sin(this.view.rotation), scale = this.view.scale.x;
@@ -142,7 +156,7 @@ export class AntlersAspect extends Aspect {
       const pt = this.whitePts[Math.floor(Math.random() * this.whitePts.length)], a = Math.random() * TAU, v = pick(I.speed);
       this.glints.spawn({
         x: body.x + (c * pt.x - sn * pt.y) * scale, y: body.y + (sn * pt.x + c * pt.y) * scale,
-        vx: Math.cos(a) * v, vy: Math.sin(a) * v, size: pick(I.size), life: pick(I.life), color: F.white, alpha: I.alpha,
+        vx: Math.cos(a) * v, vy: Math.sin(a) * v, size: pick(I.size), life: pick(I.life), color: white, alpha: I.alpha,
       });
     }
   }
@@ -156,14 +170,18 @@ export class AntlersAspect extends Aspect {
     // They grow out of the body: black at the root, where it's black, coming into colour
     // before they cross its outline.
     const R = F.root, rooted = (pt) => smoothStep01(clamp01((Math.hypot(pt.x, pt.y) - R.from) / (R.to - R.from)));
-    const O = F.outline, color = (pt) => lerpColor(R.color, lerpColor(F.color, F.white, whiteness(pt.d)), rooted(pt));
-    const edge = (pt) => lerpColor(R.color, lerpColor(O.color, O.white, whiteness(pt.d)), rooted(pt));
+    const O = F.outline, E = F.exalted;
 
     // One silhouette: the outline of every part, drawn out to a point past each tip, then every
     // part filled in over it, the stroke eating into the fill as much as it stands outside it.
-    const g = this.gfx.clear();
-    for (const part of parts) ribbon(g, part, (pt) => pt.w + O.outer, edge, O.outer * O.point);
-    for (const part of parts) ribbon(g, part, (pt) => Math.max(0, pt.w - Math.min(O.inner, pt.w * O.keep)), color);
+    // Drawn in bone, and again in the Exalted colours.
+    for (const [g, P, edgeOf] of [[this.gfx, F, O], [this.exaltedGfx, E, E.outline]]) {
+      const color = (pt) => lerpColor(R.color, lerpColor(P.color, P.white, whiteness(pt.d)), rooted(pt));
+      const edge = (pt) => lerpColor(R.color, lerpColor(edgeOf.color, edgeOf.white, whiteness(pt.d)), rooted(pt));
+      g.clear();
+      for (const part of parts) ribbon(g, part, (pt) => pt.w + O.outer, edge, O.outer * O.point);
+      for (const part of parts) ribbon(g, part, (pt) => Math.max(0, pt.w - Math.min(O.inner, pt.w * O.keep)), color);
+    }
 
     // Soft light along the white, and where glints come off it.
     const G = F.glow;
@@ -178,7 +196,7 @@ export class AntlersAspect extends Aspect {
         puff.anchor.set(0.5);
         puff.position.set(pt.x, pt.y);
         puff.width = puff.height = G.size * (pt.w + 0.02);
-        puff.tint = F.white;
+        puff.tint = 0xffffff; // coloured by the halo's tint
         puff.alpha = k * G.alpha;
         puff.visible = true;
       }

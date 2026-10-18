@@ -91,6 +91,38 @@ export const ABILITIES = {
     look: 'mist', projectileSpeed: 5.5, projectileLifetime: 5, spawnDistance: 1.2,
     projectileSize: 1.7, passesWalls: true,
   },
+  // The Lemur's crescents (`look: 'crescent'`): they spin like boomerangs and break on walls.
+  // Both attacks form them on its tail's spade, `muzzle` out from its centre with the tail
+  // stretched out, and fling them off it. Spin: it whirls a full turn one way in
+  // `spinTime`, then, `spinGap` later, a full turn back, each with a little wind-back before
+  // and overshoot after, its tail whipping round after it. Each turn flings a crescent off
+  // the spade as the tail swings out to that side, to curve round onto where the player
+  // stood when the spin began: out square to the side, so a half circle, unless that would
+  // be tighter than `minArcRadius` (the player close), when it is flung further back and
+  // loops wider, almost a full circle, to stay that wide. Once round it steers at the
+  // player at up to `turnRate` for `chaseTime`, then flies straight on, gone `chaseTime +
+  // coastTime` after its arc. The next crescent forms over `regrowTime`.
+  LemurSpin: {
+    type: 'spin', tell: 'spin', cooldown: 4.5, range: 11, windUpTime: 0.75, lockTime: 0.25, duration: 0, recoveryTime: 0.4,
+    damageMultiplier: 1, parryStunTime: 0.7, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
+    look: 'crescent', projectileSpeed: 8, projectileSize: 0.42, muzzle: 1,
+    spinTime: 0.65, spinGap: 0.06, minArcRadius: 2.6, turnRate: 1.4, chaseTime: 0.6, coastTime: 1, regrowTime: 0.25,
+  },
+  // Volley: `shots` crescents, `shotInterval` apart, each flung straight at the player off
+  // the spade as the tail sweeps round in front, `spreadDeg` off toward the way it sweeps.
+  // `swing`, in degrees off its facing (0 ahead, 180 behind): through each wind-up the tail
+  // is drawn round to one side, `cockDeg` off, then sweeps across the front in the last
+  // `swingIn`, flinging the crescent as it comes past, and on through to `throughDeg` off
+  // the other side over `followTime`. From there it is drawn back on that side for the next,
+  // which sweeps back the other way. After the last it swings on round behind as it
+  // recovers. Each wind-up re-aims until the last `lockTime`.
+  LemurVolley: {
+    type: 'volley', tell: 'tail', cooldown: 4, range: 12, windUpTime: 0.9, lockTime: 0.25, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 0.7, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
+    look: 'crescent', projectileSpeed: 9, projectileLifetime: 3, projectileSize: 0.42, muzzle: 1,
+    shots: 2, shotInterval: 1, spreadDeg: 4,
+    swing: { cockDeg: 125, throughDeg: 55, swingIn: 0.16, followTime: 0.2 },
+  },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),

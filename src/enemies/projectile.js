@@ -1,4 +1,5 @@
-// Enemy projectile: flies straight (or, given a turnRate, steers toward the player), hurts
+// Enemy projectile: flies straight (or, given a turnRate, steers toward the player; given a
+// curve, swings round a circle for a while first), hurts
 // the player on contact, breaks on walls unless it passesWalls. Parrying it punishes the
 // ability that threw it.
 import { Entity } from '../game/entity.js';
@@ -10,7 +11,8 @@ import { PROJECTILE_LOOKS, renderTime } from './attackView.js';
 export class Projectile extends Entity {
   // opts: { dir, speed, lifetime, damage, size, passesWalls = false,
   //         turnRate = 0 (rad/s), homingDelay = 0, homingTime = Infinity (s after launch),
-  //         look = 'orb' (PROJECTILE_LOOKS) }
+  //         curve = 0 (rad/s, + turning the way rotation grows), curveTime = 0 (s),
+  //         look = 'orb' (PROJECTILE_LOOKS), spin = 1 (the way a spinning look turns) }
   constructor(world, sourceAbility, x, y, opts) {
     super(world);
     this.sourceAbility = sourceAbility;
@@ -22,21 +24,34 @@ export class Projectile extends Entity {
     this.turnRate = opts.turnRate ?? 0;
     this.homingFrom = world.time + (opts.homingDelay ?? 0);
     this.homingUntil = world.time + (opts.homingTime ?? Infinity);
+    this.curve = opts.curve ?? 0;
+    this.curveUntil = world.time + (opts.curveTime ?? 0);
     this.spawnedAt = world.time;
     this.parried = false;
     this.expiresAt = world.time + opts.lifetime;
     this.body = world.physics.add(new Body({ x, y, radius: opts.size / 2, solid: false }));
     this.body.rotation = Math.atan2(opts.dir.y, opts.dir.x);
-    this.look = new PROJECTILE_LOOKS[opts.look ?? 'orb'](world.layers.projectiles);
+    this.look = new PROJECTILE_LOOKS[opts.look ?? 'orb'](world.layers.projectiles, { spin: opts.spin });
     this.look.render(world.time, x, y, this.body.rotation, this.size);
     world.hostileAttacks.add(this);
   }
 
   step(dt) {
     if (this.world.time >= this.expiresAt) { this.destroy(); return; }
-    if (this.turnRate > 0) this.home(dt);
-    this.body.vel.x = this.dir.x * this.speed;
-    this.body.vel.y = this.dir.y * this.speed;
+    let heading = this.dir;
+    if (this.curve && this.world.time < this.curveUntil) heading = this.bend(dt);
+    else if (this.turnRate > 0) this.home(dt);
+    this.body.vel.x = heading.x * this.speed;
+    this.body.vel.y = heading.y * this.speed;
+  }
+
+  // Turns `curve` rad/s, flying this step along the heading halfway through the turn so it
+  // keeps to its circle.
+  bend(dt) {
+    const b = this.body, turn = this.curve * dt;
+    b.rotation += turn;
+    this.dir = fromAngle(b.rotation);
+    return fromAngle(b.rotation - turn / 2);
   }
 
   // Turns toward the player (or what enemies hunt in their place), at most turnRate radians a second.

@@ -3,8 +3,8 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, spawnerSprites, MAUL_ART, BLADE_ART } from './sprites.js';
-import { BLADES, ENEMY_TYPES, MAUL, PROPS } from '../data/config.js';
+import { animations, icons, sprites, spawnerSprites, MAUL_ART, BLADE_ART, SPADE_ART, lemurTailRest, tailBanded, tailEdges } from './sprites.js';
+import { BLADES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS } from '../data/config.js';
 
 export const tex = {};
 export const anims = {};
@@ -30,7 +30,7 @@ export async function loadAssets() {
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack. A prop's cracks never change its
   // outline, so one serves all its stages.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
   for (const key of Object.keys(PROPS)) tex[`${key}_white`] = toTexture(whiteSilhouette(tex[`${key}_0`].source.resource));
@@ -73,6 +73,7 @@ function enemyPortrait(visual, S = 128) {
   const ctx = c.getContext('2d');
   if (visual.rig === 'maul') return maulerPortrait(c, ctx, visual, S);
   if (visual.rig === 'blades') return shadePortrait(c, ctx, visual, S);
+  if (visual.rig === 'tail') return lemurPortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -108,6 +109,38 @@ function shadePortrait(c, ctx, visual, S) {
     ctx.drawImage(tex.shade_blade.source.resource, -BLADE_ART.rootX * u, -BLADE_ART.rootY * u, BLADE_ART.w * u, BLADE_ART.h * u);
     ctx.restore();
   }
+  return c;
+}
+
+// The Lemur with its tail at rest, trailing out behind it: shrunk and shifted forward to fit.
+function lemurPortrait(c, ctx, visual, S) {
+  const u = S / 2.1, cx = S / 2 + 0.47 * u, cy = S / 2, half = (visual.size / 2) * u, T = LEMUR_TAIL, C = T.color;
+  const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
+  const pts = lemurTailRest().map((p) => ({ x: cx + p.x * u, y: cy + p.y * u }));
+  const { left, right } = tailEdges(pts, T.width.map((w) => w * u));
+  const stalk = new Path2D();
+  [...left, ...[...right].reverse()].forEach((p, i) => (i ? stalk.lineTo(...p) : stalk.moveTo(...p)));
+  stalk.closePath();
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = T.line * 2 * u;
+  ctx.strokeStyle = hex(C.outline);
+  ctx.stroke(stalk);
+  ctx.fillStyle = hex(C.fill);
+  ctx.fill(stalk);
+  ctx.fillStyle = hex(C.band);
+  for (let i = 0; i < T.segments; i++) {
+    if (!tailBanded(i)) continue;
+    ctx.beginPath();
+    [left[i], left[i + 1], right[i + 1], right[i]].forEach((p, j) => (j ? ctx.lineTo(...p) : ctx.moveTo(...p)));
+    ctx.fill();
+  }
+  const tip = pts[T.segments], neck = pts[T.segments - 1];
+  ctx.save();
+  ctx.translate(tip.x, tip.y);
+  ctx.rotate(Math.atan2(tip.y - neck.y, tip.x - neck.x));
+  ctx.drawImage(tex.lemur_spade.source.resource, -SPADE_ART.rootX * u, (-SPADE_ART.h / 2) * u, SPADE_ART.w * u, SPADE_ART.h * u);
+  ctx.restore();
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
   return c;
 }
 

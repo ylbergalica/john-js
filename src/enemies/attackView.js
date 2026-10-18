@@ -9,9 +9,10 @@
 //                  wall, humming while it burns.
 //   ProjectileLook a glowing orb with a comet trail, shared by projectiles and ChargeView.
 //   MistBallLook   the same for the Seer's balls of blue mist.
+//   CrescentLook   the same for the Lemur's spinning crescents.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, FIXED_DT, MIST_BALL as M } from '../data/config.js';
+import { ATTACK_FX, CRESCENT as CR, FIXED_DT, MIST_BALL as M } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -482,8 +483,9 @@ export class ZoneView {
   destroy() { this.gfx.destroy(); }
 }
 
-// A throw: each projectile's orb grows over the wind-up exactly where it will be released
-// (the ability's chargePoints), to `chargeSize` if given, else the projectile's size.
+// A throw: each projectile's orb grows exactly where it will be released (the ability's
+// chargePoints) while the ability says one is forming (its charge: over the wind-up, unless
+// it says otherwise), to `chargeSize` if given, else the projectile's size.
 export class ChargeView {
   constructor(ability) {
     this.ability = ability;
@@ -494,12 +496,12 @@ export class ChargeView {
   strike() {}
 
   render(now, alpha) {
-    const a = this.ability, d = a.data;
-    const points = a.phase === 'windup' && a.player ? a.chargePoints(alpha) : [];
+    const a = this.ability, d = a.data, c = a.player ? a.charge(now) : null;
+    const points = c ? a.chargePoints(alpha) : [];
     while (this.looks.length < points.length) this.looks.push(new this.Look(a.world.layers.projectiles, { trail: false }));
-    const t = progress(a, now);
+    const t = c?.t ?? 0;
     const size = (d.chargeSize ?? d.projectileSize) * lerp(X.projectile.chargeFrom, 1, t);
-    const glow = clamp01((now - a.phaseStartedAt) / FADE_IN) * lerp(0.4, 1, t);
+    const glow = clamp01((c?.since ?? 0) / FADE_IN) * lerp(0.4, 1, t);
     this.looks.forEach((look, i) => {
       const pt = points[i];
       look.container.visible = !!pt;
@@ -666,5 +668,73 @@ export class MistBallLook {
   destroy() { this.container.destroy({ children: true }); }
 }
 
+// A Lemur's crescent (CRESCENT): the hostile orb's glow round a white-hot crescent spinning
+// like a boomerang (`spin`: 1 or -1, the way it turns), with a streak trailing back along
+// the curve it has flown. Drawn like ProjectileLook.
+export class CrescentLook {
+  get color() { return X.color; }
+  get maxTrail() { return X.projectile.trailLength; }
+
+  constructor(parent, { trail = true, spin = 1 } = {}) {
+    this.trail = trail ? new Graphics() : null;
+    if (this.trail) {
+      this.trail.blendMode = 'add';
+      parent.addChild(this.trail);
+    }
+    this.container = new Container();
+    this.glow = sprite(tex.mist, this.container, { blendMode: 'add' });
+    this.core = sprite(tex.crescent, this.container, { tint: X.hot });
+    for (const s of this.container.children) s.visible = true;
+    parent.addChild(this.container);
+    this.spin = spin;
+    this.path = []; // where it has been, oldest first: [{ x, y }]
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const pulse = 0.5 + 0.5 * Math.sin(now * CR.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.glow.width = this.glow.height = size * CR.glowSize * lerp(0.9, 1.1, pulse);
+    this.glow.alpha = CR.glowAlpha * glow * lerp(0.75, 1, pulse);
+    this.core.width = this.core.height = size * ORB_PAD;
+    this.core.rotation = now * CR.spin * this.spin;
+    if (this.trail) this.drawTrail(x, y, size, trailLength);
+  }
+
+  // Back along the last `length` of its path from (x, y), tapering and fading to nothing:
+  // a band in the glow's colour round a white-hot core.
+  drawTrail(x, y, size, length) {
+    const path = this.path, last = path[path.length - 1], g = this.trail;
+    if (!last || Math.hypot(x - last.x, y - last.y) > 0.03) path.push({ x, y });
+    const pts = [{ x, y, d: 0 }];
+    for (let i = path.length - 1; i >= 0 && pts[pts.length - 1].d < length; i--) {
+      const q = pts[pts.length - 1], p = path[i], d = q.d + Math.hypot(p.x - q.x, p.y - q.y);
+      if (d > q.d + 1e-4) pts.push({ x: p.x, y: p.y, d });
+    }
+    path.splice(0, Math.max(0, path.length - pts.length - 1)); // forget what has fallen off its end
+    g.clear();
+    if (pts.length < 2 || length <= 0.01) return;
+    // Each point's offset across the trail, from the way it runs through there.
+    const across = pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+      return { x: -dy / l, y: dx / l, k: Math.max(0, 1 - p.d / length) };
+    });
+    for (const [width, color, alpha] of [[CR.trailWidth, X.color, CR.trailAlpha], [CR.trailWidth * 0.35, X.hot, CR.trailAlpha]]) {
+      const w = size * width;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p = pts[i], q = pts[i + 1], n = across[i], m = across[i + 1];
+        const wp = w * n.k, wq = w * m.k;
+        g.poly([p.x + n.x * wp, p.y + n.y * wp, q.x + m.x * wq, q.y + m.y * wq, q.x - m.x * wq, q.y - m.y * wq, p.x - n.x * wp, p.y - n.y * wp])
+          .fill({ color, alpha: alpha * n.k });
+      }
+    }
+  }
+
+  destroy() {
+    this.trail?.destroy();
+    this.container.destroy({ children: true });
+  }
+}
+
 // Projectile looks by an ability's `look`.
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook };
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook };

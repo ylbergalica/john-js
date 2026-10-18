@@ -13,12 +13,13 @@ import { EnemyAI } from './ai.js';
 import { EnemyAttackFx, renderTime } from './attackView.js';
 import { MaulerRig } from './maulerRig.js';
 import { ShadeRig } from './shadeRig.js';
+import { LemurRig } from './lemurRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -239,7 +240,6 @@ export class Enemy extends Entity {
     const visible = rectContainsCircle(view, p.x, p.y, this.body.radius * 2);
     const now = renderTime(this.world, alpha), rot = this.body.lerpRotation(alpha);
     this.view.visible = visible;
-    for (const a of this.abilities.values()) a.view?.render(now, alpha, dt);
     this.view.position.set(p.x, p.y);
     this.view.rotation = rot;
     this.attackFx.render(now, p, rot, visible);
@@ -247,6 +247,7 @@ export class Enemy extends Entity {
     this.stunMark.render(now, p, visible, dt);
     if (this.dying) this.renderDying(now, p);
     this.rig?.render(now, dt);
+    for (const a of this.abilities.values()) a.view?.render(now, alpha, dt); // after the rig, so a charge can sit on what it holds
     this.attackFx.renderCue(now, visible);
     if (!visible) return;
     this.setFlash(this.dying ? this.dyingWhite : this.world.time < this.flashUntil);

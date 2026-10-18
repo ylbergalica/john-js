@@ -127,6 +127,8 @@ export const ATTACK_FX = {
     lunge: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.3, squash: 0.12, swell: 0.04 },
     beam: { shape: 'focus', count: 6, at: 1, reach: 1.1, to: 0.12, lean: 0.1, squash: 0.06, swell: 0 },
     conjure: { shape: 'none', lean: 0.1, squash: 0, swell: 0.06 },
+    spin: { shape: 'none', lean: 0.08, squash: 0.08, swell: 0.05 }, // crouching to whirl round
+    tail: { shape: 'none', lean: 0.06, squash: 0, swell: 0.04 }, // drawing its tail round to fling
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -276,3 +278,39 @@ export const BLADES = {
   // `life` seconds.
   trail: { life: 0.12, inner: 0.35, alpha: 0.5, samples: 10 },
 };
+
+// The Lemur's tail (src/enemies/lemurRig.js): a short ringed stalk ending in a big spade, a
+// chain of `segments` links `segment` long from a root `root` out from the Lemur's centre,
+// `width` half as thick at the root and the tip. Each link's bend off the one before is
+// sprung toward where it wants to be: `spring` sets how fast (`freq`, Hz, at the root and
+// the tip) and how soon it settles (`damping`, 1 settling without swinging past), and no
+// link bends more than `maxBend`. It wants its rest bend (`bends`, radians, root first: a
+// lazy S), swept back by `lag` (root, tip; radians per rad/s) of how fast the body turns
+// (eased over `turnEase` s), up to `maxLag`, so it curls back after a turn and swings
+// through as the turn stops; and running, leant up to `trail` radians a link (more toward
+// the tip) toward straight behind, after the Lemur's velocity eased over `trailEase` s. At
+// rest it sways, a wave running down it, each link bending up to `sway.amount` radians more
+// (less toward the root), `freq` times a second (× `walk` on the move), `lag` radians
+// later each link. When an attack swings it (LemurVolley.swing) it comes out of the body
+// wherever the attack has it, sprung straight by `swing`. Each crescent it flings
+// `flick`s the spade, swelling it by `swell`, easing back over `time`. Stunned, it droops
+// (`stunned`: × the bends and the spring's freq). `bands`: brown rings round the stalk.
+export const LEMUR_TAIL = {
+  root: 0.22, segments: 6, segment: 0.09, width: [0.06, 0.038],
+  bends: [0.2, 0.12, 0, -0.12, -0.2, -0.16],
+  spring: { freq: [5, 3], damping: 0.45 }, maxBend: 0.8,
+  lag: [0.008, 0.02], turnEase: 0.05, maxLag: 0.22, trail: 0.2, trailEase: 0.3,
+  sway: { amount: 0.1, freq: 0.7, walk: 1.8, lag: 0.6 },
+  swing: { freq: 6, damping: 0.6 },
+  flick: { swell: 0.3, time: 0.25 },
+  stunned: { droop: 1.8, freq: 0.6 },
+  bands: 3,
+  color: { fill: 0x16341c, band: 0x5a3517, outline: 0x86c454, glow: 0x6cc040 },
+  line: 0.05, glowLine: 0.16, glowAlpha: 0.22,
+};
+
+// The Lemur's crescents (CrescentLook in src/enemies/attackView.js): the Goblin's orb as a
+// white-hot crescent, spinning `spin` rad/s like a boomerang, in the same glow, trailing a
+// streak along the curve it has flown (up to ATTACK_FX.projectile.trailLength). Sizes ×
+// the crescent's size.
+export const CRESCENT = { spin: 15, glowSize: 3, glowAlpha: 0.7, pulseSpeed: 9, trailWidth: 0.55, trailAlpha: 0.8 };

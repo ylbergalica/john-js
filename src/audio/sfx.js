@@ -360,6 +360,19 @@ const SOUNDS = {
     noise(v, { filter: 'lowpass', freq: 1400, to: 120, dur: 0.5, vol: 0.45, attack: 0.01 });
     noise(v, { freq: 900, to: 300, q: 1.4, dur: 0.35, vol: 0.12, attack: 0.02 });
   },
+  // the Lemur
+  spin(v) { // whirling round on the spot, its tail whipping after it
+    noise(v, { freq: 260, to: 1300, q: 0.9, dur: 0.34, vol: 0.22, attack: 0.1 });
+    noise(v, { filter: 'highpass', freq: 1500, to: 3400, q: 0.7, at: 0.14, dur: 0.16, vol: 0.1, attack: 0.03 });
+  },
+  crescent(v) { // a crescent flung out, whirring like a boomerang
+    tone(v, { type: 'square', freq: 480, to: 980, dur: 0.07, vol: 0.05 });
+    const whirr = ctx.createGain();
+    whirr.gain.value = 0.5;
+    whirr.connect(v.out);
+    lfo(v, whirr.gain, { rate: 24, depth: 0.5, dur: 0.32 });
+    noise(v, { freq: 1500, to: 2700, q: 2, dur: 0.32, vol: 0.18, attack: 0.01, out: whirr });
+  },
   // the Seraph
   boost(v) { // a jet lighting up for the ram
     noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });

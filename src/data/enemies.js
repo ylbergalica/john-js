@@ -65,6 +65,19 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 22, orbitRadius: 6.5, moveSpeed: 2.6, orbitSpeed: 2.4, repositionSpeed: 2.4, maxTurnSpeed: 3.5,
       attacks: [{ ability: 'SeerOmen', weight: 0.6 }, { ability: 'SeerBolt', weight: 0.4 }] },
   },
+  // A dark green ball with brown patches and a long ringed tail ending in a spade, which
+  // lags after it and whips round as it turns (`rig`, see lemurRig.js). Nimble, it keeps its
+  // distance and flings spinning crescents: whirling round one way then the other, a crescent
+  // flung out to each side to curve back in on the player, or turning its back on them and
+  // firing two straight down its tail.
+  lemur: {
+    name: 'Lemur', maxHealth: 12, damage: 1.5, radius: 0.45, mass: 3, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x7fbf4f, sfxPitch: 1.1,
+    visual: { kind: 'sprite', outline: 'lemur_idle', void: 'lemur_idle_void', size: 1.45, sparkleCount: 18, rig: 'tail' },
+    ai: { ...AI_DEFAULTS, aggroRange: 14, orbitRadius: 5, moveSpeed: 3.2, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 7,
+      attacks: [{ ability: 'LemurSpin', weight: 0.55 }, { ability: 'LemurVolley', weight: 0.45 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

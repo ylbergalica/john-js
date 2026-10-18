@@ -2,14 +2,14 @@
 // sprites, the hurt flash/blink (derived from the time of the last hit), the dash's stretch,
 // afterimages and trails (DashView), the Exalted state's fire and wings (ExaltedView), and
 // the body trembling, buckling and caving in as the player dies (PlayerDeath.posed).
-import { AlphaFilter, Container, MeshSimple, Sprite, Texture } from 'pixi.js';
+import { AlphaFilter, BlurFilter, Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, lerpColor, smoothDamp, smoothStep01, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { PARRY_PAD } from '../render/sprites.js';
 import { FrameAnim } from '../render/fx.js';
 import { DashView } from './dashView.js';
-import { ExaltedView } from './exaltedView.js';
+import { ExaltedView, exaltedRed } from './exaltedView.js';
 
 const B = PLAYER.blob, T = PLAYER.tail, A = PLAYER.attack, P = PLAYER.parry, HF = PLAYER.hitFeedback;
 const SWINGS = ['first_swing', 'second_swing', 'third_swing', 'fourth_swing'];
@@ -71,10 +71,24 @@ export class PlayerView {
     this.attackPoint.addChild(parry);
     this.parryAnim = new FrameAnim(parry, anims.parry, { fps: anims.parry.length / P.clipLength });
     this.parryFade = null; // seconds into fading out, once the parry has run out (see fadeParry)
+    // Soft glows under the swings and parry, the same frames blurred and added, shown only
+    // when an aspect gives them one (its identity's glow).
+    this.glowBlur = new BlurFilter({ strength: 5, quality: 3 });
+    const glowUnder = (s) => {
+      const g = new Sprite(s.texture);
+      g.anchor.set(0.5);
+      g.blendMode = 'add';
+      g.filters = [this.glowBlur];
+      g.visible = false;
+      this.attackPoint.addChildAt(g, 0);
+      return [s, g];
+    };
+    this.glows = [...this.swings.map((a) => glowUnder(a.sprite)), glowUnder(parry)];
 
     this.dash = new DashView(player);
     this.exalted = new ExaltedView(player);
     this.tint = 0xffffff; // white, warming to EXALTED_FX.tint while Exalted
+    this.swingTint = 0xffffff; // the swings' and parry's: white, or an aspect's (AspectController.identity), warming the same way
   }
 
   playSwing() {
@@ -120,11 +134,11 @@ export class PlayerView {
       ...o, count: Math.round(o.count * g), speed: o.speed * g, size: o.size * g,
       color: lerpColor(o.color, FX.parryComboColor, warmth),
     });
-    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize * g, this.tint);
+    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle, FX.parryConnectSize * g, this.swingTint);
     fx.burst(pos.x, pos.y, angle, grow(PARTICLES.parryConnect));
     fx.burst(pos.x, pos.y, angle, grow(PARTICLES.parryConnectRing));
     if (level < P.comboMax - 1) return;
-    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle + Math.PI, FX.parryConnectSize * g * 0.6, this.tint);
+    fx.playOnce(anims.parry_connect, pos.x, pos.y, angle + Math.PI, FX.parryConnectSize * g * 0.6, this.swingTint);
     fx.burst(pos.x, pos.y, angle, PARTICLES.parryComboNova);
   }
 
@@ -155,13 +169,15 @@ export class PlayerView {
     this.exalted.throes = pose?.throes ?? 0;
     this.exalted.render(p, dt);
     death?.render(dt);
-    this.dash.render(p, dt, this.exalted.glow);
+    const identity = player.aspects?.identity, red = exaltedRed(EXALTED_FX.tint, identity);
+    this.dash.render(p, dt, this.exalted.glow, red);
     this.dash.shape(this.body, PLAYER.scale * player.sizeScale * player.bodyScale * (pose?.scale ?? 1));
-    this.tint = lerpColor(0xffffff, EXALTED_FX.tint, this.exalted.glow);
-    const outline = lerpColor(B.outlineColor, EXALTED_FX.tint, this.exalted.glow);
+    this.tint = lerpColor(0xffffff, red, this.exalted.glow);
+    this.swingTint = lerpColor(identity?.swing ?? 0xffffff, red, this.exalted.glow);
+    const outline = lerpColor(B.outlineColor, red, this.exalted.glow);
     this.blob.outline.tint = death ? death.outline(outline) : outline;
-    for (const a of this.swings) a.sprite.tint = this.tint;
-    this.parryAnim.sprite.tint = this.tint;
+    for (const a of this.swings) a.sprite.tint = this.swingTint;
+    this.parryAnim.sprite.tint = this.swingTint;
 
     const f = isZero(player.facing) ? { x: 1, y: 0 } : player.facing;
     this.attackPoint.position.set(p.x + f.x * A.attackRange, p.y + f.y * A.attackRange);
@@ -174,6 +190,19 @@ export class PlayerView {
       const k = this.parryFade / P.fadeTime;
       if (k >= 1) this.hideParry();
       else this.parryAnim.sprite.alpha = 1 - smoothStep01(k);
+    }
+    // The glows follow their swing or parry frame for frame, fading as Exalted warms it.
+    const G = identity?.glow, ga = G ? G.alpha * (1 - this.exalted.glow) : 0;
+    if (G) this.glowBlur.strength = G.blur;
+    for (const [s, g] of this.glows) {
+      g.visible = s.visible && ga > 0.005;
+      if (!g.visible) continue;
+      g.texture = s.texture;
+      g.position.copyFrom(s.position);
+      g.scale.copyFrom(s.scale);
+      g.rotation = s.rotation;
+      g.tint = G.color;
+      g.alpha = s.alpha * ga;
     }
 
     // Dying, the followers are drawn into the body and shrink with it as it caves in.

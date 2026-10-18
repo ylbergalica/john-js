@@ -6,13 +6,20 @@
 // Driven from PlayerView.render, so it watches the adrenaline state for edges itself.
 import { Container, Sprite } from 'pixi.js';
 import { EXALTED_FX as X, PLAYER_DEATH } from '../data/config.js';
-import { clamp01, lerp, randRange, seededRandom, TAU } from '../engine/math.js';
+import { clamp01, lerp, lerpColor, randRange, seededRandom, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { FEATHER_ROWS } from '../render/sprites.js';
 import { Plume, Strand } from '../render/fx.js';
 import { sfx } from '../audio/sfx.js';
 
 const W = X.wings, THROES = PLAYER_DEATH.exalted.throes, DEG = Math.PI / 180;
+
+// One of Exalted's reds as the player wears it: deepened toward black by an aspect that
+// takes them over (its identity's exaltedDarken, see AspectController.identity).
+export function exaltedRed(color, identity) {
+  const k = identity?.exaltedDarken ?? 0;
+  return k > 0 ? lerpColor(color, 0x000000, k) : color;
+}
 
 // The right wing in world units around the player's centre (mirrored for the left): an arm
 // sweeping up from the shoulder in one smooth curve through the elbow and wrist out to the
@@ -177,6 +184,7 @@ export class ExaltedView {
     this.spreadVel = 0; // how fast the spread is changing (per second, smoothed), for the drag bend
     this.lastSpread = 0;
     this.wingFade = 0; // 1 while the wings are shown, dropping to 0 as they dissolve
+    this.wingLook = null; // the colours they open in, if an aspect gives them its own (see dress)
     this.openedAt = -Infinity;
     this.exalted = false;
     this.burning = null; // sfx loop handle
@@ -228,6 +236,7 @@ export class ExaltedView {
     this.halo.visible = k > 0;
     if (k > 0) {
       const H = X.halo;
+      this.halo.tint = this.red(H.color);
       this.halo.position.set(p.x, p.y);
       this.halo.width = this.halo.height = H.size * scale * (1 + 0.08 * Math.sin(this.time * H.pulseSpeed)) * (1 + THROES.halo * this.throes);
       this.halo.alpha = H.alpha * this.glow * (1 - H.pulse + H.pulse * Math.sin(this.time * H.pulseSpeed));
@@ -246,15 +255,16 @@ export class ExaltedView {
     if (!p) return;
 
     const w = this.world, E = X.entry, ring = E.smokeRing;
-    w.ripple.play(p);
+    const k = this.player.aspects?.identity?.exaltedDarken ?? 0;
+    w.ripple.play(p, k > 0 ? { ...X.ripple, tint: X.ripple.tint.map((c) => c * (1 - k)) } : X.ripple);
     w.camera.shake(E.shake.duration, E.shake.strength, E.shake.frequency);
-    w.effects.burst(p.x, p.y, 0, E.sparks);
+    w.effects.burst(p.x, p.y, 0, { ...E.sparks, color: this.red(E.sparks.color) });
     for (let i = 0; i < ring.count; i++) {
       const ang = (i / ring.count) * TAU + randRange(-0.1, 0.1), c = Math.cos(ang), s = Math.sin(ang);
       const speed = ring.speed * randRange(0.8, 1);
       this.haze.spawn({
         x: p.x + c * 0.3, y: p.y + s * 0.3, vx: c * speed, vy: s * speed,
-        size: ring.size, grow: ring.grow, life: ring.life * randRange(0.8, 1), color: ring.color, fade: ring.fade, alpha: ring.alpha,
+        size: ring.size, grow: ring.grow, life: ring.life * randRange(0.8, 1), color: this.red(ring.color), fade: this.red(ring.fade), alpha: ring.alpha,
       });
     }
   }
@@ -263,9 +273,25 @@ export class ExaltedView {
   flareWings() { this.openWings(); }
 
   openWings() {
+    this.dress(this.player.aspects?.identity?.wings ?? null);
     this.openedAt = this.time;
     this.lastSpread = this.spreadVel = 0;
     for (const h of this.history) h.time = -Infinity;
+  }
+
+  // `color`, one of Exalted's reds, as this player wears it (see exaltedRed).
+  red(color) { return exaltedRed(color, this.player.aspects?.identity); }
+
+  // The wings' colours as they open: their own reds, or `look` (an aspect's, see
+  // AspectController.identity) for every part of them, the glowing ones then laid over
+  // normally instead of added, so dark colours show.
+  dress(look) {
+    this.wingLook = look;
+    const blend = look ? 'normal' : 'add';
+    for (const { strand } of this.featherMeshes) strand.mesh.tint = look?.feather ?? this.red(W.feather.color);
+    for (const { strand } of this.echoes) { strand.mesh.tint = look?.echo ?? this.red(W.echo.color); strand.mesh.blendMode = blend; }
+    for (const { strand } of this.arms) { strand.mesh.tint = look?.strand ?? this.red(W.strandColor); strand.mesh.blendMode = blend; }
+    for (const plume of [this.wingMist, this.wisps, this.wingFire]) plume.container.blendMode = blend;
   }
 
   // Keeps the feathers' current pose for the afterimages to replay.
@@ -294,7 +320,7 @@ export class ExaltedView {
     this.exalted = false;
     this.burning?.stop(0.8);
     this.burning = null;
-    this.world.effects.burst(p.x, p.y, 0, X.exit.sparks);
+    this.world.effects.burst(p.x, p.y, 0, { ...X.exit.sparks, color: this.red(X.exit.sparks.color) });
   }
 
   // The arm and every feather at the current opening and flap, in the wings' local units
@@ -363,6 +389,7 @@ export class ExaltedView {
       strand.widths[i] = R.width * scale * 0.5 * Math.sqrt(i / (n - 1));
     }
     strand.build();
+    strand.mesh.tint = this.red(orbit.color);
     strand.mesh.alpha = this.glow * (0.5 + 0.5 * (0.5 + 0.5 * Math.sin(this.time * 1.3 + phase)) ** 2);
   }
 
@@ -409,7 +436,7 @@ export class ExaltedView {
   // space, so they stay put as the feathers sweep on, leaving trails; moving makes them
   // stream back a little.
   emitWings(k, dt, vel) {
-    const b = W.bone, g = W.glow, w = W.wisp, pts = this.pose;
+    const b = W.bone, g = W.glow, w = W.wisp, pts = this.pose, L = this.wingLook;
     const dvx = -vel.x * W.drift, dvy = -vel.y * W.drift;
     for (const side of [1, -1]) {
       for (let n = spawnCount(W.boneRate * 0.5 * k, dt); n > 0; n--) {
@@ -419,7 +446,7 @@ export class ExaltedView {
         const fire = Math.random() < W.flameShare;
         (fire ? this.wingFire : this.wingMist).spawn({
           x: side * x, y, vx: side * (dx / d) * out + dvx, vy: (dy / d) * out - randRange(0.3, 0.8) + dvy,
-          size: pick(b.size) * (fire ? 0.6 : 1), grow: b.grow, life: pick(b.life), color: b.color, fade: b.fade, alpha: b.alpha * k,
+          size: pick(b.size) * (fire ? 0.6 : 1), grow: b.grow, life: pick(b.life), color: L?.smoke ?? b.color, fade: L?.smokeFade ?? b.fade, alpha: b.alpha * k,
           sway: 2, orient: fire,
         });
       }
@@ -430,7 +457,7 @@ export class ExaltedView {
         const dx = x - SHOULDER.x, dy = y - SHOULDER.y, d = Math.hypot(dx, dy) || 1;
         this.wingMist.spawn({
           x: side * x + randRange(-0.08, 0.08), y: y + randRange(-0.08, 0.08), vx: side * (dx / d) * 0.25 + dvx, vy: (dy / d) * 0.25 - 0.2 + dvy,
-          size: pick(g.size), grow: g.grow, life: pick(g.life), color: g.color, fade: g.fade, alpha: g.alpha * k, sway: 1,
+          size: pick(g.size), grow: g.grow, life: pick(g.life), color: L?.smoke ?? g.color, fade: L?.smokeFade ?? g.fade, alpha: g.alpha * k, sway: 1,
         });
       }
       for (let n = spawnCount(w.rate * 0.5 * k, dt); n > 0; n--) {
@@ -439,7 +466,7 @@ export class ExaltedView {
         const dx = fp[2].x - fp[0].x, dy = fp[2].y - fp[0].y, d = Math.hypot(dx, dy) || 1, out = randRange(0.15, 0.45);
         this.wisps.spawn({
           x: side * x, y, vx: side * (dx / d) * out + dvx, vy: (dy / d) * out + dvy,
-          size: pick(w.size), grow: 1.3, life: pick(w.life), color: w.color, fade: w.fade, alpha: w.alpha * k, sway: 2, orient: true,
+          size: pick(w.size), grow: 1.3, life: pick(w.life), color: L?.smoke ?? w.color, fade: L?.smokeFade ?? w.fade, alpha: w.alpha * k, sway: 2, orient: true,
         });
       }
     }
@@ -448,14 +475,14 @@ export class ExaltedView {
   // Loose feathers tearing off and tumbling away, left behind in world space: a trickle
   // while the wings hold, a flurry as they dissolve.
   shedFeathers(p, dt) {
-    const S = W.shed, ws = this.wings.scale.x;
+    const S = W.shed, ws = this.wings.scale.x, L = this.wingLook;
     for (let n = spawnCount(S.rate * (this.wingFade < 1 ? 1 : S.hold), dt); n > 0; n--) {
       const i = Math.floor(Math.random() * FEATHERS.length), side = Math.random() < 0.5 ? 1 : -1;
       const { x, y } = shaftAt(this.featherPoses[i].pts, randRange(0.3, 1), this.point);
       const dx = x - SHOULDER.x, dy = y - SHOULDER.y, d = Math.hypot(dx, dy) || 1, speed = pick(S.speed);
       this.shed.spawn({
         x: p.x + side * x * ws, y: p.y + y * ws, vx: side * (dx / d) * speed, vy: (dy / d) * speed,
-        size: pick(S.size) * ws, life: pick(S.life), color: S.color, fade: S.fade, alpha: S.alpha, sway: 3, orient: true,
+        size: pick(S.size) * ws, life: pick(S.life), color: L?.shed ?? S.color, fade: L?.smokeFade ?? S.fade, alpha: S.alpha, sway: 3, orient: true,
       });
     }
   }
@@ -469,21 +496,21 @@ export class ExaltedView {
       const ang = Math.random() * TAU, c = Math.cos(ang), s = Math.sin(ang), r = B.radius * randRange(0.6, 1) * scale;
       this.flames.spawn({
         x: p.x + c * r, y: p.y + s * r * 0.8, vx: c * 0.6 + vel.x * 0.3, vy: s * 0.3 - pick(B.speed) + vel.y * 0.3,
-        size: pick(B.size) * scale, grow: 0.4, life: pick(B.life), color: B.color, fade: B.fade, alpha: 0.85, sway: 4, orient: true,
+        size: pick(B.size) * scale, grow: 0.4, life: pick(B.life), color: this.red(B.color), fade: this.red(B.fade), alpha: 0.85, sway: 4, orient: true,
       });
     }
     for (let n = spawnCount(E.rate * k * (1 + THROES.embers * t), dt); n > 0; n--) {
       this.embers.spawn({
         x: p.x + randRange(-0.5, 0.5) * scale, y: p.y + randRange(-0.4, 0.3) * scale,
         vx: randRange(-0.8, 0.8), vy: -pick(E.speed), size: pick(E.size), grow: 0.5, life: pick(E.life),
-        color: E.color, fade: E.fade, sway: 5, orient: true,
+        color: this.red(E.color), fade: this.red(E.fade), sway: 5, orient: true,
       });
     }
     for (let n = spawnCount(H.rate * k * (1 + THROES.haze * t), dt); n > 0; n--) {
       const ang = Math.random() * TAU, r = Math.random() * 0.4;
       this.haze.spawn({
         x: p.x + Math.cos(ang) * r, y: p.y + Math.sin(ang) * r, vx: randRange(-0.25, 0.25), vy: randRange(-0.25, 0.25),
-        size: pick(H.size) * scale, grow: H.grow, life: pick(H.life), color: H.color, fade: H.fade, alpha: H.alpha * k,
+        size: pick(H.size) * scale, grow: H.grow, life: pick(H.life), color: this.red(H.color), fade: this.red(H.fade), alpha: H.alpha * k,
       });
     }
   }

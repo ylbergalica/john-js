@@ -1,6 +1,6 @@
 // The gameplay world: builds floors, owns the entity list, physics, navigation,
 // camera and render layers, and advances everything on the fixed simulation step.
-import { Container } from 'pixi.js';
+import { Container, Rectangle } from 'pixi.js';
 import { Physics } from '../engine/physics.js';
 import { randInt, pickWeighted, clamp, clamp01, lerp, dist, smoothStep01, TAU } from '../engine/math.js';
 import { Camera } from '../render/camera.js';
@@ -8,6 +8,7 @@ import { LevelView } from '../render/levelView.js';
 import { Effects } from '../render/fx.js';
 import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
+import { Distortion } from '../render/distortion.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
 import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, MUSIC, PICKUPS, PLAYER, PROPS, STAR_PULSE } from '../data/config.js';
@@ -62,6 +63,8 @@ export class World {
     this.debris = new Debris(this.layers.debris, (x, y) => this.physics.isWall(x, y));
     this.camera = new Camera();
     this.ripple = new ScreenRipple(); // full-screen shockwave on entering Exalted
+    this.distortion = new Distortion(); // tears in the picture (the Black Rose)
+    this.filterArea = new Rectangle();
     // Wall stars flare in rings from kills and parries.
     this.offStarPulses = [
       this.events.enemyKilled.on((e) => {
@@ -614,8 +617,27 @@ export class World {
     this.deathFx.update(dt);
     this.debris.update(dt);
     cam.apply(this.root);
-    this.ripple.update(dt, cam, this.root);
+    const filters = [];
+    if (this.distortion.update(dt, cam)) filters.push(this.distortion.filter);
+    if (this.ripple.update(dt, cam)) filters.push(this.ripple.filter);
+    this.applyFilters(filters, cam);
     this.levelView.update(dt, view);
+  }
+
+  // The screen-space filters over the world this frame (tears, then the ripple over them),
+  // covering exactly the visible world rect (filterArea is in root's local units); none
+  // attached while there are none to draw.
+  applyFilters(filters, cam) {
+    const root = this.root, now = root.filters ?? [];
+    if (filters.length === 0) {
+      if (root.filters) root.filters = null;
+      return;
+    }
+    const v = cam.viewRect();
+    this.filterArea.x = v.x0; this.filterArea.y = v.y0;
+    this.filterArea.width = v.x1 - v.x0; this.filterArea.height = v.y1 - v.y0;
+    root.filterArea = this.filterArea;
+    if (now.length !== filters.length || filters.some((f, i) => now[i] !== f)) root.filters = filters;
   }
 
   destroy() {

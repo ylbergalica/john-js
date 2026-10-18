@@ -1,8 +1,8 @@
 // Full-screen shockwave, for entering the Exalted state and for a guardian's death: a
 // refracting ring races out from a world point, splitting colour along its crest, with a
 // fainter echo ring behind it and a wash (dark red for Exalted) over everything it has
-// passed. The filter is attached to the world only while a ripple plays.
-import { Filter, GlProgram, Rectangle, defaultFilterVert } from 'pixi.js';
+// passed. The filter is attached to the world only while a ripple plays (see World.render).
+import { Filter, GlProgram, defaultFilterVert } from 'pixi.js';
 import { EXALTED_FX } from '../data/config.js';
 import { clamp01 } from '../engine/math.js';
 
@@ -73,7 +73,6 @@ export class ScreenRipple {
       resolution: 'inherit',
     });
     this.uniforms = this.filter.resources.rippleUniforms.uniforms;
-    this.area = new Rectangle();
     this.origin = null; // world point the ripple spreads from; null when idle
     this.look = EXALTED;
     this.elapsed = 0;
@@ -87,23 +86,16 @@ export class ScreenRipple {
     this.elapsed = 0;
   }
 
-  // Runs after the camera has been applied to `root` for this frame.
-  update(dt, cam, root) {
-    if (!this.origin) return;
+  // Runs after the camera has been applied for this frame: whether it's still playing.
+  update(dt, cam) {
+    if (!this.origin) return false;
     const R = this.look;
     this.elapsed += dt;
     const t = this.elapsed / R.duration;
     if (t >= 1) {
       this.origin = null;
-      root.filters = null;
-      return;
+      return false;
     }
-    // The filter covers exactly the visible world rect (filterArea is in root's local units).
-    const v = cam.viewRect();
-    this.area.x = v.x0; this.area.y = v.y0;
-    this.area.width = v.x1 - v.x0; this.area.height = v.y1 - v.y0;
-    root.filterArea = this.area;
-    if (!root.filters) root.filters = [this.filter];
 
     const u = this.uniforms, h = cam.viewH;
     const cx = (this.origin.x - cam.viewX) * cam.ppu + cam.viewW / 2;
@@ -115,5 +107,6 @@ export class ScreenRipple {
     u.uWidth = h * R.width * (0.6 + 0.8 * t);
     u.uStrength = h * R.strength;
     u.uFade = clamp01(1 - t) ** 1.3;
+    return true;
   }
 }

@@ -704,4 +704,48 @@ export const ASPECTS = [
       exalted: { color: 0xe8142e, hot: 0xffe4e8, sparks: 0xff8090 }, // the teal turned crimson while the player is Exalted
     },
   },
+  {
+    // No quote and no description: it explains nothing.
+    id: 'blackrose', displayName: 'Black Rose', tier: AspectTier.Mythic, icon: 'blackrose_icon', activatable: false, stat: AspectStat.Hits,
+    // Two events at the cursor (src/aspects/blackrose.js), each `time` long and striking at
+    // `strikeAt` everything (enemies and props) touching the circle of `radius` round it:
+    // - a swing landing (once a swing, on an enemy or a prop) sets off a pulse: black energy
+    //   bursting out, striking for pulse.damage and driving whatever it strikes out to
+    //   pulse.to from the centre (at least pulse.min) over pulse.moveTime;
+    // - a parry sets off an implosion: black energy caving in, striking for implode.damage
+    //   and dragging whatever it strikes `fill` of the way into the centre over its moveTime.
+    // How far a body is moved is scaled by its knockback resistance, and for anything heavier
+    // than `heavy` by heavy / its mass (so guardians barely budge, and the spawner not at all).
+    // World units and seconds.
+    radius: 3, time: 0.4, strikeAt: 0.2, heavy: 6,
+    // It takes the player over (AspectController.identity): their swings and parry go black,
+    // a faint white `glow` under them (blurred `blur` screen pixels) so they show on black
+    // floors, fading as Exalted turns them red; every red of Exalted deepens `exaltedDarken` of
+    // the way to black; and the wings they spread entering it are black, the glow and fire
+    // round them turned to black smoke.
+    identity: {
+      swing: 0x000000,
+      glow: { color: 0xffffff, alpha: 0.22, blur: 5 },
+      exaltedDarken: 0.5,
+      wings: { feather: 0x050407, echo: 0x000000, strand: 0x09080b, smoke: 0x060508, smokeFade: 0x000000, shed: 0x050407 },
+    },
+    pulse: { damage: 7, to: 4.6, min: 1.2, moveTime: 0.2 },
+    implode: { damage: 9, fill: 0.92, moveTime: 0.12 },
+    // The look: the world itself tears where it happens (src/render/distortion.js: gone black,
+    // tear.opacity at its ragged edge and within, and space stretched out in random bands and
+    // wedges, `stretch` how hard, and warped), under black mist: for a pulse, a ring of it
+    // bursting out to the edge by the strike and blowing on past it as it thins; for an
+    // implosion, a ring of it rushing in from past the edge to the centre by the strike,
+    // collapsing into a black knot that bursts and is gone. Black streaks are flung out (or
+    // sucked in) with it. `ink`: the black. Sizes in world units, [min, max] picks at random.
+    fx: {
+      ink: 0x000000,
+      tear: { strength: 1, stretch: 1, opacity: [0.75, 0.4] },
+      mist: { count: 22, size: [1.1, 1.8], alpha: 0.85 },
+      core: { size: 2.2, alpha: 0.4 },
+      streaks: { count: 16, size: [0.5, 0.9], alpha: 0.9 },
+      ring: { width: 0.5, alpha: 0.9 },
+      shake: { duration: 0.12, strength: 0.09, frequency: 28 },
+    },
+  },
 ];

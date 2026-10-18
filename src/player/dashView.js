@@ -94,8 +94,8 @@ export class DashView {
     body.scale.set(scale * (1 + X.stretch * e), scale * (1 - X.squash * e));
   }
 
-  // `p`: the interpolated body position; `warmth`: 0…1 Exalted glow.
-  render(p, dt, warmth) {
+  // `p`: the interpolated body position; `warmth`: 0…1 Exalted glow, toward `red`.
+  render(p, dt, warmth, red = EXALTED_FX.tint) {
     const player = this.player;
     if (this.dashing && !player.dashing) this.end(p);
     const ready = !player.dashing && player.now >= player.dashReadyAt;
@@ -107,7 +107,7 @@ export class DashView {
     if (dt <= 0) return;
     this.time += dt;
     this.warmth = warmth;
-    this.color = lerpColor(X.color, EXALTED_FX.tint, warmth);
+    this.color = lerpColor(X.color, red, warmth);
 
     if (this.dashing && this.veiled) {
       this.lastDrop = { x: p.x, y: p.y };

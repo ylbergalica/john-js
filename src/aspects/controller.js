@@ -45,6 +45,8 @@ export class AspectController {
   onDash(dir) { for (const a of this.aspects) a.onDash(dir); }
   onHitEnemy(enemy, hitPoint) { for (const a of this.aspects) a.onHitEnemy(enemy, hitPoint); }
   onHitProp(prop, hitPoint) { for (const a of this.aspects) a.onHitProp(prop, hitPoint); }
+  // How an equipped aspect changes the player's own look (its data's `identity`), or null.
+  get identity() { return this.aspects.find((a) => a.data.identity)?.data.identity ?? null; }
   get damageMultiplier() { return this.aspects.reduce((m, a) => m * a.damageMultiplier, 1); }
   get damageDealtMultiplier() { return this.aspects.reduce((m, a) => m * a.damageDealtMultiplier, 1); }
   refreshCooldowns() { for (const a of this.aspects) a.refreshCooldown(); }

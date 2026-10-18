@@ -314,7 +314,7 @@ export class MenuScene {
     const lines = [
       h('div', { class: 'reveal-name title-in', text: a.displayName }),
       a.quote && h('div', { class: 'reveal-quote', text: `"${a.quote}"` }),
-      h('div', { class: 'reveal-desc', text: a.description }),
+      a.description && h('div', { class: 'reveal-desc', text: a.description }),
     ].filter(Boolean);
     const lineAt = (i) => REVEAL_ICON_AT + REVEAL_TEXT_AFTER + i * REVEAL_STEP;
     lines.forEach((el, i) => { el.style.animationDelay = `${lineAt(i)}s`; });
@@ -414,7 +414,7 @@ export class MenuScene {
         h('div', { class: 't-name', text: a.displayName }),
       ),
       a.quote && h('div', { class: 't-quote', text: `"${a.quote}"` }),
-      h('div', { class: 't-desc', text: a.description }),
+      a.description && h('div', { class: 't-desc', text: a.description }),
     ].filter(Boolean));
     setTier(t, a).classList.remove('hidden');
     const r = anchor.getBoundingClientRect(), tr = t.getBoundingClientRect();

@@ -122,6 +122,38 @@ function tinkles(v, n, { at = 0, spread = 0.4, vol = 0.05, lo = 2400, hi = 6000 
   }
 }
 
+// Muffles everything a Black Rose voice plays after it, as if heard through a wall: two
+// lowpasses stacked (steep, so little gets through above them), a little louder to make up.
+function roseMuffle(v) {
+  const lo = ctx.createBiquadFilter(), lo2 = ctx.createBiquadFilter(), lift = ctx.createGain();
+  for (const f of [lo, lo2]) { f.type = 'lowpass'; f.frequency.value = 620; f.Q.value = 0.6; }
+  lift.gain.value = 1.4;
+  lo.connect(lo2).connect(lift).connect(v.out);
+  v.out = lo;
+}
+
+// The Black Rose's soft clipper, for its strikes: what's sent into it comes out thick and gritty.
+function roseGrit(v) {
+  const push = ctx.createGain();
+  push.gain.value = 1.4;
+  const grit = ctx.createWaveShaper();
+  grit.curve = drive();
+  const trim = ctx.createGain();
+  trim.gain.value = 0.7;
+  push.connect(grit).connect(trim).connect(v.out);
+  return push;
+}
+
+// A low hiss chopped on and off `rate` times a second, the whole length of a Black Rose event.
+function roseStutter(v, rate) {
+  const chop = ctx.createGain();
+  chop.gain.value = 0.5;
+  chop.connect(v.out);
+  lfo(v, chop.gain, { rate, depth: 0.5, dur: 0.4, type: 'square' });
+  noise(v, { freq: 380, to: 520, q: 0.8, dur: 0.4, vol: 0.09, attack: 0.05, out: chop });
+  tone(v, { type: 'square', freq: 160, to: 110, dur: 0.38, vol: 0.02, attack: 0.04, out: chop });
+}
+
 // ── recipes ────────────────────────────────────────────────────────
 const SOUNDS = {
   // player
@@ -739,6 +771,31 @@ const SOUNDS = {
   oracleBounce(v) {
     noise(v, { filter: 'highpass', freq: 4500, to: 7000, dur: 0.04, vol: 0.025, attack: 0.002 });
     tone(v, { type: 'sine', freq: 2349, dur: 0.18, vol: 0.02, attack: 0.003 });
+  },
+  // Black Rose, both striking 0.2s in, all of it muffled, over a hiss chopped into a stutter as
+  // the world tears: a pulse swells up out of the dark and drops into a gritty, deep thump; an
+  // implosion is sucked in, rising and cut dead at the strike, into a deep collapse with a
+  // knock on top.
+  rosePulse(v) {
+    roseMuffle(v);
+    const push = roseGrit(v);
+    roseStutter(v, 42);
+    noise(v, { filter: 'lowpass', freq: 200, to: 900, dur: 0.22, vol: 0.12, attack: 0.17 });
+    tone(v, { freq: 55, to: 90, dur: 0.22, vol: 0.15, attack: 0.15 });
+    tone(v, { freq: 90, to: 32, at: 0.2, dur: 0.45, vol: 0.6, out: push });
+    noise(v, { filter: 'lowpass', freq: 2500, to: 150, at: 0.2, dur: 0.3, vol: 0.35, out: push });
+    noise(v, { freq: 1800, to: 500, q: 1.4, at: 0.2, dur: 0.15, vol: 0.18 });
+  },
+  roseImplode(v) {
+    roseMuffle(v);
+    const push = roseGrit(v);
+    roseStutter(v, 60);
+    noise(v, { freq: 200, to: 900, q: 1.2, dur: 0.205, vol: 0.22, attack: 0.19 });
+    tone(v, { freq: 70, to: 220, dur: 0.205, vol: 0.15, attack: 0.18 });
+    tone(v, { freq: 140, to: 30, at: 0.2, dur: 0.35, vol: 0.7, out: push });
+    noise(v, { filter: 'lowpass', freq: 4000, to: 100, at: 0.2, dur: 0.2, vol: 0.4, out: push });
+    noise(v, { freq: 500, q: 1.5, at: 0.2, dur: 0.04, vol: 0.3 });
+    tone(v, { freq: 45, at: 0.22, dur: 0.5, vol: 0.25, attack: 0.02 });
   },
   // Thunderclap (twice: as it strikes and as it twitches): a split-second crack tearing into a
   // deep boom, then a long low rumble that rolls on in waves, all pushed hard into a soft

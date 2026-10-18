@@ -171,7 +171,7 @@ export class Player extends Entity {
     this.world.sound('swing');
     const p = this.attackPoint;
     const angle = Math.atan2(this.facing.y, this.facing.x);
-    this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.tint });
+    this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.swingTint });
     this.buffs.view.swung(p, angle);
     return true;
   }

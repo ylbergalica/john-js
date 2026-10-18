@@ -105,7 +105,7 @@ export const ABILITIES = {
   LemurSpin: {
     type: 'spin', tell: 'spin', cooldown: 4.5, range: 11, windUpTime: 0.75, lockTime: 0.25, duration: 0, recoveryTime: 0.4,
     damageMultiplier: 1, parryStunTime: 0.7, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
-    look: 'crescent', projectileSpeed: 8, projectileSize: 0.42, muzzle: 1,
+    look: 'crescent', projectileSpeed: 9.5, projectileSize: 0.42, muzzle: 1,
     spinTime: 0.65, spinGap: 0.06, minArcRadius: 2.6, turnRate: 1.4, chaseTime: 0.6, coastTime: 1, regrowTime: 0.25,
   },
   // Volley: `shots` crescents, `shotInterval` apart, each flung straight at the player off
@@ -119,9 +119,51 @@ export const ABILITIES = {
   LemurVolley: {
     type: 'volley', tell: 'tail', cooldown: 4, range: 12, windUpTime: 0.9, lockTime: 0.25, duration: 0, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 0.7, ...clearPath({ x: 0.75, y: 0.75 }, 0.3),
-    look: 'crescent', projectileSpeed: 9, projectileLifetime: 3, projectileSize: 0.42, muzzle: 1,
+    look: 'crescent', projectileSpeed: 10.5, projectileLifetime: 3, projectileSize: 0.42, muzzle: 1,
     shots: 2, shotInterval: 1, spreadDeg: 4,
     swing: { cockDeg: 125, throughDeg: 55, swingIn: 0.16, followTime: 0.2 },
+  },
+  // The Boxer's fists, conjured out of nothing for each attack; `fists` says how they move
+  // (FISTS, boxerRig.js). Its wind-ups are as quick as the Striker's. The hook and the
+  // flurry are charges whose fists are the hitbox (parried like a charge): capsules along
+  // the fist's path since the last step, at `sweepSamples` points of it, as wide as the
+  // fist, which grows as it goes.
+  // Hook: a fist conjured at one side (at random) swings round across the front in
+  // `swingTime` as the Boxer steps `stepDistance` in over `stepTime`.
+  BoxerHook: {
+    type: 'hook', tell: 'hook', cooldown: 2.5, range: 2.5, windUpTime: 0.5, lockTime: 0.2, duration: 0.16, recoveryTime: 0.3,
+    damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
+    swingTime: 0.13, stepDistance: 1.9, stepTime: 0.13, parryKnockback: 15, sweepSamples: 4,
+    strikeSound: 'hook', fists: 'hook',
+  },
+  // Clap: both fists drawn behind its back through the wind-up, then brought round either
+  // side to clap together `impactAt` ahead `landTime` after the strike, as it steps in; a
+  // circle there spreads from `radius[0]` to `radius[1]` over `spreadTime` (like the
+  // Mauler's slam).
+  BoxerClap: {
+    type: 'smash', tell: 'clap', cooldown: 4.5, range: 3, windUpTime: 0.6, lockTime: 0.25, duration: 0.4, recoveryTime: 0.4,
+    damageMultiplier: 1.5, parryStunTime: 1.2, ...clearPath({ x: 1, y: 1 }, 0.3),
+    impactAt: 1.05, landTime: 0.13, radius: [0.5, 1.9], spreadTime: 0.22, stepDistance: 1.9, stepTime: 0.12,
+    strikeSound: 'heave', landSound: 'clap', fists: 'clap',
+    shake: { duration: 0.2, strength: 0.25, frequency: 22 },
+  },
+  // Flurry: a big step in (`stepDistance` over `stepTime`), then `punches` of them, one
+  // every `punchInterval` from each hand in turn, the first from a side at random, each
+  // out at random across the front `coneDeg`: its fist shoots out in `punchTime`, then is
+  // drawn back in over `returnTime`, so the next is out before it is back. Each fist hurts
+  // on the way out and `linger` seconds into the way back, its hitbox `hitboxScale` × the
+  // fist; overlapping, they take turns at `hitboxes` hitboxes. Through it the Boxer keeps
+  // turning to the player at up to `turnRate` (rad/s) and pressing in at `advanceSpeed`,
+  // stopping `advanceStop` away. `duration` covers the step and the punches, the last one
+  // back (0.2 + 24 × 0.08 + 0.05 + 0.16, a touch over). Blows don't stop it; only a parry
+  // does, stunning it as for any charge.
+  BoxerFlurry: {
+    type: 'flurry', tell: 'flurry', cooldown: 6, range: 3.6, windUpTime: 0.5, lockTime: 0.2, duration: 2.35, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.3),
+    stepDistance: 1.8, stepTime: 0.2, punches: 25, punchInterval: 0.08, punchTime: 0.05, returnTime: 0.16, coneDeg: 110,
+    turnRate: 1.6, advanceSpeed: 1.4, advanceStop: 1.3, parryKnockback: 15, sweepSamples: 3,
+    linger: 0.07, hitboxScale: 1.4, hitboxes: 3,
+    strikeSound: 'enemyDash', punchSound: 'jab', fists: 'flurry',
   },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,

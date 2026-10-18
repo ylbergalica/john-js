@@ -129,6 +129,9 @@ export const ATTACK_FX = {
     conjure: { shape: 'none', lean: 0.1, squash: 0, swell: 0.06 },
     spin: { shape: 'none', lean: 0.08, squash: 0.08, swell: 0.05 }, // crouching to whirl round
     tail: { shape: 'none', lean: 0.06, squash: 0, swell: 0.04 }, // drawing its tail round to fling
+    hook: { shape: 'none', lean: 0.1, squash: 0, swell: 0.04, twist: 16 }, // its fist shows the side
+    clap: { shape: 'arc', arcDeg: 120, lines: 2, reach: 0.7, to: 1.15, lean: 0.18, squash: 0.06, swell: 0.1 },
+    flurry: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.22, squash: 0.1, swell: 0.04 },
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -314,3 +317,49 @@ export const LEMUR_TAIL = {
 // streak along the curve it has flown (up to ATTACK_FX.projectile.trailLength). Sizes ×
 // the crescent's size.
 export const CRESCENT = { spin: 15, glowSize: 3, glowAlpha: 0.7, pulseSpeed: 9, trailWidth: 0.55, trailAlpha: 0.8 };
+
+// The Boxer's fists (src/enemies/boxerRig.js): red circles conjured out of thin air for each
+// attack, detached from its body, and gone again once it lands. Poses place a fist in the
+// Boxer's frame (+x forward, +y to its right, world units): `r` out from the centre at
+// angle `phi` (radians), `size` its radius. Poses are for the right fist; the left mirrors
+// them. Cosmetic, except that the hook's and the flurry's hitboxes are the fists, through
+// these same poses (hookFist, punchFist).
+//   hook    conjured `drawIn` round ahead of `ready` and drawn back there through the
+//           wind-up, then swung round to `through`, past the middle ahead, bowing `bulge`
+//           further out midway, growing as it goes; it holds `hold` after the swing.
+//   clap    both conjured behind its back at `ready`, drawn `drawIn` further back and
+//           growing to `charged` through the wind-up, then brought round either side,
+//           bowing `bulge` out, gathering speed to meet at the strike's `impactAt` ahead,
+//           grown to `meet` and just touching; they hold `hold` there.
+//   flurry  none until it throws. Each punch bursts out of the body at its hand's shoulder
+//           (`from`) and shoots straight out to `reach` along its angle, growing to
+//           `size`, then is drawn back in, fading out over the last `1 - fadeFrom` of the
+//           way back. Its smear is its own (`trail`): longer, wider and brighter, so the
+//           punches overlapping make a mess of smears; drawn back, the smear of the way
+//           out shrinks away over `turn` seconds.
+// A fist forms over `manifest` seconds (growing from `from` of its size as it fades in),
+// and vanishes swelling by `vanish.grow` as it fades over `vanish.time`. Through a wind-up
+// it strains, juddering `strain.shake` at `strain.freq` Hz (more as the strike nears).
+// `glow`: a soft light behind it, × its radius, brighter (`hot`) while it can hurt, when it
+// also burns white-hot (`heat`: the white's alpha). A smear trails each fist in flight,
+// back along the last `trail.life` seconds of its path, as wide as it (× `width`),
+// tapering to `root` of that at its far end (0 if not given).
+// `impact`: the clap's flash where the fists meet and a ring racing out to the struck
+// circle's edge.
+export const FISTS = {
+  hook: { ready: { phi: 1.85, r: 0.85, size: 0.18 }, through: { phi: -0.55, r: 1, size: 0.33 }, drawIn: 0.4, bulge: 0.25, hold: 0.08 },
+  clap: { ready: { phi: 2.45, r: 0.72, size: 0.17 }, charged: 0.24, meet: 0.34, drawIn: 0.3, bulge: 0.5, hold: 0.1 },
+  flurry: { from: { phi: 0.9, r: 0.24, size: 0.13 }, reach: 2.1, size: 0.3, fadeFrom: 0.6, turn: 0.05, trail: { life: 0.2, alpha: 0.9, width: 1.4, root: 0.45, samples: 12 } },
+  manifest: 0.12, from: 0.3,
+  vanish: { time: 0.16, grow: 0.6 },
+  strain: { shake: 0.025, freq: 14 },
+  glow: { size: 3.2, alpha: 0.35, hot: 0.75 },
+  heat: 0.6,
+  trail: { life: 0.1, alpha: 0.55, width: 0.9, samples: 8 },
+  impact: {
+    flash: { size: 1.3, grow: 1.8, time: 0.16, alpha: 0.75 },
+    ring: { time: 0.24, alpha: 0.8 },
+    sparks: { count: 10, speed: 7, lifetime: 0.3, size: 0.32, coneDeg: 50 },
+  },
+  color: { fill: 0x3a0a10, rim: 0xff4a58 },
+};

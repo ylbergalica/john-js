@@ -135,7 +135,7 @@ export class EnemyAttackFx {
     let windup = null, burning = null, last = null;
     for (const a of e.abilities.values()) {
       if (a.phase === 'windup') windup = a;
-      if (a.phase === 'active' && a.kind === 'body') burning = a;
+      if (a.phase === 'active' && a.kind === 'body' && (a.burning ?? true)) burning = a; // `burning`: false while a charge's weapon does the hurting
       if (!last || a.strikeAt > last.strikeAt) last = a;
     }
     let glow = 0, tint = 0, tintColor = X.color, sx = 1, sy = 1, turn = 0;

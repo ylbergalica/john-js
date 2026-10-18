@@ -33,6 +33,7 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 5, peakFloor: 7 },
       { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 6, peakFloor: 7 },
       { type: 'lemur', weight: { min: 0.6, max: 1 }, fromFloor: 7, peakFloor: 8 },
+      { type: 'boxer', weight: { min: 0.5, max: 1 }, fromFloor: 8, peakFloor: 10 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
     // in a room) until killing them all fills `meterShare` of a meter even if each drops

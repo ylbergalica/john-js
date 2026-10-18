@@ -78,6 +78,20 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 14, orbitRadius: 5, moveSpeed: 3.2, orbitSpeed: 3, repositionSpeed: 3, maxTurnSpeed: 7,
       attacks: [{ ability: 'LemurSpin', weight: 0.55 }, { ability: 'LemurVolley', weight: 0.45 }] },
   },
+  // A dark red decagon, a brawler. It has no hands until it fights: it conjures red fists
+  // out of thin air, detached from its body, that grow as they swing (`rig`, see
+  // boxerRig.js). As quick as the Striker but heavier-hitting: a hook from one side as it
+  // steps in; both fists drawn behind its back, then brought round to clap together in
+  // front, striking all round there like the Mauler's slam; or a big step in and a flurry
+  // of punches across a wide cone that only a parry stops.
+  boxer: {
+    name: 'Boxer', maxHealth: 20, damage: 1.7, radius: 0.56, mass: 4, linearDamping: 1,
+    knockbackResistance: 0.15, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 4, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd8303e, sfxPitch: 0.9,
+    visual: { kind: 'sprite', outline: 'boxer_idle', void: 'boxer_idle_void', size: 1.7, sparkleCount: 24, rig: 'fists' },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.2, moveSpeed: 3, orbitSpeed: 2.6, repositionSpeed: 2.6, maxTurnSpeed: 4.5,
+      attacks: [{ ability: 'BoxerHook', weight: 0.5 }, { ability: 'BoxerClap', weight: 0.25 }, { ability: 'BoxerFlurry', weight: 0.25 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

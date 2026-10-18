@@ -14,12 +14,13 @@ import { EnemyAttackFx, renderTime } from './attackView.js';
 import { MaulerRig } from './maulerRig.js';
 import { ShadeRig } from './shadeRig.js';
 import { LemurRig } from './lemurRig.js';
+import { BoxerRig } from './boxerRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -103,7 +104,7 @@ export class Enemy extends Entity {
   }
 
   afterPhysics() {
-    for (const a of this.abilities.values()) a.hitbox?.afterPhysics();
+    for (const a of this.abilities.values()) a.afterPhysics();
   }
 
   // Where a blow from `p` lands: the nearest point of its hurtbox.
@@ -301,6 +302,7 @@ export class Enemy extends Entity {
     this.attackFx.destroy();
     this.rageGlow?.destroy();
     this.stunMark.destroy();
+    this.rig?.destroy?.(); // a rig drawn outside the view
     this.world.physics.remove(this.body);
     this.view.destroy({ children: true });
   }

@@ -373,6 +373,21 @@ const SOUNDS = {
     lfo(v, whirr.gain, { rate: 24, depth: 0.5, dur: 0.32 });
     noise(v, { freq: 1500, to: 2700, q: 2, dur: 0.32, vol: 0.18, attack: 0.01, out: whirr });
   },
+  // the Boxer
+  hook(v) { // a fist swung round, heavy, through the air
+    noise(v, { freq: 300, to: 1300, q: 1, dur: 0.18, vol: 0.3, attack: 0.03 });
+    tone(v, { type: 'triangle', freq: 150, to: 70, dur: 0.14, vol: 0.12 });
+  },
+  jab(v) { // one punch of a flurry: short and snappy
+    noise(v, { freq: 700, to: 2000, q: 1.2, dur: 0.07, vol: 0.18, attack: 0.008 });
+    tone(v, { type: 'square', freq: 210, to: 90, dur: 0.05, vol: 0.05 });
+  },
+  clap(v) { // two fists slammed together: a sharp crack over a deep boom
+    noise(v, { filter: 'highpass', freq: 1800, to: 900, q: 0.7, dur: 0.08, vol: 0.4, attack: 0.002 });
+    noise(v, { freq: 900, to: 300, q: 1.1, dur: 0.18, vol: 0.3, attack: 0.004 });
+    tone(v, { freq: 110, to: 38, dur: 0.4, vol: 0.5 });
+    noise(v, { filter: 'lowpass', freq: 800, to: 90, dur: 0.35, vol: 0.4 });
+  },
   // the Seraph
   boost(v) { // a jet lighting up for the ram
     noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });

@@ -141,6 +141,7 @@ export class EnemyHitbox {
     const dx = src.x - b.x, dy = src.y - b.y, l = Math.hypot(dx, dy) || 1;
     const hitPoint = { x: b.x + (dx / l) * player.body.radius, y: b.y + (dy / l) * player.body.radius };
     player.hitBy(this, this.enemy.damage * this.ability.data.damageMultiplier, hitPoint, src);
+    this.ability.onStruck?.(player); // reached them, whether or not it hurts
   }
 
   destroy() {

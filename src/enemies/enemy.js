@@ -15,12 +15,13 @@ import { MaulerRig } from './maulerRig.js';
 import { ShadeRig } from './shadeRig.js';
 import { LemurRig } from './lemurRig.js';
 import { BoxerRig } from './boxerRig.js';
+import { CorsairRig } from './corsairRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {

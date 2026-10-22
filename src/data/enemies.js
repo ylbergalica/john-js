@@ -103,6 +103,19 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 6, moveSpeed: 2.6, orbitSpeed: 2.4, repositionSpeed: 2.4, maxTurnSpeed: 3,
       attacks: [{ ability: 'GunnerCascade', weight: 0.55 }, { ability: 'GunnerBarrage', weight: 0.45 }] },
   },
+  // A dark yellow swordsman with pale patches, a white cape hanging off the back of its
+  // shoulders that streams and flaps as it moves (`rig`, see corsairRig.js and cape.js). It
+  // holds a scimitar at one side and swings it across to the other: a big step in with a
+  // swing, or a rush of swinging steps, picking up speed, straight ahead until it hits
+  // something.
+  corsair: {
+    name: 'Corsair', maxHealth: 22, damage: 1.6, radius: 0.5, mass: 4, linearDamping: 1,
+    knockbackResistance: 0.1, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xe8b830, sfxPitch: 0.95,
+    visual: { kind: 'sprite', outline: 'corsair_idle', void: 'corsair_idle_void', size: 1.6, sparkleCount: 22, rig: 'scimitar' },
+    ai: { ...AI_DEFAULTS, aggroRange: 13, orbitRadius: 3, moveSpeed: 3.2, orbitSpeed: 2.6, repositionSpeed: 2.6, maxTurnSpeed: 4.5,
+      attacks: [{ ability: 'CorsairSlash', weight: 0.6 }, { ability: 'CorsairRush', weight: 0.4 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

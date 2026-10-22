@@ -134,6 +134,8 @@ export const ATTACK_FX = {
     flurry: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.22, squash: 0.1, swell: 0.04 },
     cannons: { shape: 'none', lean: 0.06, squash: 0, swell: 0.03 }, // its shots show which cannon
     barrage: { shape: 'arc', arcDeg: 60, lines: 2, reach: 0.6, to: 1.2, lean: 0.14, squash: 0.1, swell: 0.06 }, // bracing for the kick
+    scimitar: { shape: 'none', lean: 0.1, squash: 0, swell: 0.04, twist: 18 }, // its blade shows the side
+    rush: { shape: 'chevrons', count: 4, spacing: 0.4, size: 0.32, lean: 0.3, squash: 0.16, swell: 0.03 },
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -365,4 +367,76 @@ export const FISTS = {
     sparks: { count: 10, speed: 7, lifetime: 0.3, size: 0.32, coneDeg: 50 },
   },
   color: { fill: 0x3a0a10, rim: 0xff4a58 },
+};
+
+// The Corsair's scimitar (src/enemies/corsairRig.js), held in one hand at its side and
+// swapped to the other side by every swing. Poses place it in the Corsair's frame (+x
+// forward, +y to its right, world units): the guard `r` out from the centre at angle `phi`,
+// the blade pointing `rot`, `grow` making it bigger, and `flip` which way up it is (1: its
+// edge facing left, -1: right; between, the wrist rolling over). Poses are for the blade on
+// its right side; on its left they are mirrored. Angles in radians. Cosmetic, except that
+// the slash's hitbox is the blade, through these same poses (scimitarSwingPose).
+//   slash   drawn back on its side through the wind-up, then swung across the front to
+//           `slashThrough`, past the middle on the other side; there it settles to rest,
+//           rolling the blade over so the edge faces back the way it came.
+//   rush    crouched with the blade drawn far back (`rushReady`), then swung from side to
+//           side with every step of the charge (CorsairRush): out of `slashReady`, across
+//           to `slashThrough`, then drawn back on that side, rolling over, for the next.
+//           Stopping, it twirls the blade a full turn (`flourish`) as it settles to rest.
+// Through a wind-up it strains, drawn back a little further (`strain.rot`) and juddering.
+// `trail`: a smear behind the blade as it swings, from `inner` (× its length) to the tip,
+// trailing `life` seconds (`rushLife` in a rush, where the swings come thick and fast).
+export const SCIMITAR = {
+  poses: {
+    idle: { phi: 1.62, r: 0.66, rot: 0.3, grow: 0, flip: 1 }, // at its side, the point ahead
+    slashReady: { phi: 2.05, r: 0.68, rot: 2.15, grow: 0.06, flip: 1 }, // drawn back on its side
+    slashThrough: { phi: -0.85, r: 0.64, rot: -1.25, grow: 0.22, flip: 1 }, // swung across to the other side
+    rushReady: { phi: 2.4, r: 0.64, rot: 2.8, grow: 0.04, flip: 1 }, // crouched, drawn far back
+    stunned: { phi: 1.55, r: 0.74, rot: 1.25, grow: 0, flip: 1 }, // knocked loose, hanging out to the side
+  },
+  readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains
+  strain: { rot: 0.16, shake: 0.03, freq: 12 },
+  settleTime: 0.3, // back to rest, or into a stunned droop
+  flourish: { time: 0.5, turns: 1 },
+  hover: { amount: 0.03, freq: 0.7 }, // at rest it bobs in and out (Hz)
+  gait: { stride: 2.6, sway: 0.1 }, // stride: gait radians per unit walked
+  trail: { life: 0.12, rushLife: 0.05, inner: 0.3, alpha: 0.55, samples: 10 },
+  // Crashing: the impact's flash and steel sparks off the blade, and dust thrown up.
+  crash: {
+    flash: { size: 1.2, grow: 1.7, time: 0.16, alpha: 0.7 },
+    sparks: { count: 16, speed: 9, lifetime: 0.4, size: 0.36, coneDeg: 110, color: 0xfff2c0 },
+    dust: { count: 12, speed: [1.6, 2.8], size: [0.5, 0.85], life: [0.6, 1], alpha: 0.6, grow: 1.8, color: 0xd8b070, fade: 0x4a3816 },
+  },
+  // Skidding to a stop: dust kicked up at its feet, every `every` seconds while it is still
+  // moving faster than `minSpeed`.
+  skid: { every: 0.05, minSpeed: 1.5, dust: { size: [0.35, 0.6], life: [0.35, 0.6], alpha: 0.45, grow: 1.5, color: 0xd8b070, fade: 0x4a3816 } },
+};
+
+// The Corsair's cape (src/enemies/cape.js): one white cloth hanging off the back of its
+// shoulders, simulated as cloth. It is a sheet `columns` points wide and `rows` long, its
+// top row pinned round the body's back, `pins.r` out from its centre, from `pins.spread`
+// degrees to one side of straight back to as far to the other. At rest each column hangs
+// `segment` a row, the middle one straight back and those out to the sides fanning up to
+// `fan` degrees off it. The points move freely (Verlet: each keeps going as it was, losing
+// `drag` of its speed a step) and are held together by sticks (down, across and corner to
+// corner) that stop it stretching past their rest lengths but let it bunch up, easing back
+// out only `bunch` as hard, the corner to corner ones taking back just `shear` of what they
+// are off by a pass, so it folds and ripples rather than swinging about as one stiff sheet. It trails behind as the body
+// moves and swings round as it turns (its facing eased over `turnEase` seconds, so the AI's
+// little twitches of it don't shake the cloth). Each point is also pulled toward its rest place
+// behind the body by `stiffness` (/s²; root row, hem), so it hangs back rather than
+// floating; stunned, that pull drops to `stunned` of itself and it sags. It flutters: a wave running down it (`lag` radians a row
+// later and `across` a column, `freq` Hz from still to `top` speed) pushes each point
+// sideways by up to `amount` (u/s², more toward the hem, `idle` of that at rest). Points
+// are pushed out of the body (`clear` from its centre), and wherever it has folded over
+// itself, drawn `unfold` of the way back toward rest a step. Drawn a quad at a time, each
+// shaded by how bunched up it is against its rest size (`fold`: from that ratio, darkest,
+// to that, lightest), white with a gold `hem`.
+export const CAPES = {
+  rows: 7, columns: 5, segment: 0.1, pins: { r: 0.4, spread: 68 }, fan: 22, turnEase: 0.06,
+  drag: 0.04, iterations: 4, shear: 0.35, bunch: 0.3, stiffness: [40, 6], stunned: 0.3, clear: 0.47, unfold: 0.06, flipped: 0.15,
+  flutter: { amount: 220, idle: 0.08, freq: [1.2, 3], top: 6, lag: 0.9, across: 0.6 },
+  fold: [0.4, 0.95],
+  color: { light: 0xf6f2e6, shadow: 0x8e887a, outline: 0xfff3c8, glow: 0xffe08a, hem: 0xe0ac2a },
+  line: 0.035, glowLine: 0.14, glowAlpha: 0.25, hem: 0.05,
 };

@@ -400,6 +400,22 @@ const SOUNDS = {
     tone(v, { type: 'square', freq: 200, to: 60, dur: 0.12, vol: 0.1 });
     tone(v, { freq: 95, to: 35, dur: 0.3, vol: 0.45 });
   },
+  // the Corsair
+  rush(v) { // setting off: a rising rush of air and cloth
+    noise(v, { freq: 240, to: 1400, q: 0.8, dur: 0.4, vol: 0.28, attack: 0.06 });
+    tone(v, { type: 'triangle', freq: 140, to: 260, dur: 0.3, vol: 0.08, attack: 0.04 });
+  },
+  swish(v) { // one swing of the rush: a quick, light whip of steel
+    noise(v, { filter: 'highpass', freq: 2200, to: 4800, q: 0.8, dur: 0.08, vol: 0.18, attack: 0.012 });
+    noise(v, { freq: 900, to: 2200, q: 1.2, dur: 0.07, vol: 0.1, attack: 0.01 });
+  },
+  clang(v) { // crashing: steel ringing off stone over a heavy thud
+    tone(v, { freq: 80, to: 28, dur: 0.45, vol: 0.5 });
+    noise(v, { filter: 'lowpass', freq: 1600, to: 100, dur: 0.4, vol: 0.45 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 1800, q: 0.7, dur: 0.06, vol: 0.3, attack: 0.002 });
+    tone(v, { type: 'triangle', freq: 1870, to: 1820, at: 0.01, dur: 0.6, vol: 0.06 });
+    tone(v, { freq: 2950, to: 2900, at: 0.01, dur: 0.45, vol: 0.04 });
+  },
   // the Seraph
   boost(v) { // a jet lighting up for the ram
     noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });

@@ -3,8 +3,9 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, spawnerSprites, MAUL_ART, BLADE_ART, SPADE_ART, lemurTailRest, tailBanded, tailEdges } from './sprites.js';
-import { BLADES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS } from '../data/config.js';
+import { animations, icons, sprites, spawnerSprites, MAUL_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, lemurTailRest, tailBanded, tailEdges } from './sprites.js';
+import { BLADES, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR } from '../data/config.js';
+import { capeRest } from '../enemies/cape.js';
 
 export const tex = {};
 export const anims = {};
@@ -30,7 +31,7 @@ export async function loadAssets() {
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack. A prop's cracks never change its
   // outline, so one serves all its stages.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
   for (const key of Object.keys(PROPS)) tex[`${key}_white`] = toTexture(whiteSilhouette(tex[`${key}_0`].source.resource));
@@ -74,6 +75,7 @@ function enemyPortrait(visual, S = 128) {
   if (visual.rig === 'maul') return maulerPortrait(c, ctx, visual, S);
   if (visual.rig === 'blades') return shadePortrait(c, ctx, visual, S);
   if (visual.rig === 'tail') return lemurPortrait(c, ctx, visual, S);
+  if (visual.rig === 'scimitar') return corsairPortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -141,6 +143,39 @@ function lemurPortrait(c, ctx, visual, S) {
   ctx.drawImage(tex.lemur_spade.source.resource, -SPADE_ART.rootX * u, (-SPADE_ART.h / 2) * u, SPADE_ART.w * u, SPADE_ART.h * u);
   ctx.restore();
   for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
+  return c;
+}
+
+// The Corsair with its cape hanging at rest behind it and its scimitar at its right side:
+// shrunk and shifted forward to fit.
+function corsairPortrait(c, ctx, visual, S) {
+  const u = S / 2.3, cx = S / 2 + 0.25 * u, cy = S / 2 - 0.1 * u, half = (visual.size / 2) * u, C = CAPES.color;
+  const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
+  const cols = CAPES.columns, rows = CAPES.rows + 1, pts = capeRest().map((p) => [cx + p.x * u, cy + p.y * u]);
+  const hem = pts.slice((rows - 1) * cols);
+  const edge = [
+    ...pts.slice(0, cols), ...Array.from({ length: rows - 1 }, (_, i) => pts[(i + 1) * cols + cols - 1]),
+    ...[...hem].reverse().slice(1), ...Array.from({ length: rows - 2 }, (_, i) => pts[(rows - 2 - i) * cols]),
+  ];
+  const cloth = new Path2D();
+  edge.forEach((p, i) => (i ? cloth.lineTo(...p) : cloth.moveTo(...p)));
+  cloth.closePath();
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = CAPES.line * 2 * u;
+  ctx.strokeStyle = hex(C.outline);
+  ctx.stroke(cloth);
+  ctx.fillStyle = hex(C.light);
+  ctx.fill(cloth);
+  ctx.beginPath();
+  hem.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p)));
+  ctx.lineWidth = CAPES.hem * u;
+  ctx.strokeStyle = hex(C.hem);
+  ctx.stroke();
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
+  const { phi, r, rot } = SCIMITAR.poses.idle;
+  ctx.translate(cx + Math.cos(phi) * r * u, cy + Math.sin(phi) * r * u);
+  ctx.rotate(rot);
+  ctx.drawImage(tex.scimitar.source.resource, -SCIMITAR_ART.rootX * u, -SCIMITAR_ART.rootY * u, SCIMITAR_ART.w * u, SCIMITAR_ART.h * u);
   return c;
 }
 

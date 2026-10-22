@@ -189,6 +189,36 @@ export const ABILITIES = {
     muzzles: [{ x: 0.7, y: -0.314 }, { x: 0.6, y: 0 }, { x: 0.7, y: 0.314 }],
     salvos: 3, salvoInterval: 0.55, together: true, regrowTime: 0.3, turnRate: 1.2, recoil: 1,
   },
+  // The Corsair's scimitar, held at one side and carried to the other by every swing;
+  // `blade` says how it moves (SCIMITAR, corsairRig.js).
+  // Slash: drawn back on its side, then swung across the front in `swingTime` as it steps
+  // `stepDistance` in over `stepTime`, leaving it on the other side. The blade is the hitbox
+  // (a charge, parried like one): along it from `bladeHit.reach[0]` to `[1]` from the guard,
+  // `bladeHit.radius` either side (both grown with the blade), at `bladeHit.samples` points of
+  // its sweep each step so it can't pass over the player between steps.
+  CorsairSlash: {
+    type: 'scimitar', tell: 'scimitar', cooldown: 2, range: 3.8, windUpTime: 0.6, lockTime: 0.2, duration: 0.18, recoveryTime: 0.35,
+    damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
+    swingTime: 0.12, stepDistance: 3.1, stepTime: 0.17, parryKnockback: 15,
+    bladeHit: { reach: [0.1, 0.88], radius: 0.18, samples: 4 },
+    strikeSound: 'slash', blade: 'slash',
+  },
+  // Rush: a charge of swinging steps along its locked aim, the blade swung from side to side
+  // with every `stride`, setting off at `startSpeed` of its `speed` and up to full speed
+  // `rampTime` later, until it runs into something (or `duration` runs out). A wall or
+  // another enemy: it crashes and is left reeling. The player: it cuts through them and
+  // carries on `followTime` before skidding to a stop. It would rather close in and swing,
+  // rushing only once the player has kept out of reach a while (`patience`). See RushAbility.
+  CorsairRush: {
+    type: 'rush', tell: 'rush', cooldown: 5, range: 9, windUpTime: 0.8, lockTime: 0.1, duration: 2.2, recoveryTime: 0.8,
+    damageMultiplier: 1.3, parryStunTime: 1.1, ...clearPath({ x: 1.1, y: 1.1 }, 0.35),
+    speed: 24, startSpeed: 0.3, rampTime: 1, stride: 2.3, swingShare: 0.55, surge: 0.55,
+    hitboxRadius: 0.85, hitboxForward: 0.25, hitboxArcDeg: 180,
+    followTime: 0.5, skidEase: 0.1, crashStunTime: 1.5, bounceForce: 10, parryKnockback: 15,
+    patience: { range: 4.5, time: [1.5, 3] },
+    strikeSound: 'rush', swingSound: 'swish', crashSound: 'clang', blade: 'rush',
+    crashShake: { duration: 0.22, strength: 0.3, frequency: 20 },
+  },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),

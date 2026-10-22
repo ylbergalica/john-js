@@ -18,6 +18,7 @@ import { FightMusic } from '../audio/music.js';
 import { setPresence } from '../ui/presence.js';
 import { Tutorial } from './tutorial.js';
 import { profile } from '../meta/profile.js';
+import { settings, assistsOn } from '../meta/settings.js';
 
 const DEV = import.meta.env.DEV;
 
@@ -63,7 +64,7 @@ export class GameScene {
     this.listeners = new AbortController();
     const opts = { signal: this.listeners.signal };
     window.addEventListener('keydown', (e) => this.onKeyDown(e), opts);
-    window.addEventListener('blur', () => this.pause(), opts); // don't die while alt-tabbed
+    window.addEventListener('blur', () => { if (settings.pauseOnBlur) this.pause(); }, opts); // don't die while alt-tabbed
   }
 
   get frozen() { return this.paused || !!this.menu || !!this.tutorial?.holding; }
@@ -74,6 +75,8 @@ export class GameScene {
     if (this.summary) {
       this.summary.update(dt);
     } else if (!this.frozen) {
+      dt *= settings.gameSpeed; // the game speed assist
+      if (assistsOn()) this.session.assisted = true; // played with one on
       if (DEV) dt *= devFlags.gameSpeed;
       const held = Math.min(dt, world.hitstop); // a heavy blow holds the world still a moment
       world.hitstop -= held;

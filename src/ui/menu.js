@@ -1,16 +1,21 @@
 // Main menu: start a run or the playground, manage the aspect loadout, buy tier
-// boxes (confirm, then break them open), reveal unlocks, and show hover tooltips. Esc
-// backs out of open panels.
+// boxes (confirm, then break them open), reveal unlocks, open the settings and the credits,
+// and show tooltips. The panels open over the sky with the main menu stepped aside, in the
+// look of the settings. Esc backs out of open panels.
 import { h } from './dom.js';
-import { TIERS, HUD, MAX_EQUIPPED_ASPECTS } from '../data/config.js';
+import { TIERS, MAX_EQUIPPED_ASPECTS, DEMO } from '../data/config.js';
 import { iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
-import { coinIcon, keycap, easeOut, replay, mistFx } from './common.js';
+import { coinIcon, easeOut, replay, mistFx, assistBadge, backCorner, logo } from './common.js';
 import { sky } from './sky.js';
 import { BoxBreak } from './boxBreak.js';
+import { SettingsPanel } from './settings.js';
+import { CreditsPanel } from './credits.js';
+import { AspectTooltip, setTier } from './tooltip.js';
+import { onSettingsChange, assistsOn } from '../meta/settings.js';
+import { version } from '../../package.json';
 
-const tierOf = (a) => TIERS.find((t) => t.tier === a.tier);
 const COIN_COUNT_TIME = 0.6; // seconds the coin counter takes to roll to a new balance
 const TOAST_TIME = 2.6;
 const REVEAL_ICON_AT = 0.15; // seconds into an unlock that its icon pops in (matches .reveal-icon)
@@ -19,12 +24,6 @@ const REVEAL_STEP = 2; // seconds between the name, the quote and the descriptio
 const REVEAL_GUARD = 2; // seconds after the description before a key or click can dismiss an unlock
 const BREAKER_LINGER = 0.4; // seconds the broken box stays under the unlock card as it fades in
 const DRAG_START = 6; // pixels the pointer moves before a press on an aspect becomes a drag
-const CONTROLS = [
-  ['WASD', 'Move'], ['Mouse', 'Aim'], ['LMB', 'Attack'], ['RMB', 'Parry'], ['Shift', 'Dash'],
-  ['X', 'Exalted'], ['1 2 3', 'Aspects'], ['Esc', 'Pause'], ['M', 'Mute'],
-];
-
-const setTier = (el, a) => { el.style.setProperty('--tier', a ? tierOf(a).color : null); return el; };
 const discounted = (tier) => profile.priceForTier(tier) < profile.fullPriceForTier(tier);
 // A box's price; a discount strikes out the full price before it.
 const priceTag = (tier) => [
@@ -41,6 +40,9 @@ export class MenuScene {
     this.coinTween = null;
     this.toast = h('div', { class: 'toast hidden' });
     this.revealListeners = null;
+    this.tips = new AspectTooltip({ held: () => !!this.drag?.ghost });
+    // A glowing word, a star either side when it's hovered or focused (see .word-button).
+    const word = (text, onclick, primary = false) => h('button', { class: `word-button${primary ? ' primary' : ''}`, text, onclick });
 
     // Staggered entrance: each piece rises in a beat after the one before.
     let beat = 0;
@@ -51,20 +53,21 @@ export class MenuScene {
       return h('div', { class: 'coin-pill' }, coinIcon(), value);
     };
 
-    // The loadout on the main menu is a glance only: hover for details.
+    // The loadout on the main menu: hover for details, click to open the aspects.
     this.loadoutSlots = Array.from({ length: MAX_EQUIPPED_ASPECTS }, (_, i) => {
-      const el = h('div', { class: 'loadout-slot' });
-      this.attachTooltip(el, () => profile.loadout()[i]);
+      const el = h('button', { class: 'loadout-slot', onclick: () => this.openAspects() });
+      this.tips.attach(el, () => profile.loadout()[i]);
       return el;
     });
     const main = h('div', { class: 'menu interactive' },
-      h('h1', { class: 'menu-title title-in', text: 'Starspite' }),
+      logo('menu-title title-in'),
       h('div', { class: 'rule menu-rule' }, '✦'),
       h('div', { class: 'main-buttons' },
-        rise(h('button', { class: 'primary', text: 'Start Run', onclick: onStartRun })),
-        profile.tutorialDone ? rise(h('button', { text: 'Playground', onclick: onPlayground })) : null, // once the tutorial is done
-        rise(h('button', { text: 'Aspects', onclick: () => this.openAspects() })),
-        window.desktop ? rise(h('button', { text: 'Quit', onclick: () => window.desktop.quit() })) : null,
+        rise(word('Start Run', onStartRun, true)),
+        profile.tutorialDone ? rise(word('Playground', onPlayground)) : null, // once the tutorial is done
+        rise(word('Aspects', () => this.openAspects())),
+        rise(word('Settings', () => this.settings.open())),
+        window.desktop ? rise(word('Quit', () => window.desktop.quit())) : null,
       ),
       rise(h('div', { class: 'loadout' },
         h('div', { class: 'loadout-slots' }, this.loadoutSlots),
@@ -78,24 +81,21 @@ export class MenuScene {
     // or from a slot back to the collection to unequip.
     this.slotButtons = Array.from({ length: MAX_EQUIPPED_ASPECTS }, (_, i) => {
       const b = h('button', { class: `slot s${i}`, onclick: () => this.clicked() && this.unequipSlot(i) });
-      this.attachTooltip(b, () => profile.loadout()[i]);
+      this.tips.attach(b, () => profile.loadout()[i]);
       this.draggable(b, () => profile.loadout()[i], true);
       return b;
     });
     this.list = h('div', { class: 'aspect-list' });
-    this.collectionSide = h('section', { class: 'collection-side' }, h('div', { class: 'eyebrow', text: 'Collection' }), this.list);
+    this.collectionSide = h('section', { class: 'collection-side' }, h('div', { class: 'rule panel-heading', text: 'Collection' }), this.list);
     this.drag = null;
     this.aspectsPanel = h('div', { class: 'panel interactive hidden' },
       h('div', { class: 'panel-card aspects-card' },
-        h('header', { class: 'panel-head' }, h('h2', { text: 'Aspects' })),
+        h('h2', { class: 'panel-title title-in', text: 'Aspects' }),
         h('div', { class: 'aspects-body' },
-          h('section', { class: 'loadout-side' }, h('div', { class: 'eyebrow', text: 'Loadout' }), h('div', { class: 'slots' }, this.slotButtons)),
+          h('section', { class: 'loadout-side' }, h('div', { class: 'rule panel-heading', text: 'Loadout' }), h('div', { class: 'slots' }, this.slotButtons)),
           this.collectionSide,
         ),
-        h('div', { class: 'panel-actions' },
-          h('button', { class: 'primary', text: 'Request Aspect', onclick: () => this.openShop() }),
-          h('button', { text: 'Back', onclick: () => this.closeAspects() }),
-        ),
+        h('div', { class: 'panel-actions' }, word('Request Aspect', () => this.openShop(), true)),
       ),
     );
 
@@ -118,30 +118,40 @@ export class MenuScene {
     });
     this.shopPanel = h('div', { class: 'panel shop interactive hidden' },
       h('div', { class: 'panel-card' },
-        h('header', { class: 'panel-head' },
-          h('div', {}, h('div', { class: 'eyebrow', text: 'Unlock a random aspect' }), h('h2', { text: 'Request' })),
-        ),
+        h('h2', { class: 'panel-title title-in', text: 'Request' }),
+        h('div', { class: 'rule panel-heading', text: 'Unlock a random aspect' }),
         h('div', { class: 'boxes' }, this.boxes.map((b) => b.button)),
         coinPill(),
-        h('div', { class: 'panel-actions' }, h('button', { text: 'Back', onclick: () => this.closeShop() })),
       ),
     );
+    // Back out of the request panel, or else the aspects one. Kept outside both, which scroll.
+    this.back = backCorner(() => (this.shopPanel.classList.contains('hidden') ? this.closeAspects() : this.closeShop()));
+    this.back.classList.add('menu-back', 'hidden');
 
     // Asked before a box is bought; a click outside the card cancels.
     this.confirmPanel = h('div', { class: 'confirm interactive hidden', onclick: (e) => e.target === this.confirmPanel && this.closeConfirm() });
     this.breaker = null;
     this.revealPanel = h('div', { class: 'reveal interactive hidden' });
-    this.tooltip = h('div', { class: 'tooltip hidden' });
 
-    const hint = h('div', { class: 'hint' },
-      CONTROLS.map(([key, action]) => h('span', {}, keycap(key), action)),
+    // Along the bottom: the dev builds' hotkeys, and the credits and the version at the right.
+    const hint = rise(h('div', { class: 'hint' },
       import.meta.env.DEV ? h('div', { class: 'hint-dev', text: 'Dev: ` tools · H heal · R refresh aspects · G noclip' }) : null,
-    );
-    rise(hint);
+      h('div', { class: 'menu-foot' },
+        h('button', { class: 'foot-link', text: 'Credits', onclick: () => this.credits.open() }),
+        h('span', { class: 'foot-version', text: `v${version}${DEMO ? ' demo' : ''}` }),
+      ),
+    ));
+    // The assists' mark in the corner, over every panel, while one is on.
+    const assistMark = assistBadge('menu-assist', null, 'Assists on');
+    const showAssist = () => assistMark.classList.toggle('hidden', !assistsOn());
+    showAssist();
+    this.offSettings = onSettingsChange(showAssist);
 
     this.el = h('div', { class: 'menu-screen' },
-      sky(), main, hint, this.aspectsPanel, this.shopPanel, this.confirmPanel, this.revealPanel, this.toast, this.tooltip,
+      sky(), main, hint, this.aspectsPanel, this.shopPanel, this.confirmPanel, this.back, this.revealPanel, this.toast, this.tips.el, assistMark,
     );
+    this.settings = new SettingsPanel(this.el);
+    this.credits = new CreditsPanel(this.el);
     root.append(this.el);
 
     this.listeners = new AbortController();
@@ -189,10 +199,38 @@ export class MenuScene {
     sfx.play('click');
   }
 
-  openAspects() { this.hideTooltip(); this.aspectsPanel.classList.remove('hidden'); this.refresh(); }
-  closeAspects() { this.dragEnd(null); this.aspectsPanel.classList.add('hidden'); this.closeShop(); this.hideTooltip(); }
-  openShop() { this.hideTooltip(); this.shopPanel.classList.remove('hidden'); this.refresh(); }
-  closeShop() { this.shopPanel.classList.add('hidden'); }
+  // The main menu steps aside (panel-open) while the aspects are open, and the aspects while
+  // the request panel is (covered); each title lands again as it opens.
+  openAspects() {
+    this.hideTooltip();
+    this.aspectsPanel.classList.remove('hidden', 'covered');
+    replay(this.aspectsPanel.querySelector('.panel-title'), 'title-in');
+    this.el.classList.add('panel-open');
+    this.back.classList.remove('hidden');
+    this.refresh();
+  }
+
+  closeAspects() {
+    this.dragEnd(null);
+    this.aspectsPanel.classList.add('hidden');
+    this.el.classList.remove('panel-open');
+    this.back.classList.add('hidden');
+    this.closeShop();
+    this.hideTooltip();
+  }
+
+  openShop() {
+    this.hideTooltip();
+    this.shopPanel.classList.remove('hidden');
+    replay(this.shopPanel.querySelector('.panel-title'), 'title-in');
+    this.aspectsPanel.classList.add('covered');
+    this.refresh();
+  }
+
+  closeShop() {
+    this.shopPanel.classList.add('hidden');
+    this.aspectsPanel.classList.remove('covered');
+  }
 
   openConfirm(tier) {
     const t = TIERS.find((x) => x.tier === tier);
@@ -285,7 +323,7 @@ export class MenuScene {
         h('img', { src: iconUrls[a.icon], alt: a.displayName }),
         equipped ? h('span', { class: 'tile-check', text: '✓' }) : null,
       );
-      this.attachTooltip(tile, () => a);
+      this.tips.attach(tile, () => a);
       this.draggable(tile, () => a, false);
       return setTier(tile, a);
     }));
@@ -395,44 +433,13 @@ export class MenuScene {
 
   clicked() { return !this.justDragged; }
 
-  // Tooltip after a short hover, kept on screen.
-  attachTooltip(el, getData) {
-    el.addEventListener('mouseenter', () => {
-      this.hideTooltip();
-      if (this.drag?.ghost) return;
-      const data = getData();
-      if (data) this.tooltipTimer = setTimeout(() => this.showTooltip(data, el), HUD.tooltipHoverDelay * 1000);
-    });
-    el.addEventListener('mouseleave', () => this.hideTooltip());
-  }
-
-  showTooltip(a, anchor) {
-    const t = this.tooltip;
-    t.replaceChildren(...[
-      h('div', { class: 't-head' },
-        h('img', { class: 't-icon', src: iconUrls[a.icon], alt: '' }),
-        h('div', { class: 't-name', text: a.displayName }),
-      ),
-      a.quote && h('div', { class: 't-quote', text: `"${a.quote}"` }),
-      a.description && h('div', { class: 't-desc', text: a.description }),
-    ].filter(Boolean));
-    setTier(t, a).classList.remove('hidden');
-    const r = anchor.getBoundingClientRect(), tr = t.getBoundingClientRect();
-    const pad = 12, gap = 12;
-    const x = Math.min(Math.max(r.left + r.width / 2 - tr.width / 2, pad), innerWidth - pad - tr.width);
-    let y = r.top - gap - tr.height;
-    if (y < pad) y = r.bottom + gap;
-    t.style.left = `${x}px`;
-    t.style.top = `${Math.min(Math.max(y, pad), innerHeight - pad - tr.height)}px`;
-  }
-
-  hideTooltip() {
-    clearTimeout(this.tooltipTimer);
-    this.tooltip.classList.add('hidden');
-  }
+  hideTooltip() { this.tips.hide(); }
 
   destroy() {
     this.listeners.abort();
+    this.offSettings();
+    this.settings.destroy();
+    this.credits.destroy();
     this.revealListeners?.abort();
     this.breaker?.destroy();
     clearTimeout(this.toastTimer);

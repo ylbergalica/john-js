@@ -12,6 +12,7 @@ import { AspectController } from '../aspects/controller.js';
 import { devFlags } from '../game/devFlags.js';
 import { DamageCause } from '../game/damage.js';
 import { Buffs } from './buffs.js';
+import { settings, damageTakenScale } from '../meta/settings.js';
 
 const A = PLAYER.attack, P = PLAYER.parry, D = PLAYER.dash, H = PLAYER.health;
 
@@ -283,13 +284,15 @@ export class Player extends Entity {
   }
 
   // ── parry ────────────────────────────────────────────────────────
+  get parryDuration() { return P.parryDuration * settings.parryWindow; }
+
   tryStartParry() {
     const now = this.now, b = this.body;
     if (this.attacking || this.parrying || this.teleporting || now < this.parryReadyAt) return false;
     // No parrying while still inside the attack that hurt the player.
     if (this.hurtBy?.overlapsCircle(b.pos.x, b.pos.y, b.radius)) return false;
     this.parrying = true;
-    this.parryEndsAt = now + P.parryDuration;
+    this.parryEndsAt = now + this.parryDuration;
     this.parrySucceeded = false;
     this.parriedThisWindow.clear();
     this.view.playParry();
@@ -389,7 +392,7 @@ export class Player extends Entity {
       this.invincibleUntil = this.now + H.invincibilityDuration;
       return;
     }
-    const final = devFlags.fullResistance ? 0 : damage * this.world.adrenaline.damageTakenMultiplier;
+    const final = devFlags.fullResistance ? 0 : damage * this.world.adrenaline.damageTakenMultiplier * damageTakenScale();
     this.health -= final;
     if (final > 0) {
       this.onHurt(hitPoint, source);

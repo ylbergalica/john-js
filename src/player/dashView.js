@@ -9,6 +9,7 @@ import { EXALTED_FX, PLAYER } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
+import { settings } from '../meta/settings.js';
 
 const X = PLAYER.dashFx, XE = X.exalted;
 const DIAMETER = 2 * PLAYER.blob.radius * PLAYER.scale; // the body's size in world units at sizeScale 1
@@ -158,6 +159,7 @@ export class DashView {
   // White, or dark red while Exalted: blended normally then, since added light can't be dark
   // and the overlapping rings would build up into a bright red tube.
   afterimage(x, y) {
+    if (!settings.afterimages) return;
     const e = this.stretch, w = this.warmth;
     this.ring(this.under, {
       x, y, follow: false, life: X.afterimageLife, from: 1, to: 1 - X.afterimageShrink,

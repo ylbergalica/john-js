@@ -1,13 +1,18 @@
 // Cosmetic effects: pooled cone bursts of glowing sparks in one ParticleContainer, one-shot
 // sprite animations, the frame-animation helper used by sprites elsewhere, and Plume, a
 // pool of soft drifting particles for smoke and fire, and Strand, a textured strip bent
-// along a path.
+// along a path. Bursts and plumes spawn only the share of their particles the particles setting
+// allows.
 import { MeshSimple, Particle, ParticleContainer, Sprite } from 'pixi.js';
 import { lerp, randRange, lerpColor } from '../engine/math.js';
 import { FX } from '../data/config.js';
 import { tex } from './assets.js';
+import { settings } from '../meta/settings.js';
 
 const SPARK_DRAG = 4; // per second: sparks shoot out and slow down
+
+// `n` particles thinned to the particles setting, rounded at random so few still average out.
+export const thinned = (n) => (settings.particles >= 1 ? n : Math.floor(n * settings.particles + Math.random()));
 
 // Steps a sprite through `frames` at `fps`; loops or holds the last frame.
 export class FrameAnim {
@@ -59,7 +64,7 @@ export class Effects {
   // Cone burst of fading sparks, each pointing along its flight. opts: { count, speed, lifetime, size, coneDeg, color }
   burst(x, y, angle, opts) {
     const cone = (opts.coneDeg * Math.PI) / 180;
-    for (let i = 0; i < opts.count; i++) {
+    for (let i = thinned(opts.count); i > 0; i--) {
       const a = angle + randRange(-cone, cone);
       const speed = opts.speed * randRange(0.5, 1);
       const p = this.pool.pop() ?? new Particle({ texture: this.spark, anchorX: 0.5, anchorY: 0.5 });
@@ -161,6 +166,7 @@ export class Plume {
   get count() { return this.live.length; }
 
   spawn(o) {
+    if (settings.particles < 1 && Math.random() >= settings.particles) return;
     const p = this.pool.pop() ?? new Particle({ texture: this.texture, anchorX: 0.5, anchorY: 0.5 });
     p.x = o.x; p.y = o.y;
     p.vx = o.vx ?? 0; p.vy = o.vy ?? 0;

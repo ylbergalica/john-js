@@ -4,6 +4,7 @@
 import { Particle, ParticleContainer } from 'pixi.js';
 import { randRange, TAU } from '../engine/math.js';
 import { tex } from './assets.js';
+import { thinned } from './fx.js';
 
 const DRAG = 5; // per second: they skid to a stop
 const BOUNCE = 0.45; // fraction of its speed a shard keeps glancing off a wall
@@ -29,7 +30,7 @@ export class Debris {
   // opts: { count, speed: [min, max], size: [min, max] (length), spin (rad/s, at most),
   // life: [min, max], colors, spread = 0 }
   burst(x, y, angle, cone, { count, speed, size, spin, life, colors, spread = 0 }) {
-    for (let i = 0; i < count; i++) {
+    for (let i = thinned(count); i > 0; i--) {
       const a = angle + randRange(-cone, cone), v = randRange(...speed), len = randRange(...size);
       const p = this.pool.pop() ?? new Particle({ texture: this.texture, anchorX: 0.5, anchorY: 0.5 });
       const out = Math.random() * spread;

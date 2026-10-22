@@ -12,9 +12,10 @@
 import { TUTORIAL as T } from '../data/config.js';
 import { AIState } from '../enemies/ai.js';
 import { h } from '../ui/dom.js';
-import { keycap } from '../ui/common.js';
+import { keycap, mouseIcon } from '../ui/common.js';
 import { sfx } from '../audio/sfx.js';
 import { profile } from '../meta/profile.js';
+import { settings, keyLabel } from '../meta/settings.js';
 
 const CAPTIONS = {
   guardian: "The Guardian of the floor hunts you down",
@@ -24,19 +25,20 @@ const CAPTIONS = {
 const SCREENS = ['guardian', 'run', 'controls', 'essence', 'parry', 'card', 'exalted'];
 const TIP_GAP = 14; // px between the player's top right and the tips
 
-// A mouse, its left or right button lit.
-function mouse(side) {
-  const el = h('span', { class: 'tut-mouse' });
-  const button = side === 'left' ? 'M8 1A7 7 0 0 0 1 8V9H8Z' : 'M8 1A7 7 0 0 1 15 8V9H8Z';
-  el.innerHTML = `<svg viewBox="0 0 16 22" fill="none" stroke="currentColor" stroke-width="1.4"><path d="${button}" fill="currentColor" stroke="none"/><rect x="1" y="1" width="14" height="20" rx="7"/><path d="M1 9H15M8 1V9"/></svg>`;
-  return el;
+const mouse = (side) => mouseIcon(side, 'tut-mouse');
+
+// What to press for an action: the mouse with its button lit for the left and right buttons,
+// otherwise its keycap.
+function control(action) {
+  const code = settings.bindings[action];
+  return code === 'Mouse0' ? mouse('left') : code === 'Mouse2' ? mouse('right') : keycap(keyLabel(code));
 }
 
 const row = (icon, text) => h('div', { class: 'tut-tip-row' }, h('span', { class: 'tut-tip-icon' }, icon), h('span', { text }));
 const continueHint = () => h('div', { class: 'tut-continue', text: 'Press anything to continue' });
 
 const TIPS = {
-  controls: () => [row(mouse('left'), 'Attack'), row(mouse('right'), 'Parry'), row(keycap('Shift'), 'Dash')],
+  controls: () => [row(control('attack'), 'Attack'), row(control('parry'), 'Parry'), row(control('dash'), 'Dash')],
   essence: () => [h('div', { class: 'tut-tip-row' }, h('span', { class: 'tut-tip-icon' }, h('span', { class: 'tut-orb' })),
     h('span', {}, 'Collect essence from fallen foes', h('br'), 'to find a way out of the floor'))],
 };
@@ -270,7 +272,7 @@ export class Tutorial {
     this.scene.hud.el.insertBefore(spot, this.tipRoot);
     this.spot = { el: spot, attacker, point: { ...point } };
     this.placeSpot(player.body.pos); // before it's first drawn, so its shadow never covers the lot
-    const parry = mouse('right');
+    const parry = control('parry');
     const el = h('div', { class: 'tut-tip hold parry' },
       h('div', { class: 'tut-tip-lead', text: 'Stand your ground.' }),
       h('div', { class: 'tut-tip-row' }, h('span', { text: 'Any and all danger can be parried.' })),
@@ -282,7 +284,8 @@ export class Tutorial {
       this.dismiss(spot, () => { if (this.spot?.el === spot) this.spot = null; });
       player.parryGuardUntil = Math.max(at, this.world.time) + T.parryGuard;
     };
-    this.holdOn('parry', el, T.holdGuard + T.tipHoldLead, close, (e) => e.type === 'mousedown' && e.button === 2);
+    const pressed = (e) => (e.type === 'mousedown' ? `Mouse${e.button}` : e.code) === settings.bindings.parry;
+    this.holdOn('parry', el, T.holdGuard + T.tipHoldLead, close, pressed);
   }
 
   // The light: a capsule spotRadius wide around the line from the player (at `from`) to
@@ -316,7 +319,7 @@ export class Tutorial {
       el.style.setProperty('--d', `${at(i)}s`);
       return el;
     };
-    const key = keycap('X');
+    const key = keycap(keyLabel(settings.bindings.exalted));
     key.classList.add('tut-key');
     const exalted = h('span', { class: 'tut-exalted', text: 'Exalted' });
     exalted.style.setProperty('--d', `${at(2)}s`);

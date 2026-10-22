@@ -1,5 +1,6 @@
 // In-run HUD: the floor intro, aspect cooldowns and counters, health and adrenaline (bottom left),
-// screen-edge effects (hurt, Exalted), the guardian intro's framing, and the pause menu.
+// screen-edge effects (hurt, Exalted), the guardian intro's framing, and the pause menu (with
+// the loadout, its details on hover, and the settings from it).
 // Reads world state each frame and only touches the DOM on change.
 import { h, DomWriter } from './dom.js';
 import { BUFFS, HUD, GAME } from '../data/config.js';
@@ -7,8 +8,11 @@ import { lerpColor, randRange } from '../engine/math.js';
 import { iconUrls } from '../render/assets.js';
 import { RunMode } from '../game/session.js';
 import { BUFF_KINDS } from '../player/buffs.js';
-import { keycap, replay, mistFx } from './common.js';
+import { keycap, replay, mistFx, assistBadge } from './common.js';
 import { AngerSign } from './angerSign.js';
+import { SettingsPanel } from './settings.js';
+import { AspectTooltip, setTier } from './tooltip.js';
+import { actionLabel, assistsOn } from '../meta/settings.js';
 
 const hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
 const LOW_HEALTH = 0.3; // fraction at which the health bar starts pulsing
@@ -88,19 +92,22 @@ export class Hud {
 
     // Leaving mid-run forfeits the unbanked coins, so Main Menu asks first when there are any.
     this.pauseButtons = h('div', { class: 'pause-buttons' },
-      h('button', { class: 'primary', text: 'Resume', onclick: () => scene.resume() }),
-      h('button', { text: 'Main Menu', onclick: () => this.askQuit() }),
+      h('button', { class: 'word-button primary', text: 'Resume', onclick: () => scene.resume() }),
+      h('button', { class: 'word-button', text: 'Settings', onclick: () => this.settings.open() }),
+      h('button', { class: 'word-button', text: 'Main Menu', onclick: () => this.askQuit() }),
     );
     this.quitConfirm = h('div', { class: 'pause-confirm hidden' },
       h('p', { class: 'pause-confirm-text', text: 'Run coins will be lost.' }),
       h('div', { class: 'pause-buttons' },
-        h('button', { class: 'primary', text: 'Stay', onclick: () => this.showQuitConfirm(false) }),
-        h('button', { text: 'Leave', onclick: () => scene.quitToMenu() }),
+        h('button', { class: 'word-button primary', text: 'Stay', onclick: () => this.showQuitConfirm(false) }),
+        h('button', { class: 'word-button', text: 'Leave', onclick: () => scene.quitToMenu() }),
       ),
     );
     this.pausePanel = h('div', { class: 'pause hidden interactive' },
       h('div', { class: 'pause-card' },
         h('h2', { class: 'pause-title title-in', text: 'Paused' }),
+        this.pauseAssist = assistBadge('pause-assist hidden', 'Assisted'), // this run has been played with assists, or one is on
+        this.pauseLoadout = h('div', { class: 'pause-loadout' }), // filled as it pauses
         this.pauseButtons,
         this.quitConfirm,
       ),
@@ -116,6 +123,9 @@ export class Hud {
       ),
       this.pausePanel,
     );
+    this.settings = new SettingsPanel(this.el);
+    this.tips = new AspectTooltip();
+    this.el.append(this.tips.el);
     root.append(this.el);
 
     this.iconsFor = null;
@@ -131,6 +141,20 @@ export class Hud {
     this.el.classList.toggle('paused', on); // also freezes the floor intro's animation
     this.pausePanel.classList.toggle('hidden', !on);
     this.showQuitConfirm(false);
+    this.tips.hide();
+    if (on) this.showLoadout();
+    else this.settings.close();
+  }
+
+  // The player's aspects, each in its tier's frame with its details on hover (or focus).
+  showLoadout() {
+    const aspects = this.scene.world.player?.aspects.aspects ?? [];
+    this.pauseLoadout.replaceChildren(...aspects.map(({ data }) => {
+      const el = h('button', { class: 'pause-slot', 'aria-label': data.displayName }, h('img', { src: iconUrls[data.icon], alt: '' }));
+      this.tips.attach(el, () => data);
+      return setTier(el, data);
+    }));
+    this.pauseLoadout.classList.toggle('hidden', aspects.length === 0);
   }
 
   askQuit() {
@@ -153,6 +177,7 @@ export class Hud {
     this.updateFloorIntro(world, session);
     this.updateCine(world.intro);
     d.set(this.warpWash, 'opacity', world.whiteout.toFixed(3));
+    d.set(this.pauseAssist, 'hidden', !(this.isRun && (session.assisted || assistsOn())));
 
     const p = world.livePlayer;
     const px = HUD.pixelsPerHealthPoint;
@@ -289,19 +314,21 @@ export class Hud {
       this.iconSlots = aspects.map((aspect) => {
         const overlay = h('div', { class: 'cd' });
         const count = h('span', { class: 'count' });
+        const key = aspect.data.activatable ? keycap('') : null;
         const el = h('div', { class: 'aspect-icon' },
           h('img', { src: iconUrls[aspect.data.icon], alt: aspect.data.displayName }),
           overlay,
           readyFx(),
           count,
-          aspect.data.activatable ? keycap(String(aspect.slot + 1)) : null,
+          key,
         );
-        return { el, overlay, count, counter: null, cooling: false, shown: 0, procs: aspect.procs };
+        return { el, overlay, count, key, action: `slot${aspect.slot + 1}`, counter: null, cooling: false, shown: 0, procs: aspect.procs };
       });
       this.icons.replaceChildren(...this.iconSlots.map((s) => s.el));
     }
     aspects.forEach((aspect, i) => {
       const slot = this.iconSlots[i];
+      if (slot.key) this.dom.set(slot.key, 'text', actionLabel(slot.action)); // rebindable from the pause menu
       const frac = Math.min(1, Math.max(0, aspect.cooldownFraction));
       slot.shown = frac >= slot.shown ? frac : slot.shown + (frac - slot.shown) * ease;
       const pct = Math.round(slot.shown * 200) / 2;
@@ -326,5 +353,9 @@ export class Hud {
     });
   }
 
-  destroy() { this.el.remove(); }
+  destroy() {
+    this.settings.destroy();
+    this.tips.hide();
+    this.el.remove();
+  }
 }

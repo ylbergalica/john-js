@@ -1,17 +1,10 @@
 // Keyboard/mouse state for the simulation. Presses are latched until the next
 // simulation step consumes them, so a tap is never lost on frames where no fixed
 // step runs (high refresh rates) and never seen twice when several steps run.
+// Actions go through the key bindings in settings.
+import { settings } from '../meta/settings.js';
 
-const BINDINGS = {
-  up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'],
-  attack: ['Mouse0'],
-  parry: ['Mouse2'],
-  dash: ['ShiftLeft'],
-  exalted: ['KeyX'],
-  slot1: ['Digit1'], slot2: ['Digit2'], slot3: ['Digit3'],
-};
-
-const PREVENT_DEFAULT = new Set(['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const PREVENT_DEFAULT = new Set(['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'AltLeft', 'AltRight']);
 
 export class Input {
   constructor(canvas) {
@@ -36,14 +29,17 @@ export class Input {
       this.held.add(`Mouse${e.button}`);
       this.pressed.add(`Mouse${e.button}`);
     }, opts);
-    window.addEventListener('mouseup', (e) => this.held.delete(`Mouse${e.button}`), opts);
+    window.addEventListener('mouseup', (e) => {
+      this.held.delete(`Mouse${e.button}`);
+      if (e.button > 2) e.preventDefault(); // the side buttons (bindable) would go back/forward a page
+    }, opts);
     canvas.addEventListener('contextmenu', (e) => e.preventDefault(), opts);
   }
 
-  isHeld(action) { return BINDINGS[action].some((c) => this.held.has(c)); }
-  wasPressed(action) { return BINDINGS[action].some((c) => this.pressed.has(c)); }
+  isHeld(action) { return this.held.has(settings.bindings[action]); }
+  wasPressed(action) { return this.pressed.has(settings.bindings[action]); }
 
-  // Normalised WASD vector (y-down).
+  // Normalised movement vector (y-down).
   moveVector() {
     const x = (this.isHeld('right') ? 1 : 0) - (this.isHeld('left') ? 1 : 0);
     const y = (this.isHeld('down') ? 1 : 0) - (this.isHeld('up') ? 1 : 0);

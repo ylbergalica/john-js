@@ -2,24 +2,41 @@
 // is a short recipe of oscillators and filtered noise, synthesized with Web Audio when
 // played. Browsers start audio suspended, so the context is created/resumed on the
 // first key or mouse press (`sfx.unlock`). Looping beds (`sfx.loop`) run until stopped.
+// Levels come from settings: the master bus feeds effects (and loops) and music.
 
 import { PLAYER_DEATH, PROPS, SPAWNERS } from '../data/config.js';
+import { settings, onSettingsChange } from '../meta/settings.js';
 
-const MUTE_KEY = 'john.muted';
 const MASTER_VOLUME = 0.5;
 const MAX_VOICES = 32;
 const MIN_REPEAT = 0.03; // seconds; the same sound retriggering faster than this is dropped
 const PITCH_JITTER = 0.04; // random ± pitch so repeats don't sound stamped
 const SILENT = 0.0001; // exponential ramps can't reach 0
 
-let ctx = null, master = null, noiseBuffer = null, crackleBuffer = null, gooBuffer = null, driveCurve = null;
+let ctx = null, master = null, effects = null, music = null, noiseBuffer = null, crackleBuffer = null, gooBuffer = null, driveCurve = null;
 let voices = 0;
-let muted = readMuted();
+let background = false; // the window is out of focus
 const lastPlayed = new Map();
 
-function readMuted() {
-  try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; }
+// Sliders feel even when the gain goes as their square.
+const level = (x) => Math.max(0, Math.min(1, x)) ** 2;
+const silenced = () => background && settings.muteInBackground;
+const masterLevel = () => (silenced() ? 0 : MASTER_VOLUME * level(settings.masterVolume));
+
+// Eases the buses to the levels in settings.
+function applyLevels() {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  master.gain.setTargetAtTime(masterLevel(), t, 0.02);
+  effects.gain.setTargetAtTime(level(settings.sfxVolume), t, 0.02);
+  music.gain.setTargetAtTime(level(settings.musicVolume), t, 0.02);
 }
+
+onSettingsChange(applyLevels);
+const setBackground = (on) => { background = on; applyLevels(); };
+window.addEventListener('blur', () => setBackground(true));
+window.addEventListener('focus', () => setBackground(false));
+document.addEventListener('visibilitychange', () => setBackground(document.hidden || !document.hasFocus()));
 
 function ensureContext() {
   if (ctx) return ctx;
@@ -31,8 +48,14 @@ function ensureContext() {
   comp.knee.value = 12;
   comp.ratio.value = 4;
   master = ctx.createGain();
-  master.gain.value = muted ? 0 : MASTER_VOLUME;
+  master.gain.value = masterLevel();
   master.connect(comp).connect(ctx.destination);
+  effects = ctx.createGain();
+  effects.gain.value = level(settings.sfxVolume);
+  effects.connect(master);
+  music = ctx.createGain();
+  music.gain.value = level(settings.musicVolume);
+  music.connect(master);
   noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate); // longer than any one noise layer
   const d = noiseBuffer.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -1137,16 +1160,14 @@ const LOOPS = {
 
 const NO_LOOP = { setLevel() {}, stop() {} };
 
-// The context and master bus, for the fight music (music.js) to play through, so muting
-// silences it too. Null until the first key or mouse press creates them.
+// The context and the music bus, for the fight music (music.js) to play through, so the
+// music level and muting apply to it. Null until the first key or mouse press creates them.
 export function audioBus() {
-  return ctx ? { ctx, master } : null;
+  return ctx ? { ctx, bus: music } : null;
 }
 
 // ── public API ─────────────────────────────────────────────────────
 export const sfx = {
-  get muted() { return muted; },
-
   // Must run inside a user gesture before anything is audible.
   unlock() {
     if (ensureContext()?.state === 'suspended') ctx.resume();
@@ -1154,7 +1175,7 @@ export const sfx = {
 
   // opts: { volume = 1, pan = 0 (-1 left … 1 right), pitch = 1, jitter = PITCH_JITTER }
   play(name, { volume = 1, pan = 0, pitch = 1, jitter = PITCH_JITTER } = {}) {
-    if (muted || !ctx || ctx.state !== 'running' || voices >= MAX_VOICES || volume <= 0) return;
+    if (silenced() || !ctx || ctx.state !== 'running' || voices >= MAX_VOICES || volume <= 0) return;
     const recipe = SOUNDS[name];
     if (!recipe) return;
     const now = ctx.currentTime;
@@ -1166,9 +1187,9 @@ export const sfx = {
     if (pan) {
       const panner = ctx.createStereoPanner();
       panner.pan.value = Math.max(-1, Math.min(1, pan));
-      out.connect(panner).connect(master);
+      out.connect(panner).connect(effects);
     } else {
-      out.connect(master);
+      out.connect(effects);
     }
     const v = { t: now + 0.005, out, pitch: pitch * (1 + (Math.random() * 2 - 1) * jitter), end: 0, last: null };
     recipe(v);
@@ -1177,13 +1198,13 @@ export const sfx = {
   },
 
   // Starts a looping bed and returns { setLevel(0…1), stop(fade seconds) }. Loops sit
-  // outside the voice cap and keep running silently while muted.
+  // outside the voice cap and keep running silently while silenced (in the background).
   loop(name, { volume = 1, fadeIn = 0.6 } = {}) {
     const recipe = LOOPS[name];
     if (!ctx || !recipe) return NO_LOOP;
     const out = ctx.createGain();
     out.gain.value = 0;
-    out.connect(master);
+    out.connect(effects);
     const sources = recipe(out);
     let level = 0, stopped = false;
     const handle = {
@@ -1205,12 +1226,5 @@ export const sfx = {
     };
     handle.setLevel(1, fadeIn / 3);
     return handle;
-  },
-
-  toggleMute() {
-    muted = !muted;
-    try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch { /* storage unavailable */ }
-    if (master) master.gain.setTargetAtTime(muted ? 0 : MASTER_VOLUME, ctx.currentTime, 0.02);
-    return muted;
   },
 };

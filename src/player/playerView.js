@@ -111,7 +111,7 @@ export class PlayerView {
     this.parryFade = null;
     this.parryAnim.sprite.alpha = 1;
     this.parryAnim.sprite.visible = true;
-    this.parryAnim.play(P.clipLength / (P.parryDuration + P.fadeTime)); // still sweeping as it fades
+    this.parryAnim.play(P.clipLength / (this.player.parryDuration + P.fadeTime)); // still sweeping as it fades
   }
 
   hideParry() {

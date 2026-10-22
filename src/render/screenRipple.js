@@ -1,10 +1,12 @@
 // Full-screen shockwave, for entering the Exalted state and for a guardian's death: a
 // refracting ring races out from a world point, splitting colour along its crest, with a
 // fainter echo ring behind it and a wash (dark red for Exalted) over everything it has
-// passed. The filter is attached to the world only while a ripple plays (see World.render).
+// passed. The filter is attached to the world only while a ripple plays (see World.render);
+// with the shockwaves setting off, none plays.
 import { Filter, GlProgram, defaultFilterVert } from 'pixi.js';
 import { EXALTED_FX } from '../data/config.js';
 import { clamp01 } from '../engine/math.js';
+import { settings } from '../meta/settings.js';
 
 // The Exalted look; play() takes another: { duration, strength, width, tint: [r, g, b], grade: [r, g, b] }.
 const EXALTED = EXALTED_FX.ripple;
@@ -79,6 +81,7 @@ export class ScreenRipple {
   }
 
   play(pos, look = EXALTED) {
+    if (!settings.shockwaves) return;
     this.look = look;
     this.uniforms.uTint.set(look.tint);
     this.uniforms.uGrade.set(look.grade);

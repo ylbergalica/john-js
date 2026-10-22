@@ -92,10 +92,12 @@ export const profile = {
     save.write();
   },
 
-  // Runs ended in death.
+  // Runs ended in death, and how many of them were played with assists.
   get runsFinished() { return save.data.runsFinished; },
-  recordRunFinished() {
+  get assistedRuns() { return save.data.assistedRuns; },
+  recordRunFinished(assisted) {
     save.data.runsFinished++;
+    if (assisted) save.data.assistedRuns++;
     save.write();
   },
   // Until a run has shown every tutorial screen, every run teaches the game (Tutorial).

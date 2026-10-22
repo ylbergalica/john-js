@@ -1,6 +1,6 @@
 // End-of-run screen. Panels for the run itself (floor, time, Exalted, aspect stats),
 // slain enemies, slain guardians (and spawners broken) and achievements, then the total
-// coins earned.
+// coins earned. A run played with assists is marked under the title.
 // Everything is revealed step by step with counting numbers; any key or click skips
 // to the end. Tiles wrap, so long runs with many enemy types stay compact. An epilogue
 // (the first run's last word, Tutorial) rises in under the coins once it's all played out.
@@ -9,7 +9,7 @@ import { ENEMY_TYPES, TUTORIAL } from '../data/config.js';
 import { enemyIconUrls, iconUrls, propIconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
-import { coinIcon, easeOut, formatTime } from './common.js';
+import { coinIcon, easeOut, formatTime, assistBadge } from './common.js';
 
 const SKIP_GUARD = 0.5; // seconds before input can skip, so a key held while dying doesn't
 const TICK_INTERVAL = 0.05; // fastest a counter ticks, seconds
@@ -52,6 +52,7 @@ export class RunSummary {
     this.el = h('div', { class: 'run-summary interactive' },
       h('div', { class: 'rs-card' },
         this.title,
+        session.assisted ? assistBadge('rs-assist', 'Assisted run') : null,
         h('div', { class: 'rs-grid' }, run.el, enemies.el, guardians.el, achievements.el),
         coins,
         epilogue ? h('p', { class: 'rs-epilogue', text: epilogue, style: `--d: ${TUTORIAL.epilogueDelay}s` }) : null,

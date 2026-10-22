@@ -340,7 +340,7 @@ kbd {
 .pause { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 20px; text-shadow: none; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.88)); backdrop-filter: blur(4px); animation: fade 0.2s ease-out both; }
 .pause-card { display: flex; flex-direction: column; align-items: center; gap: 28px; }
 .pause-title { margin: 0; font-size: 52px; font-weight: normal; text-transform: uppercase; --ls: 14px; letter-spacing: 14px; padding-left: 14px; --ls-from: 30px; --glow: rgba(255, 255, 255, 0.7); --glow-soft: rgba(255, 255, 255, 0.18); animation-duration: 0.6s; }
-.pause-buttons { display: flex; flex-direction: column; gap: 10px; width: 240px; animation: rise 0.4s var(--ease) 0.12s both; }
+.pause-buttons { display: flex; flex-direction: column; gap: 2px; width: 240px; animation: rise 0.4s var(--ease) 0.12s both; }
 .pause-confirm { display: flex; flex-direction: column; align-items: center; gap: 18px; animation: rise 0.3s var(--ease) both; }
 .pause-confirm-text { margin: 0; max-width: 320px; text-align: center; font-size: 18px; line-height: 1.4; color: rgba(255, 255, 255, 0.85); }
 .pause-confirm .pause-buttons { animation: none; }
@@ -405,38 +405,65 @@ kbd {
 @keyframes twinkle { from { opacity: 0.55; } to { opacity: 1; } }
 
 .menu { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 40px; }
-.menu-title { margin: 0; font-size: 92px; font-weight: normal; text-transform: uppercase; --ls: 26px; letter-spacing: 26px; padding-left: 26px; --ls-from: 60px; --glow: rgba(159, 180, 255, 0.95); --glow-soft: rgba(159, 180, 255, 0.35); --title-color: #f2f4ff; animation-duration: 1.2s; animation-delay: 0.1s; }
+.menu-title { margin: 0; font-size: 86px; text-transform: uppercase; --ls: 20px; letter-spacing: 20px; padding-left: 20px; --ls-from: 56px; --glow: rgba(159, 180, 255, 0.95); --glow-soft: rgba(159, 180, 255, 0.35); --title-color: #f2f4ff; animation-duration: 1.2s; animation-delay: 0.1s; }
+/* The logo (logo() in common.js), in Cinzel: STAR in cool starlight, SPITE smouldering red with
+   embers rising off it, and every few seconds a sweep of light across the word (a copy of the
+   text, clear but for the band of light). */
+.logo { position: relative; font-family: 'Cinzel', var(--font); font-weight: 600; line-height: 1.15; }
+.logo-star { color: #eef2ff; text-shadow: 0 0 18px rgba(159, 180, 255, 0.75), 0 0 48px rgba(159, 180, 255, 0.3); }
+.logo-spite { position: relative; color: #ff4632; text-shadow: 0 0 16px rgba(230, 30, 20, 0.85), 0 0 46px rgba(170, 0, 0, 0.55); animation: smoulder 3.4s ease-in-out infinite; }
+@keyframes smoulder { 50% { color: #ff6a48; text-shadow: 0 0 22px rgba(255, 60, 30, 0.95), 0 0 62px rgba(200, 0, 0, 0.65); } }
+.logo-embers { inset: -20% -4% 20% 0; --tier: #ff3a1a; --rise: -70px; --ember-rise: -110px; --peak: 0.45; }
+.logo-embers .ember { box-shadow: 0 0 6px #ff3a1a; }
+.logo::after { content: attr(data-text); position: absolute; inset: 0; padding-left: inherit; pointer-events: none; color: transparent; text-shadow: none; background: linear-gradient(105deg, transparent 44%, rgba(255, 255, 255, 0.9) 50%, transparent 56%) 150% 0 / 300% 100% no-repeat; -webkit-background-clip: text; background-clip: text; animation: logo-sweep 8s ease-in-out 2.6s infinite; }
+@keyframes logo-sweep { 0% { background-position: 150% 0; } 22%, 100% { background-position: -50% 0; } }
+.reduce-flashing .logo::after { display: none; }
 .menu-rule { width: 300px; margin: 10px 0 40px; animation: fade 0.8s ease-out 0.5s both; }
 .menu-rule::before, .menu-rule::after { animation: grow 1s var(--ease) 0.5s both; }
 .menu-rule::before { transform-origin: right; }
 .menu-rule::after { transform-origin: left; }
-.main-buttons { display: flex; flex-direction: column; gap: 12px; width: 260px; }
-.main-buttons button { font-size: 16px; padding: 13px 0; }
+.main-buttons { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* A glowing word for a button: brightening, with a star either side, when hovered or focused. */
+.word-button { position: relative; padding: 11px 40px 11px 46px; font-size: 15px; letter-spacing: 6px; color: #a9b0cf; background: none; border: none; border-radius: 0; text-shadow: 0 0 6px #000, 0 1px 2px #000; transition: color 0.15s, text-shadow 0.2s, letter-spacing 0.3s var(--ease); }
+.word-button::before, .word-button::after { content: '✦'; position: absolute; top: 50%; font-size: 10px; letter-spacing: 0; color: var(--astral); text-shadow: 0 0 8px var(--astral); opacity: 0; transition: opacity 0.2s, transform 0.35s var(--spring); }
+.word-button::before { left: 14px; transform: translate(10px, -50%) scale(0.3) rotate(-90deg); }
+.word-button::after { right: 14px; transform: translate(-10px, -50%) scale(0.3) rotate(90deg); }
+.word-button:hover:not(:disabled), .word-button:focus-visible { background: radial-gradient(ellipse 50% 70% at 50% 50%, rgba(159, 180, 255, 0.12), transparent 75%); color: #fff; box-shadow: none; text-shadow: 0 0 12px rgba(159, 180, 255, 0.85), 0 0 2px #fff; outline: none; }
+.word-button:hover:not(:disabled)::before, .word-button:focus-visible::before, .word-button:hover:not(:disabled)::after, .word-button:focus-visible::after { opacity: 1; transform: translate(0, -50%) scale(1) rotate(0); }
+.word-button:active:not(:disabled) { transform: scale(0.96); }
+.word-button.primary { font-size: 19px; letter-spacing: 8px; padding-left: 48px; color: #f2f4ff; background: none; border: none; text-shadow: 0 0 14px rgba(159, 180, 255, 0.55), 0 0 6px #000; }
 .loadout { margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .loadout-slots { display: flex; gap: 10px; }
-.loadout-slot { width: 52px; height: 52px; overflow: hidden; background: rgba(255, 255, 255, 0.02); border: 1px solid color-mix(in srgb, var(--tier, #fff) 55%, transparent); border-radius: 6px; box-shadow: 0 0 12px color-mix(in srgb, var(--tier, #fff) 20%, transparent); transition: background 0.1s, border-color 0.1s, box-shadow 0.2s; }
+.loadout-slot { width: 52px; height: 52px; padding: 0; overflow: hidden; background: rgba(255, 255, 255, 0.02); border: 1px solid color-mix(in srgb, var(--tier, #fff) 55%, transparent); border-radius: 6px; box-shadow: 0 0 12px color-mix(in srgb, var(--tier, #fff) 20%, transparent); transition: background 0.1s, border-color 0.1s, box-shadow 0.2s; }
 .loadout-slot img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .loadout-slot.empty { border: 1px dashed rgba(255, 255, 255, 0.2); box-shadow: none; background: none; }
-.loadout-slot:hover:not(.empty) { background: rgba(255, 255, 255, 0.08); border-color: var(--tier, #fff); box-shadow: 0 0 18px color-mix(in srgb, var(--tier, #fff) 45%, transparent); }
+.loadout-slot:hover:not(:disabled), .loadout-slot:focus-visible { background: rgba(255, 255, 255, 0.08); border-color: var(--tier, #fff); box-shadow: 0 0 18px color-mix(in srgb, var(--tier, #fff) 45%, transparent); outline: none; }
+.loadout-slot.empty:hover:not(:disabled), .loadout-slot.empty:focus-visible { background: rgba(159, 180, 255, 0.06); border: 1px dashed rgba(159, 180, 255, 0.6); box-shadow: none; }
 
 .coin-pill { align-self: center; display: flex; align-items: center; padding: 7px 18px 7px 14px; font-size: 20px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 209, 64, 0.28); box-shadow: 0 0 18px rgba(255, 209, 64, 0.08); }
 .menu > .coin-pill { margin-top: 40px; }
 .shop .coin-pill { margin-top: 10px; }
-.hint { position: fixed; bottom: 18px; left: 0; right: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; padding: 0 16px; font-size: 12px; color: var(--dim); }
-.hint > span { display: inline-flex; align-items: center; gap: 6px; }
-.hint kbd { color: #999; border-color: rgba(255, 255, 255, 0.14); }
-.hint-dev { flex-basis: 100%; text-align: center; font-size: 11px; color: #3c3c3c; }
+.hint { position: fixed; bottom: 16px; left: 0; right: 0; pointer-events: none; }
+.hint-dev { text-align: center; font-size: 11px; color: #3c3c3c; }
+/* The credits and the version, faint at the bottom right. */
+.menu-foot { position: fixed; right: 22px; bottom: 16px; display: flex; align-items: center; gap: 14px; }
+.foot-link { padding: 4px 2px; font-size: 11px; letter-spacing: 3px; color: #6f7694; background: none; border: none; text-shadow: inherit; }
+.foot-link:hover:not(:disabled), .foot-link:focus-visible { background: none; box-shadow: none; color: #fff; text-shadow: 0 0 10px rgba(159, 180, 255, 0.6); outline: none; }
+.foot-version { font-size: 11px; letter-spacing: 1px; color: #464b63; font-variant-numeric: tabular-nums; }
 .toast { position: fixed; left: 50%; bottom: 80px; z-index: 6; transform: translateX(-50%); padding: 9px 18px; font-size: 14px; letter-spacing: 1px; color: #ffd6d6; background: rgba(40, 6, 6, 0.92); border: 1px solid rgba(255, 138, 138, 0.45); border-radius: 6px; }
 .toast.show { animation: toast 2.6s ease both; }
 @keyframes toast { 0% { opacity: 0; translate: 0 8px; } 8%, 85% { opacity: 1; translate: 0 0; } 100% { opacity: 0; } }
 
-.panel { position: fixed; inset: 0; z-index: 2; display: flex; justify-content: center; padding: 72px 20px 40px; overflow-y: auto; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.97) 70%); backdrop-filter: blur(4px); animation: fade 0.2s ease-out both; }
-.panel.shop { background: rgba(0, 0, 0, 0.97); } /* opens over the aspects panel */
-.panel-card { width: min(860px, 100%); margin: auto 0; display: flex; flex-direction: column; gap: 14px; animation: rise 0.35s var(--ease) both; }
-.panel-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-.panel-head h2 { margin: 4px 0 0; font-size: 40px; font-weight: normal; text-transform: uppercase; letter-spacing: 8px; }
-.panel-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 14px; }
-.panel-actions button { width: 220px; }
+/* Aspects and request panels: over the sky, in the look of the settings, with the main menu
+   stepped aside (panel-open) and the aspects stepped aside under the request panel (covered). */
+.panel { position: fixed; inset: 0; z-index: 2; display: flex; justify-content: center; padding: 40px 20px 32px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(159, 180, 255, 0.3) transparent; text-shadow: 0 0 6px #000, 0 1px 2px #000; background: radial-gradient(ellipse 52% 62% at 50% 50%, rgba(3, 4, 16, 0.7), rgba(3, 4, 16, 0.32) 70%, transparent 100%); animation: fade 0.3s ease-out both; }
+.panel-card { width: min(860px, 100%); margin: auto 0; display: flex; flex-direction: column; gap: 14px; animation: rise 0.4s var(--ease) both; transition: opacity 0.35s var(--ease), filter 0.35s var(--ease), transform 0.35s var(--ease); }
+.panel.covered { background: none; }
+.panel.covered .panel-card { opacity: 0; filter: blur(8px); transform: scale(0.97); pointer-events: none; }
+.menu-screen.panel-open > .menu, .menu-screen.panel-open > .hint { opacity: 0; filter: blur(8px); transform: scale(0.97); pointer-events: none; }
+.panel-title { margin: 0 0 6px; text-align: center; font-size: 42px; font-weight: normal; text-transform: uppercase; --ls: 14px; letter-spacing: 14px; padding-left: 14px; --ls-from: 34px; --glow: rgba(159, 180, 255, 0.95); --glow-soft: rgba(159, 180, 255, 0.4); --title-color: #f2f4ff; animation-duration: 0.8s; }
+.panel-heading { font-size: 11px; letter-spacing: 5px; text-transform: uppercase; }
+.panel-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 10px; }
 
 /* Aspects panel: loadout on the left half, collection scrolling on the right. */
 .aspects-card { width: min(1100px, 100%); }
@@ -720,6 +747,183 @@ kbd {
 .tut-line { margin: 0; font-size: 22px; line-height: 2; letter-spacing: 4px; text-transform: uppercase; color: #e6e6e6; }
 .tut-key { min-width: 62px; padding: 12px 16px 9px; font-size: 32px; border-width: 1px 1px 4px; border-radius: 8px; color: #fff; border-color: rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.07); box-shadow: 0 0 26px rgba(255, 40, 30, 0.25); }
 .tut-exalted { display: inline-block; margin: 0 10px; font-size: 2em; vertical-align: -0.2em; --ls: 6px; letter-spacing: 6px; --glow: rgba(255, 40, 20, 1); --glow-soft: rgba(202, 0, 0, 0.85); --title-color: #ff2a1a; animation: title-in 1.1s var(--ease) both; animation-delay: var(--d); }
+/* ── Settings (settings.js): over the main menu or the pause menu, which step aside so the sky
+   or the paused game shows through. Words and starlight rather than boxes: the tabs along a
+   faint line with a star gliding under the open one, rows split by fading lines, sliders a
+   line of light filled up to a diamond, toggles a gem that lights, choices a stepper. ── */
+.menu-screen > .menu, .menu-screen > .hint, .hud .pause-card { transition: opacity 0.35s var(--ease), filter 0.35s var(--ease), transform 0.35s var(--ease); }
+.menu-screen.settings-open > .menu, .menu-screen.settings-open > .hint, .hud.settings-open .pause-card { opacity: 0; filter: blur(8px); transform: scale(0.97); }
+.hud .pause { transition: background 0.35s, backdrop-filter 0.35s; }
+.hud.settings-open .pause { background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(1.5px); }
+.settings { position: fixed; inset: 0; z-index: 5; display: flex; justify-content: center; padding: 40px 20px 28px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(159, 180, 255, 0.3) transparent; text-shadow: 0 0 6px #000, 0 1px 2px #000; background: radial-gradient(ellipse 46% 58% at 50% 50%, rgba(3, 4, 16, 0.72), rgba(3, 4, 16, 0.35) 70%, transparent 100%); animation: fade 0.3s ease-out both; }
+.settings-card { width: min(720px, 100%); margin: auto 0; display: flex; flex-direction: column; }
+.set-title { margin: 0 0 22px; text-align: center; font-size: 42px; font-weight: normal; text-transform: uppercase; --ls: 14px; letter-spacing: 14px; padding-left: 14px; --ls-from: 34px; --glow: rgba(159, 180, 255, 0.95); --glow-soft: rgba(159, 180, 255, 0.4); --title-color: #f2f4ff; animation-duration: 0.8s; }
+
+.set-tabs { position: relative; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 6px; padding-bottom: 16px; margin-bottom: 10px; }
+.set-tabs::after { content: ''; position: absolute; left: 8%; right: 8%; bottom: 6px; height: 1px; background: linear-gradient(to right, transparent, rgba(159, 180, 255, 0.35), transparent); }
+.set-tab { padding: 8px 12px 8px 16px; font-size: 13px; letter-spacing: 4px; color: #6f7694; background: none; border: none; border-radius: 0; text-shadow: inherit; }
+.set-tab:hover:not(:disabled) { background: none; color: #dfe5ff; box-shadow: none; text-shadow: 0 0 10px rgba(159, 180, 255, 0.55); }
+.set-tab.active, .set-tab.active:hover:not(:disabled) { color: #fff; text-shadow: 0 0 14px rgba(159, 180, 255, 0.95), 0 0 2px #fff; }
+.set-tab-star { position: absolute; bottom: 0; z-index: 1; font-size: 12px; line-height: 12px; color: #fff; text-shadow: 0 0 6px var(--astral), 0 0 14px var(--astral); transform: translateX(-50%); transition: left 0.5s var(--spring); pointer-events: none; animation: star-twinkle 2.4s ease-in-out infinite; }
+@keyframes star-twinkle { 50% { text-shadow: 0 0 10px var(--astral), 0 0 24px var(--astral); } }
+
+.set-body { min-height: 404px; display: flex; flex-direction: column; }
+.set-row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 52px; padding: 4px 8px 4px 32px; animation: rise 0.45s var(--ease) both; animation-delay: var(--d, 0s); }
+.set-row::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(to right, transparent, rgba(159, 180, 255, 0.14) 15%, rgba(159, 180, 255, 0.14) 85%, transparent); }
+.set-row::before { content: '✦'; position: absolute; left: 10px; top: 50%; font-size: 10px; color: var(--astral); text-shadow: 0 0 8px var(--astral); opacity: 0; transform: translate(-6px, -50%) scale(0.4) rotate(-90deg); transition: opacity 0.2s, transform 0.35s var(--spring); }
+.set-row:hover::before { opacity: 1; transform: translate(0, -50%) scale(1) rotate(0); }
+.set-row:hover { background: radial-gradient(ellipse 55% 140% at 0% 50%, rgba(159, 180, 255, 0.1), transparent 75%); }
+.set-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #b9c0dc; transition: color 0.15s, text-shadow 0.2s; }
+.set-row:hover .set-label { color: #fff; text-shadow: 0 0 12px rgba(159, 180, 255, 0.6); }
+.set-heading { margin: 18px 24px 6px; font-size: 11px; letter-spacing: 5px; text-transform: uppercase; animation: rise 0.45s var(--ease) both; animation-delay: var(--d, 0s); }
+.set-heading:first-child { margin-top: 4px; }
+.set-control { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+
+.set-slider { appearance: none; -webkit-appearance: none; width: 210px; height: 22px; margin: 0; background: transparent; cursor: pointer; }
+.set-slider::-webkit-slider-runnable-track { height: 2px; border-radius: 1px; background: linear-gradient(to right, rgba(159, 180, 255, 0.35), var(--astral) var(--p), rgba(255, 255, 255, 0.12) var(--p)); }
+.set-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; margin-top: -4.5px; background: #fff; transform: rotate(45deg); box-shadow: 0 0 6px var(--astral), 0 0 16px rgba(159, 180, 255, 0.8); transition: transform 0.2s var(--spring); }
+.set-slider:hover::-webkit-slider-thumb, .set-slider:active::-webkit-slider-thumb { transform: rotate(45deg) scale(1.35); }
+.set-slider::-moz-range-track { height: 2px; background: rgba(255, 255, 255, 0.12); }
+.set-slider::-moz-range-progress { height: 2px; background: linear-gradient(to right, rgba(159, 180, 255, 0.35), var(--astral)); }
+.set-slider::-moz-range-thumb { width: 11px; height: 11px; border: none; border-radius: 0; background: #fff; transform: rotate(45deg); box-shadow: 0 0 6px var(--astral), 0 0 16px rgba(159, 180, 255, 0.8); }
+.set-slider:focus-visible { outline: 1px solid var(--astral); outline-offset: 4px; }
+.set-value { width: 46px; text-align: right; font-size: 13px; letter-spacing: 1px; color: #dfe5ff; font-variant-numeric: tabular-nums; }
+
+.set-toggle { display: inline-flex; align-items: center; gap: 12px; padding: 6px 2px 6px 8px; font-size: 12px; letter-spacing: 3px; color: #6f7694; background: none; border: none; text-shadow: inherit; }
+.set-toggle:hover:not(:disabled) { background: none; box-shadow: none; color: #dfe5ff; }
+.set-state { width: 34px; text-align: left; }
+.set-gem { width: 11px; height: 11px; transform: rotate(45deg); border: 1px solid rgba(159, 180, 255, 0.55); transition: background 0.25s, border-color 0.25s, box-shadow 0.3s; }
+.set-toggle:hover:not(:disabled) .set-gem { border-color: #fff; }
+.set-toggle.on, .set-toggle.on:hover:not(:disabled) { color: #fff; }
+.set-toggle.on .set-gem { background: #fff; border-color: #fff; box-shadow: 0 0 6px var(--astral), 0 0 18px rgba(159, 180, 255, 0.8); }
+.set-toggle.lit .set-gem { animation: gem-lit 0.55s var(--spring); }
+@keyframes gem-lit { 0% { transform: rotate(45deg) scale(0.3); } 55% { transform: rotate(225deg) scale(1.6); box-shadow: 0 0 14px #fff, 0 0 34px var(--astral); } 100% { transform: rotate(405deg); } }
+
+.set-stepper { gap: 4px; }
+.set-arrow { width: 28px; height: 30px; padding: 0 0 3px; font-size: 22px; line-height: 1; letter-spacing: 0; color: var(--astral); background: none; border: none; text-shadow: 0 0 8px rgba(159, 180, 255, 0.6); }
+.set-arrow:hover:not(:disabled) { background: none; box-shadow: none; color: #fff; text-shadow: 0 0 10px var(--astral), 0 0 20px var(--astral); }
+.set-arrow:disabled { opacity: 0.18; }
+.set-step-mid { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 104px; }
+.set-step-value { font-size: 13px; letter-spacing: 3px; padding-left: 3px; text-transform: uppercase; color: #fff; font-variant-numeric: tabular-nums; }
+.set-pips { display: flex; gap: 8px; }
+.set-pip { width: 6px; height: 6px; padding: 0; background: rgba(159, 180, 255, 0.25); border: none; border-radius: 0; transform: rotate(45deg); transition: background 0.2s, box-shadow 0.2s, transform 0.2s var(--spring); }
+.set-pip:hover:not(:disabled), .set-pip:active:not(:disabled) { background: rgba(255, 255, 255, 0.75); box-shadow: none; transform: rotate(45deg) scale(1.4); }
+.set-pip.on, .set-pip.on:hover:not(:disabled) { background: #fff; box-shadow: 0 0 5px var(--astral), 0 0 10px var(--astral); }
+
+/* The bindings in groups (BIND_GROUPS): movement a cluster of keys laid out like them, the
+   rest rows of keycaps over their names, an aspect slot's over the aspect in it. */
+.set-binds { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr); gap: 30px 40px; padding: 8px 6px 0; }
+.set-group { display: flex; flex-direction: column; align-items: center; gap: 18px; animation: rise 0.45s var(--ease) both; animation-delay: var(--d, 0s); }
+.set-group .set-heading { align-self: stretch; margin: 0; animation: none; }
+.set-keys { display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; gap: 16px 18px; }
+.set-group.move .set-keys { display: grid; grid-template-columns: repeat(3, auto); gap: 8px; }
+.set-group.move .k-up { grid-column: 2; }
+.set-group.move .k-left { grid-column: 1; }
+.set-keyed { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.set-key { display: inline-flex; align-items: center; justify-content: center; min-width: 52px; height: 50px; padding: 0 13px; font-size: 14px; letter-spacing: 1px; text-transform: none; color: #eef1ff; background: linear-gradient(to bottom, rgba(159, 180, 255, 0.13), rgba(159, 180, 255, 0.02)); border: 1px solid rgba(159, 180, 255, 0.38); border-bottom-width: 4px; border-radius: 8px; text-shadow: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.set-key .mouse-icon svg { display: block; width: 16px; height: 22px; }
+.set-key:hover:not(:disabled) { background: rgba(159, 180, 255, 0.18); color: #fff; border-color: var(--astral); box-shadow: 0 0 16px rgba(159, 180, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.set-key:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+.set-key.fixed:disabled { opacity: 0.4; }
+.set-key.listening, .set-key.listening:hover:not(:disabled) { color: var(--astral); border-color: var(--astral); background: rgba(159, 180, 255, 0.08); animation: bind-wait 1.1s ease-in-out infinite; }
+@keyframes bind-wait { 50% { box-shadow: 0 0 20px rgba(159, 180, 255, 0.65); color: #fff; } }
+.set-key.bound { animation: bind-take 0.5s ease-out; }
+@keyframes bind-take { 0% { background: #fff; color: #000; box-shadow: 0 0 26px var(--astral); transform: scale(1.14); } }
+.set-caption { font-size: 10px; letter-spacing: 2.5px; padding-left: 2.5px; text-transform: uppercase; color: #8990ad; transition: color 0.15s; }
+.set-keyed:hover .set-caption { color: #fff; }
+.set-caption-aspect { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(159, 180, 255, 0.35)); }
+.set-caption-empty { width: 9px; height: 9px; margin: 8px 0; transform: rotate(45deg); border: 1px solid rgba(159, 180, 255, 0.35); }
+
+/* The assists' mark (assistIcon): on the accessibility tab, lit while an assist is on; in the
+   corner of the main menu, under the pause title and on the death screen while it counts. */
+.assist-icon { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.28em; }
+.assist-icon svg { display: block; width: 100%; height: 100%; }
+.set-tab-icon { margin-right: 8px; font-size: 15px; transition: color 0.2s, filter 0.2s; }
+.set-tab.assisting .set-tab-icon { color: #ffc2d4; filter: drop-shadow(0 0 5px rgba(255, 140, 170, 0.75)); }
+.assist-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #e9d2dc; text-shadow: 0 0 6px #000; }
+.assist-badge .assist-icon { font-size: 16px; color: #ffc2d4; filter: drop-shadow(0 0 5px rgba(255, 140, 170, 0.6)); }
+.menu-assist { position: fixed; top: 18px; right: 22px; z-index: 7; opacity: 0.8; animation: fade 0.6s ease-out 0.6s both; }
+.pause-assist { margin-top: -14px; animation: rise 0.4s var(--ease) 0.2s both; }
+.rs-assist { align-self: center; margin: -6px 0 6px; opacity: 0; }
+.rs-title.in + .rs-assist { opacity: 1; animation: fade 0.8s ease-out 0.5s both; }
+
+.set-actions { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 18px; animation: rise 0.45s var(--ease) 0.2s both; }
+/* Back (backCorner): a ring with a U-turn arrow in the bottom-left corner, beside its key, on
+   the settings, aspects and request panels; the HUD's bars there step aside while the
+   settings are open over a run. */
+.back-corner { position: fixed; left: 28px; bottom: 26px; z-index: 1; display: flex; align-items: center; gap: 12px; animation: rise 0.45s var(--ease) 0.15s both; }
+.menu-back { z-index: 2; } /* over the aspects and request panels, under a purchase's confirm */
+.back-corner kbd { color: #8990ad; border-color: rgba(159, 180, 255, 0.25); transition: color 0.15s, border-color 0.15s; }
+.back-corner:hover kbd { color: #fff; border-color: rgba(159, 180, 255, 0.6); }
+.back-button { display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border-radius: 50%; color: #dfe5ff; background: rgba(3, 4, 16, 0.55); border: 1px solid rgba(159, 180, 255, 0.4); box-shadow: 0 0 14px rgba(159, 180, 255, 0.12), inset 0 0 12px rgba(159, 180, 255, 0.08); }
+.back-button svg { width: 22px; height: 22px; transition: transform 0.25s var(--spring); }
+.back-button:hover:not(:disabled) { color: #fff; background: rgba(159, 180, 255, 0.16); border-color: var(--astral); box-shadow: 0 0 22px rgba(159, 180, 255, 0.45), inset 0 0 14px rgba(159, 180, 255, 0.2); }
+.back-button:hover svg { transform: translateX(-3px); }
+.hud .hud-cluster { transition: opacity 0.3s; }
+.hud.settings-open .hud-cluster { opacity: 0; }
+.set-reset { padding: 8px 6px; font-size: 11px; letter-spacing: 3px; color: #6f7694; background: none; border: none; text-shadow: inherit; }
+.set-reset:hover:not(:disabled) { background: none; box-shadow: none; color: #fff; text-shadow: 0 0 10px rgba(159, 180, 255, 0.6); }
+
+/* Pause menu: the loadout under the title, each aspect in its tier's frame (details on hover). */
+.pause-loadout { display: flex; justify-content: center; gap: 12px; margin-top: -10px; animation: rise 0.4s var(--ease) 0.16s both; }
+.pause-slot { width: 56px; height: 56px; padding: 0; overflow: hidden; border-radius: 8px; background: #0a0a0a; border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--tier) 22%, transparent); transition: transform 0.2s var(--spring), box-shadow 0.2s, border-color 0.2s; }
+.pause-slot img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.pause-slot:hover:not(:disabled), .pause-slot:focus-visible { background: #0a0a0a; border-color: var(--tier); transform: translateY(-3px) scale(1.06); box-shadow: 0 0 24px color-mix(in srgb, var(--tier) 50%, transparent); outline: none; }
+.pause-buttons .word-button { width: 100%; }
+
+/* Credits (credits.js): line by line over the sky, a role small above each name. */
+.credits { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: 40px 20px; overflow-y: auto; text-align: center; text-shadow: 0 0 6px #000, 0 1px 2px #000; background: radial-gradient(ellipse 46% 58% at 50% 50%, rgba(3, 4, 16, 0.7), rgba(3, 4, 16, 0.3) 70%, transparent 100%); animation: fade 0.3s ease-out both; }
+.credits-card { display: flex; flex-direction: column; align-items: center; gap: 30px; }
+.credits-title { margin: 0; font-size: 54px; text-transform: uppercase; --ls: 14px; letter-spacing: 14px; padding-left: 14px; --ls-from: 44px; --glow: rgba(159, 180, 255, 0.95); --glow-soft: rgba(159, 180, 255, 0.4); --title-color: #f2f4ff; animation-duration: 1s; }
+.credits-rule { width: 260px; margin: -14px 0 6px; animation: fade 0.8s ease-out 0.3s both; }
+.credit { display: flex; flex-direction: column; align-items: center; gap: 8px; animation: rise 0.7s var(--ease) both; animation-delay: var(--d); }
+.credit-role { font-size: 11px; letter-spacing: 5px; padding-left: 5px; text-transform: uppercase; color: var(--astral); text-shadow: 0 0 8px rgba(159, 180, 255, 0.6), 0 0 6px #000; }
+.credit-name { font-size: 22px; letter-spacing: 4px; padding-left: 4px; color: #f2f4ff; }
+.credit-end { margin-top: 18px; font-size: 13px; letter-spacing: 6px; padding-left: 6px; text-transform: uppercase; color: #b9c0dc; }
+
+/* Starting a run (main.js launch): the stars rush past as the menu falls away behind a bloom of
+   starlight that sinks to black, which the run then fades in from. */
+.menu-screen.launching > :not(.sky) { opacity: 0; filter: blur(10px); transform: scale(1.12); transition: opacity 0.45s ease-in, filter 0.45s ease-in, transform 0.7s cubic-bezier(0.5, 0, 0.9, 0.4); pointer-events: none; }
+.menu-screen.launching .sky { transform: scale(2.4); filter: blur(1.5px) brightness(1.6); transition: transform 0.8s cubic-bezier(0.55, 0, 0.9, 0.35), filter 0.8s ease-in; }
+.launch-veil { position: fixed; inset: 0; z-index: 20; pointer-events: none; overflow: hidden; background: #000; animation: launch-dark 0.8s ease-in both; }
+.launch-veil::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(235, 240, 255, 0.95), rgba(140, 160, 255, 0.5) 26%, transparent 60%); animation: launch-bloom 0.8s ease-out both; }
+@keyframes launch-dark { 0%, 35% { background-color: transparent; } 100% { background-color: #000; } }
+@keyframes launch-bloom { 0% { opacity: 0; transform: scale(0.3); } 45% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.7); } }
+.reduce-flashing .launch-veil::before { display: none; }
+.launch-veil.out { animation: launch-out 0.6s ease-out both; }
+.launch-veil.out::before { display: none; }
+@keyframes launch-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* Keyboard focus (nav.js) looks like a hover. */
+.set-row:focus-within { background: radial-gradient(ellipse 55% 140% at 0% 50%, rgba(159, 180, 255, 0.1), transparent 75%); }
+.set-row:focus-within::before { opacity: 1; transform: translate(0, -50%) scale(1) rotate(0); }
+.set-row:focus-within .set-label { color: #fff; text-shadow: 0 0 12px rgba(159, 180, 255, 0.6); }
+.set-tab:focus-visible, .set-toggle:focus-visible, .set-arrow:focus-visible, .set-pip:focus-visible, .set-reset:focus-visible { outline: none; color: #fff; text-shadow: 0 0 12px rgba(159, 180, 255, 0.9); }
+.set-pip:focus-visible { background: #fff; transform: rotate(45deg) scale(1.5); }
+.set-key:focus-visible, .back-button:focus-visible { outline: none; border-color: var(--astral); box-shadow: 0 0 18px rgba(159, 180, 255, 0.5); color: #fff; }
+.slot:focus-visible, .collection-tile:focus-visible { outline: 2px solid var(--astral); outline-offset: 4px; }
+
+/* Frame rate readout (Show frame rate), over everything at the top right. */
+.fps { position: fixed; top: 8px; right: 10px; z-index: 10; font-size: 11px; letter-spacing: 1px; color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums; text-shadow: 0 0 3px #000; pointer-events: none; }
+
+/* Reduce flashing: screen-edge flashes come in softer and slower, nothing pulses, and the warp
+   washes the screen in dusk blue instead of white. */
+.reduce-flashing .hurt-flash.on { animation: hurt-soft 0.7s ease-out; }
+@keyframes hurt-soft { from { opacity: 0.45; } to { opacity: 0; } }
+.reduce-flashing .ready-throb.on { animation: throb-soft 1.6s ease-in-out; }
+@keyframes throb-soft { 0% { opacity: 0; } 30% { opacity: 0.55; } 100% { opacity: 0; } }
+.reduce-flashing .exalted-glow { animation: none; }
+.reduce-flashing .warp-wash { background: radial-gradient(ellipse at center, #3c4468 20%, #2a3052 60%, #1a1e36 100%); }
+
+@media (max-width: 560px) {
+  .set-binds { grid-template-columns: 1fr; gap: 24px; }
+  .settings { padding-bottom: 100px; } /* clear of the back corner */
+  .back-corner { left: 16px; bottom: 16px; }
+  .set-row { flex-wrap: wrap; gap: 6px; padding: 8px 8px 8px 28px; }
+  .set-slider { width: 150px; }
+  .set-tab { font-size: 11px; letter-spacing: 2px; padding: 8px 8px 8px 10px; }
+  .set-title { font-size: 32px; --ls: 8px; letter-spacing: 8px; padding-left: 8px; }
+}
 @media (max-width: 520px) {
   .menu-title { font-size: 40px; --ls: 8px; letter-spacing: 8px; padding-left: 8px; --ls-from: 20px; }
   .rs-title { font-size: 40px; letter-spacing: 8px; padding-left: 8px; --ls: 8px; }

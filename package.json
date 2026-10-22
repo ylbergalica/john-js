@@ -19,6 +19,7 @@
     "icon": "electron build/icon.mjs"
   },
   "devDependencies": {
+    "@fontsource/cinzel": "^5.3.0",
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
     "pixi.js": "^8.6.6",

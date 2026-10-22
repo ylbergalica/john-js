@@ -1,10 +1,12 @@
 // State that lives for one run (across floors) and dies with it: floor number,
 // adrenaline, unbanked coins, the gameplay event channels and the stats shown on
-// the run summary. Coins are awarded here, by the rules in COINS.
+// the run summary, and whether it was played with assists. Coins are awarded here, by the
+// rules in COINS.
 import { Emitter } from '../engine/events.js';
 import { Adrenaline } from './adrenaline.js';
 import { profile } from '../meta/profile.js';
 import { COINS } from '../data/config.js';
+import { assistsOn } from '../meta/settings.js';
 
 export const RunMode = { Run: 'run', Playground: 'playground' };
 
@@ -24,6 +26,7 @@ export class RunSession {
     this.pendingCoins = 0;
     this.aspectState = {}; // by aspect id: what an aspect keeps for the run (the player and its aspects are rebuilt each floor)
     this.ended = false; // set once coins are banked; later kills (after the dying player's body bursts) don't count
+    this.assisted = assistsOn(); // played with an assist on at any point (GameScene keeps it up to date)
     this.stats = {
       kills: {}, // by enemy type key
       aspectCounts: {}, // by aspect id: what its AspectStat counts
@@ -82,7 +85,7 @@ export class RunSession {
   // Death banks the run's coins and counts the run; quitting from the pause menu forfeits
   // them and doesn't count.
   bankCoins() {
-    if (!this.ended) profile.recordRunFinished();
+    if (!this.ended) profile.recordRunFinished(this.assisted);
     profile.bankCoins(this.pendingCoins);
     this.stats.coinsBanked += this.pendingCoins;
     this.pendingCoins = 0;

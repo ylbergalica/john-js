@@ -28,6 +28,7 @@ import { GuardianTrail } from './guardianTrail.js';
 import { GuardianRage } from './guardianRage.js';
 import { Spawner, placeSpawners } from './spawner.js';
 import { RunMode } from './session.js';
+import { settings } from '../meta/settings.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
@@ -515,7 +516,7 @@ export class World {
   releaseAttackSlot() { this.activeAttackers = Math.max(0, this.activeAttackers - 1); }
 
   // Holds the world still for `seconds` of real time, unless it's already held longer.
-  holdStill(seconds) { this.hitstop = Math.max(this.hitstop, seconds); }
+  holdStill(seconds) { if (settings.hitPause) this.hitstop = Math.max(this.hitstop, seconds); }
 
   // Plays a sound at a world position, panned and faded by its offset from the camera.
   // Without a position it plays centred (sounds that happen to the player).

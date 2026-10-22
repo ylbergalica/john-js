@@ -1,7 +1,8 @@
-// Damped follow camera with Perlin shake. Maps world units to screen pixels so the
-// view is always `2 * orthoSize` units tall.
+// Damped follow camera with Perlin shake (scaled by the screen shake setting). Maps world
+// units to screen pixels so the view is always `2 * orthoSize` units tall.
 import { perlinNoise, randInsideUnitCircle } from '../engine/math.js';
 import { CAMERA } from '../data/config.js';
+import { settings } from '../meta/settings.js';
 
 const LN_001 = Math.log(0.01); // follow reaches 99% of the way in `damping` seconds
 
@@ -22,6 +23,8 @@ export class Camera {
   snapTo(p) { this.x = p.x; this.y = p.y; }
 
   shake(duration, strength, frequency) {
+    strength *= settings.screenShake;
+    if (strength <= 0) return;
     const seed = randInsideUnitCircle();
     this.shakeState = { duration, strength, frequency: Math.max(1, frequency), elapsed: 0, sx: seed.x * 1000, sy: seed.y * 1000 };
   }
@@ -30,7 +33,7 @@ export class Camera {
   // still playing (a guardian's death under a small kill's, say).
   shakeAtLeast({ duration, strength, frequency }) {
     const cur = this.shakeState;
-    if (!cur || cur.strength * (1 - cur.elapsed / cur.duration) < strength) this.shake(duration, strength, frequency);
+    if (!cur || cur.strength * (1 - cur.elapsed / cur.duration) < strength * settings.screenShake) this.shake(duration, strength, frequency);
   }
 
   update(dt, target) {

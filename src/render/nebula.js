@@ -1,9 +1,11 @@
 // Coloured clouds drifting in the space behind the walls (NEBULA). One quad over the whole
 // map, below the floor sprite, so they only show where there's no floor: fractal noise in
-// the fragment shader, rolling slowly on a uniform clock.
+// the fragment shader, rolling slowly on a uniform clock. Hidden (not drawn) with the nebula
+// setting off.
 import { Geometry, Mesh, Shader } from 'pixi.js';
 import { NEBULA as N } from '../data/config.js';
 import { clamp01, lerp } from '../engine/math.js';
+import { settings } from '../meta/settings.js';
 
 const MARGIN = 40; // tiles past the map's edge, so the camera never sees the quad end
 
@@ -109,7 +111,10 @@ export class Nebula {
     return [a, b];
   }
 
-  update(time) { this.uniforms.uTime = time; }
+  update(time) {
+    this.uniforms.uTime = time;
+    if (this.mesh) this.mesh.visible = settings.nebula;
+  }
 
   clear() {
     this.mesh?.destroy({ geometry: true }); // shader is shared

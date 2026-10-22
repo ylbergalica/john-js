@@ -149,10 +149,10 @@ export class FightMusic {
   }
 
   // ── node graph ───────────────────────────────────────────────────
-  // dry → tone (opens with the level) → muffle (closes while paused) → out → the sfx master.
+  // dry → tone (opens with the level) → muffle (closes while paused) → out → the music bus (sfx.js).
   // Each guitar plays into its own amp (drive, waveshaper, speaker cabinet) on the way to
   // dry; a room reverb and a slap echo (lead only) feed `tone` too.
-  build({ ctx, master }) {
+  build({ ctx, bus }) {
     this.ctx = ctx;
     const c = ctx;
     this.out = c.createGain();
@@ -163,7 +163,7 @@ export class FightMusic {
     this.tone = c.createBiquadFilter();
     this.tone.type = 'lowpass';
     this.tone.frequency.value = TONE[1];
-    this.tone.connect(this.muffle).connect(this.out).connect(master);
+    this.tone.connect(this.muffle).connect(this.out).connect(bus);
     this.dry = c.createGain();
     this.dry.connect(this.tone);
 

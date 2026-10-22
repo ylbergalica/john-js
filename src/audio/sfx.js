@@ -12,7 +12,7 @@ const MIN_REPEAT = 0.03; // seconds; the same sound retriggering faster than thi
 const PITCH_JITTER = 0.04; // random ± pitch so repeats don't sound stamped
 const SILENT = 0.0001; // exponential ramps can't reach 0
 
-let ctx = null, master = null, noiseBuffer = null, crackleBuffer = null, driveCurve = null;
+let ctx = null, master = null, noiseBuffer = null, crackleBuffer = null, gooBuffer = null, driveCurve = null;
 let voices = 0;
 let muted = readMuted();
 const lastPlayed = new Map();
@@ -73,18 +73,18 @@ function tone(v, { type = 'sine', freq, to = freq, at = 0, dur, vol = 0.2, attac
   return osc;
 }
 
-// White noise through a filter whose cutoff sweeps from `freq` to `to`.
-function noise(v, { filter = 'bandpass', freq = 1000, to = freq, q = 1, at = 0, dur, vol = 0.2, attack = 0.004, hold = 0, out }) {
+// White noise (or `buffer`) through a filter whose cutoff sweeps from `freq` to `to`.
+function noise(v, { filter = 'bandpass', freq = 1000, to = freq, q = 1, at = 0, dur, vol = 0.2, attack = 0.004, hold = 0, out, buffer = noiseBuffer }) {
   const t = v.t + at;
   const src = ctx.createBufferSource();
-  src.buffer = noiseBuffer;
+  src.buffer = buffer;
   const f = ctx.createBiquadFilter();
   f.type = filter;
   f.Q.value = q;
   f.frequency.setValueAtTime(freq * v.pitch, t);
   if (to !== freq) f.frequency.exponentialRampToValueAtTime(to * v.pitch, t + dur);
   src.connect(f).connect(envelope(v, t, dur, vol, attack, hold, out));
-  src.start(t, Math.random() * Math.max(0, noiseBuffer.duration - dur - 0.05));
+  src.start(t, Math.random() * Math.max(0, buffer.duration - dur - 0.05));
   schedule(v, src, t, dur);
 }
 
@@ -120,6 +120,36 @@ function tinkles(v, n, { at = 0, spread = 0.4, vol = 0.05, lo = 2400, hi = 6000 
     const t = at + spread * Math.random() ** 1.6; // thickest at the start
     tone(v, { type: 'triangle', freq: lo + Math.random() * (hi - lo), at: t, dur: 0.06 + Math.random() * 0.12, vol: vol * (0.4 + 0.6 * Math.random()) });
   }
+}
+
+// A soft clipper feeding the voice: what's sent in comes out thick and crunchy. `push` drives
+// it harder, `trim` brings the level back down.
+function grit(v, push, trim) {
+  const inGain = ctx.createGain(), shaper = ctx.createWaveShaper(), outGain = ctx.createGain();
+  inGain.gain.value = push;
+  shaper.curve = drive();
+  outGain.gain.value = trim;
+  inGain.connect(shaper).connect(outGain).connect(v.out);
+  return inGain;
+}
+
+// `stages` lowpasses at `freq` stacked in front of the voice (two: steep; one: gentle);
+// returns the node to feed. Not moved by the voice's pitch, so a higher-pitched voice is
+// cut just as hard.
+function dull(v, freq, stages = 2) {
+  const filters = Array.from({ length: stages }, () => {
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = freq; f.Q.value = 0.6;
+    return f;
+  });
+  filters.reduce((a, b) => a.connect(b)).connect(v.out);
+  return filters[0];
+}
+
+// Something wet giving way: the goo texture (see goo()) through a broad band swept down,
+// a squelchy, crackling splat rather than a hiss.
+function splat(v, { freq, to, q = 0.9, at = 0, dur, vol }) {
+  noise(v, { freq, to, q, at, dur, vol, attack: 0.002, buffer: goo() });
 }
 
 // Muffles everything a Black Rose voice plays after it, as if heard through a wall: two
@@ -290,15 +320,50 @@ const SOUNDS = {
   },
 
   // enemies
+  // A heavy, wet blow: a soft knock, a round kick of low end and a slap of flesh that gives a
+  // little, under a steep high cut so nothing rings bright, then a gooey splat trailing after,
+  // cut only gently so its wet crackle comes through.
   hit(v) {
-    tone(v, { type: 'square', freq: 240, to: 80, dur: 0.09, vol: 0.18 });
-    noise(v, { filter: 'lowpass', freq: 4000, to: 500, dur: 0.08, vol: 0.45 });
-    tone(v, { freq: 1500, to: 900, dur: 0.035, vol: 0.1 });
+    const out = v.out, steep = dull(v, 1800), gentle = dull(v, 3000, 1);
+    v.out = steep;
+    noise(v, { freq: 1300, q: 0.7, dur: 0.03, vol: 0.3, attack: 0.005 });
+    tone(v, { freq: 94, to: 34, dur: 0.09, vol: 0.4, attack: 0.001, out: grit(v, 1.1, 0.27) });
+    noise(v, { freq: 595, to: 375, q: 1.3, dur: 0.08, vol: 0.52, attack: 0.008 });
+    v.out = gentle;
+    splat(v, { freq: 1230, to: 470, dur: 0.14, vol: 0.42 });
+    splat(v, { freq: 325, to: 190, q: 0.8, at: 0.012, dur: 0.16, vol: 0.8 });
+    v.out = out;
   },
-  kill(v) {
-    tone(v, { type: 'triangle', freq: 460, to: 110, dur: 0.28, vol: 0.28 });
-    noise(v, { freq: 1500, to: 200, q: 0.7, dur: 0.32, vol: 0.35 });
-    tone(v, { freq: 990, to: 1980, at: 0.03, dur: 0.15, vol: 0.06 });
+  // The same blow struck Exalted, with a little demonic exhale after it: a held breath and
+  // two detuned saws sinking under it, rasped by a fast tremolo, driven, and muffled as it
+  // dies away, with a thin airy hiss over the top (a short, quiet cousin of the Exalted
+  // roar). Deep, but driven hard enough that its overtones still reach small speakers.
+  hitExalted(v) {
+    SOUNDS.hit(v);
+    const at = 0.04, dur = 0.45, hold = 0.18;
+    const throat = ctx.createGain();
+    throat.gain.value = 0.6;
+    lfo(v, throat.gain, { rate: 19, depth: 0.4, dur: at + dur, type: 'triangle' });
+    const muffle = ctx.createBiquadFilter();
+    muffle.type = 'lowpass';
+    muffle.Q.value = 1.5;
+    muffle.frequency.setValueAtTime(1100, v.t + at);
+    muffle.frequency.exponentialRampToValueAtTime(300, v.t + at + dur);
+    muffle.connect(v.out);
+    throat.connect(grit({ out: muffle }, 2, 0.18));
+    noise(v, { freq: 650, to: 300, q: 0.8, at, dur, vol: 0.6, attack: 0.05, hold, out: throat });
+    for (const freq of [49, 49.8]) tone(v, { type: 'sawtooth', freq, to: freq * 0.72, at, dur: dur * 0.9, vol: 0.14, attack: 0.06, hold, out: throat });
+    noise(v, { freq: 1300, to: 700, q: 1.2, at, dur: dur * 0.8, vol: 0.04, attack: 0.05, hold: hold * 0.8 });
+  },
+  kill(v) { // bursting: the same blow, deeper and messier, with a second splat and a bright chime
+    tone(v, { type: 'triangle', freq: 460, to: 110, dur: 0.28, vol: 0.2 });
+    noise(v, { filter: 'highpass', freq: 2200, dur: 0.025, vol: 0.3, attack: 0.001 });
+    tone(v, { freq: 120, to: 38, dur: 0.18, vol: 0.35, attack: 0.001, out: grit(v, 1.8, 0.3) });
+    noise(v, { freq: 800, to: 450, q: 1.2, dur: 0.1, vol: 0.6, attack: 0.002 });
+    splat(v, { freq: 2000, to: 500, dur: 0.2, vol: 0.5 });
+    splat(v, { freq: 450, to: 220, q: 0.8, at: 0.015, dur: 0.22, vol: 0.8 });
+    splat(v, { freq: 1500, to: 600, at: 0.07, dur: 0.14, vol: 0.35 });
+    tone(v, { freq: 990, to: 1980, at: 0.03, dur: 0.15, vol: 0.05 });
   },
   bossKill(v) {
     tone(v, { type: 'sawtooth', freq: 220, to: 30, dur: 1.4, vol: 0.25 });
@@ -1019,6 +1084,24 @@ function crackles() {
     i += Math.floor(sr * (0.03 + Math.random() * 0.17));
   }
   return crackleBuffer;
+}
+
+// A couple of seconds of dense, wet grain: tiny decaying noise ticks packed close and
+// overlapping, mostly faint with a louder one now and then, like something squelching.
+function goo() {
+  if (gooBuffer) return gooBuffer;
+  const sr = ctx.sampleRate, len = Math.floor(sr * 2);
+  gooBuffer = ctx.createBuffer(1, len, sr);
+  const d = gooBuffer.getChannelData(0);
+  for (let i = 0; i < len; i += Math.floor(sr * (0.0003 + Math.random() * 0.0012))) {
+    const amp = 0.1 + 0.9 * Math.random() ** 3, n = Math.floor(sr * (0.0005 + Math.random() * 0.0025));
+    for (let k = 0; k < n && i + k < len; k++) d[i + k] += (Math.random() * 2 - 1) * amp * Math.exp((-5 * k) / n);
+  }
+  let sum = 0; // as loud on average as the white noise, so their volumes compare
+  for (const x of d) sum += x * x;
+  const gain = 0.58 / Math.sqrt(sum / len);
+  for (let i = 0; i < len; i++) d[i] *= gain;
+  return gooBuffer;
 }
 
 const LOOPS = {

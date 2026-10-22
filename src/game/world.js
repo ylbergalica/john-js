@@ -40,6 +40,7 @@ export class World {
     this.events = session.events;
     this.adrenaline = session.adrenaline;
     this.time = 0; // simulation clock, seconds
+    this.hitstop = 0; // seconds of real time left for the world to hold still on a heavy blow (see GameScene.frame)
 
     this.root = new Container();
     this.levelView = new LevelView();
@@ -512,6 +513,9 @@ export class World {
     return true;
   }
   releaseAttackSlot() { this.activeAttackers = Math.max(0, this.activeAttackers - 1); }
+
+  // Holds the world still for `seconds` of real time, unless it's already held longer.
+  holdStill(seconds) { this.hitstop = Math.max(this.hitstop, seconds); }
 
   // Plays a sound at a world position, panned and faded by its offset from the camera.
   // Without a position it plays centred (sounds that happen to the player).

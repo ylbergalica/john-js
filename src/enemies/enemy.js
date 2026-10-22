@@ -4,7 +4,7 @@ import { Container, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { Body, swapRemove } from '../engine/physics.js';
 import { clamp01, lerp, lerpColor, randInt, randInsideUnitCircle, norm, fromAngle, TAU } from '../engine/math.js';
-import { ENEMY_TYPES, ABILITIES, DEATH_FX, GUARDIAN_RAGE, PARTICLES, PICKUPS } from '../data/config.js';
+import { ENEMY_TYPES, ABILITIES, DEATH_FX, ENEMY_HIT, GUARDIAN_RAGE, PARTICLES, PICKUPS } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
@@ -35,6 +35,7 @@ export class Enemy extends Entity {
     this.parryStunned = false; // set and cleared by the ability that was parried (see `stunned`)
     this.stunUntil = -Infinity; // stunned from outside (stun) until then
     this.flashUntil = -Infinity;
+    this.hurtAt = -Infinity;
     this.flashing = false;
     this.lastHitDir = null; // direction of the latest hit, so the death bursts along the killing blow
     this.summoned = false; // spawned from the spawn menu (World.summonEnemy)
@@ -146,7 +147,9 @@ export class Enemy extends Entity {
     const x = b.pos.x + dir.x * off, y = b.pos.y + dir.y * off, angle = Math.atan2(dir.y, dir.x);
     this.world.effects.burst(x, y, angle, PARTICLES.enemyHit);
     this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitTinted, color: this.type.hitColor });
-    this.world.sound('hit', b.pos, { pitch: this.type.sfxPitch });
+    this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitGore, color: this.type.hitColor });
+    this.world.sound(this.world.adrenaline.isExalted ? 'hitExalted' : 'hit', b.pos, { pitch: this.type.sfxPitch });
+    this.hurtAt = this.world.time;
   }
 
   applyKnockback(force, source = null) {
@@ -244,7 +247,8 @@ export class Enemy extends Entity {
     this.view.visible = visible;
     this.view.position.set(p.x, p.y);
     this.view.rotation = rot;
-    this.attackFx.render(now, p, rot, visible);
+    this.attackFx.render(now, p, rot, visible); // sets the view's scale for the attack's stretch
+    if (!this.dying) { const s = this.squash(now); this.view.scale.x *= s; this.view.scale.y *= s; }
     this.renderRage(now, p, visible, dt);
     this.stunMark.render(now, p, visible, dt);
     if (this.dying) this.renderDying(now, p);
@@ -254,6 +258,13 @@ export class Enemy extends Entity {
     if (!visible) return;
     this.setFlash(this.dying ? this.dyingWhite : this.world.time < this.flashUntil);
     if (!this.flashing) this.stars?.update(this.world.time);
+  }
+
+  // Struck: squashed, springing back with a wobble (ENEMY_HIT.squash).
+  squash(now) {
+    const S = ENEMY_HIT.squash, k = (now - this.hurtAt) / S.time;
+    if (!(k >= 0 && k < 1)) return 1;
+    return 1 - S.amount * (1 - k) ** 2 * Math.cos(k * S.wobble * TAU);
   }
 
   // A guardian losing patience smoulders: a red haze under it, pulsing faster and glowing

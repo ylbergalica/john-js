@@ -4,6 +4,7 @@
 export const PARTICLES = {
   enemyHit: { count: 27, speed: 17, lifetime: 0.4, size: 0.66, coneDeg: 28, color: 0xffffff },
   enemyHitTinted: { count: 20, speed: 11.5, lifetime: 0.45, size: 0.48, coneDeg: 50 }, // colour: the enemy's hitColor
+  enemyHitGore: { count: 9, speed: 6, lifetime: 0.6, size: 0.95, coneDeg: 65 }, // thick slow globs of the hitColor, spilling out after
   playerHit: { count: 16, speed: 9, lifetime: 0.38, size: 0.32, coneDeg: 30, color: 0xffffff },
   parryConnect: { count: 24, speed: 12, lifetime: 0.4, size: 0.34, coneDeg: 40, color: 0xffe2a0 },
   parryConnectRing: { count: 16, speed: 5, lifetime: 0.35, size: 0.2, coneDeg: 180, color: 0xffffff },
@@ -78,8 +79,18 @@ export const FX = {
   parryConnectSize: 3.6,
   parryComboGrowth: 0.2, // per streak level: parry flash size and spark count/speed/size grow by this fraction
   parryComboColor: 0xffa030, // the parry sparks warm from parryConnect's colour toward this at max streak
-  hitImpactSize: 1.5,
+  hitImpactSize: 1.75,
   hitImpactJitter: 0.35, // radians of random twist on the hit streak so repeat hits don't look stamped
+};
+
+// The weight of a sword blow landing on an enemy (Player.onAttackHit): the world holds still
+// for `hitstop` seconds of real time (`killHitstop` on a killing blow) while the camera kicks,
+// and the struck body squashes by `squash.amount` and springs back over `squash.time`,
+// wobbling `squash.wobble` times (Enemy.onHurt, for every hit).
+export const ENEMY_HIT = {
+  hitstop: 0.045, killHitstop: 0.085,
+  shake: { duration: 0.11, strength: 0.11, frequency: 32 },
+  squash: { amount: 0.17, time: 0.2, wobble: 1.5 },
 };
 
 // How enemy attacks read (src/enemies/attackView.js). Every enemy and attack shares one

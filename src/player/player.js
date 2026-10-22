@@ -4,7 +4,7 @@ import { Entity } from '../game/entity.js';
 import { Body, ContactSet } from '../engine/physics.js';
 import { hurtBySegment } from '../game/hurtbox.js';
 import { norm, isZero } from '../engine/math.js';
-import { PLAYER, PARTICLES, ADRENALINE } from '../data/config.js';
+import { PLAYER, PARTICLES, ADRENALINE, ENEMY_HIT } from '../data/config.js';
 import { InputBuffer } from './inputBuffer.js';
 import { PlayerView } from './playerView.js';
 import { PlayerDeath } from './death.js';
@@ -190,6 +190,8 @@ export class Player extends Entity {
     const hitPoint = enemy.closestPoint(src);
     enemy.takeDamage(this.attackDamage, hitPoint, src, DamageCause.Attack);
     this.view.playHitImpact(hitPoint);
+    this.world.holdStill(enemy.dead ? ENEMY_HIT.killHitstop : ENEMY_HIT.hitstop);
+    this.world.camera.shakeAtLeast(ENEMY_HIT.shake);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
     if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src);
     this.applyRecoil(A.playerKnockbackForce);

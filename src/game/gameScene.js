@@ -75,7 +75,9 @@ export class GameScene {
       this.summary.update(dt);
     } else if (!this.frozen) {
       if (DEV) dt *= devFlags.gameSpeed;
-      this.accumulator += dt;
+      const held = Math.min(dt, world.hitstop); // a heavy blow holds the world still a moment
+      world.hitstop -= held;
+      this.accumulator += dt - held;
       let steps = 0;
       while (this.accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME && !this.frozen) { // a step can start a tutorial hold
         world.step(FIXED_DT);

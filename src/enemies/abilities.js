@@ -1082,9 +1082,120 @@ class VolleyAbility extends ThrowAbility {
   cuePoints() { return [this.enemy.rig?.muzzleLocal ?? { x: this.data.muzzle, y: 0 }]; }
 }
 
+// Projectile: `salvos` of shots from fixed cannons (`muzzles`, the Gunner's), one every
+// `salvoInterval`, each straight ahead along its facing: a single cannon a salvo, all of
+// them once in a random order, or all of them at once (`together`). A shot forms at every
+// cannon over the wind-up and waits there until fired; between `together` salvos a fresh
+// set forms over `regrowTime`, the enemy turning after the player at up to `turnRate`
+// until the last `lockTime` before the next. Each salvo is cued at its own cannons. A
+// stun (a parried shot among them) stops the rest.
+class CannonsAbility extends ThrowAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.salvos = []; // each salvo's cannons (indices into `muzzles`)
+    this.fired = 0; // salvos fired since the attack began
+    this.cued = 0; // salvos cued
+    this.cuedSalvo = 0; // the one last cued (cuePoints)
+    this.firstAt = 0; // when the first salvo fires
+  }
+
+  execute() {
+    const d = this.data, all = d.muzzles.map((_, i) => i);
+    if (d.together) this.salvos = Array.from({ length: d.salvos }, () => all);
+    else {
+      const order = [];
+      while (order.length < d.salvos) {
+        const deck = all.slice();
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        order.push(...deck);
+      }
+      this.salvos = order.slice(0, d.salvos).map((i) => [i]);
+    }
+    this.fired = this.cued = this.cuedSalvo = 0;
+    super.execute();
+    this.firstAt = this.phaseEndsAt;
+  }
+
+  fireTime(i) { return this.firstAt + i * this.data.salvoInterval; }
+
+  step(dt) {
+    const d = this.data, live = this.phase === 'windup' || this.phase === 'active';
+    if (live && this.cued < this.salvos.length && this.world.time >= this.fireTime(this.cued) - ATTACK_FX.cue.lead) {
+      this.cueAt = this.world.time;
+      this.cuedSalvo = this.cued++;
+    }
+    super.step(dt);
+    if (this.phase !== 'active') return;
+    while (this.fired < this.salvos.length && this.world.time >= this.fireTime(this.fired)) this.fireSalvo();
+    if (d.turnRate && this.player && this.world.time < this.fireTime(this.fired) - d.lockTime) {
+      const b = this.enemy.body, want = this.dirToPlayer(), max = d.turnRate * dt;
+      b.rotation += clamp(deltaAngle(b.rotation, Math.atan2(want.y, want.x)), -max, max);
+    }
+  }
+
+  advance() {
+    const d = this.data;
+    switch (this.phase) {
+      case 'windup':
+        this.notifyAttackStarted();
+        this.fireSalvo();
+        this.setPhase('active', (this.salvos.length - 1) * d.salvoInterval);
+        return;
+      case 'active':
+        while (this.fired < this.salvos.length) this.fireSalvo();
+        this.setPhase('recovery', d.recoveryTime);
+        return;
+    }
+    super.advance();
+  }
+
+  // Each of this salvo's cannons fires straight ahead with a flash, kicking the enemy back.
+  fireSalvo() {
+    const e = this.enemy, d = this.data, b = e.body, dir = fromAngle(b.rotation);
+    const cannons = this.salvos[this.fired++];
+    this.strikeAt = this.world.time;
+    if (!this.player) return;
+    for (const i of cannons) {
+      const m = d.muzzles[i], x = b.pos.x + dir.x * m.x - dir.y * m.y, y = b.pos.y + dir.y * m.x + dir.x * m.y;
+      this.world.add(new Projectile(this.world, this, x, y, {
+        dir, speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
+        size: d.projectileSize,
+      }));
+      this.world.effects.burst(x, y, b.rotation, { ...ATTACK_FX.projectile.muzzle, color: ATTACK_FX.color });
+    }
+    b.vel.x -= dir.x * d.recoil;
+    b.vel.y -= dir.y * d.recoil;
+    this.sound(cannons.length > 1 ? 'broadside' : 'cannon');
+  }
+
+  // A shot sits at every cannon yet to fire: formed over the wind-up, then a fresh set
+  // over `regrowTime` after each `together` salvo.
+  charge(now) {
+    if (this.phase !== 'active' || this.fired >= this.salvos.length) return super.charge(now);
+    if (!this.data.together) return { t: 1, since: Infinity };
+    const since = now - this.strikeAt;
+    return { t: clamp01(since / this.data.regrowTime), since };
+  }
+
+  chargePoints(alpha) {
+    const b = this.enemy.body, p = b.lerpPos(alpha), rot = b.lerpRotation(alpha), c = Math.cos(rot), s = Math.sin(rot);
+    const loaded = new Set(this.salvos.slice(this.fired).flat());
+    return [...loaded].map((i) => {
+      const m = this.data.muzzles[i];
+      return { x: p.x + c * m.x - s * m.y, y: p.y + s * m.x + c * m.y, rot };
+    });
+  }
+
+  cuePoints() { return (this.salvos[this.cuedSalvo] ?? []).map((i) => ({ ...this.data.muzzles[i] })); }
+}
+
 const TYPES = {
   dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, slashes: SlashesAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
   slam: SlamAbility, hook: HookAbility, flurry: FlurryAbility, throw: ThrowAbility, lob: LobAbility, missiles: MissilesAbility, spin: SpinThrowAbility, volley: VolleyAbility,
+  cannons: CannonsAbility,
 };
 
 export function createAbility(enemy, data) {

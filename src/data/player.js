@@ -23,7 +23,7 @@ export const PLAYER = {
     visualSize: 2 * 0.8,
   },
   parry: {
-    parryDuration: 0.21,
+    parryDuration: 0.17,
     parryCooldown: 1,
     // The hitbox and its look reach `size` times as far from the player's centre, covering
     // the same angle.

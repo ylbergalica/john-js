@@ -199,7 +199,7 @@ export const ASPECTS = [
     // the first enemy it meets (within hitRadius of its tip) or on a wall. If its enemy dies it
     // never picks another, flying on straight for orphanTime; it gives up after `lifetime`.
     // comboTime without a hit loses the count. The HUD fills its icon toward the next one.
-    everyHits: 3, comboTime: 30, damage: 1.5, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
+    everyHits: 3, comboTime: 30, damage: 2, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
     // The look (src/aspects/needle.js): a small pale grey spike, white along one edge to its tip,
     // trailing a streak of pale light `length` long back from its tip and shedding grey motes. It
     // leaves in a flash, a ring and a puff of glints along its flight; it breaks on an enemy or a
@@ -336,7 +336,7 @@ export const ASPECTS = [
     // pointing the way they face, until the next parry sets them all on the enemy parried,
     // `stagger` apart. Blades still out (or still to come) at the end of a floor carry over to
     // the next, keeping guard there from when the player appears.
-    damage: 2, enemyKnockbackForce: 4, hitRadius: 0.15,
+    damage: 3, enemyKnockbackForce: 4, hitRadius: 0.15,
     stagger: [0.4, 0.1], arcDeg: 150, distance: [1.7, 2.2], settleTime: 1, launchDelay: 1,
     speed: 20, turnRate: 10, aimRate: 8, lifetime: 4,
     guard: { follow: 5, sway: 0.12, swaySpeed: 1.3, bob: 0.06, bobSpeed: 2.1, stagger: 0.08 },
@@ -373,7 +373,7 @@ export const ASPECTS = [
     // after it's all out it twitches once into a new shape, with a second clap of thunder, then
     // holds still for `hold` and fades over `fade`.
     chainHits: 5, sameHits: 10, sameShownAfter: 5, comboTime: 6, reach: 7, maxTargets: 10,
-    damage: 2, soloDamage: 4, arcDamage: 1, hitRadius: 0.3, enemyKnockbackForce: 2,
+    damage: 3, soloDamage: 5, arcDamage: 2, hitRadius: 0.3, enemyKnockbackForce: 2,
     speed: 150, minJumpTime: 0.01, // how fast it runs along a line, and the least any one jump takes
     twitchDelay: 0.05, hold: 0.35, fade: 0.35, soloTime: 0.06, soloReach: 4.5, // how far out from the enemy alone its arcs crawl
     // The look (src/aspects/thunder.js): jagged bolts, white-hot down the middle in a
@@ -429,7 +429,7 @@ export const ASPECTS = [
     // taking `burn` damage more in all, a little every step. Catching again hits again and starts
     // the burn over; the burn itself isn't a hit: no flinch, flash or knockback, so it
     // interrupts nothing, and nothing that counts hits counts it.
-    length: 2.8, catchDamage: 1, burn: 9, burnTime: 5, bodyReach: 0.2,
+    length: 2.8, catchDamage: 1, burn: 12, burnTime: 5, bodyReach: 0.2,
     openTime: 0.07, flapAt: 0.03, flapTime: 0.18, flapEase: [0.3, 0.15], flapDeg: 35, bendDeg: 80,
     foldTime: 0.17, foldEase: [0.15, 0.3], foldDeg: 30, foldBendDeg: 40, foldScale: 0.7, fadeAt: 0.36, fadeTime: 0.12, burnUntil: 0.5,
     // The look (src/aspects/phoenix.js): nothing but fire in the shape of wings. Each is a
@@ -490,8 +490,8 @@ export const ASPECTS = [
     doom: { at: 0.75, delay: 0.12 },
     streak: { hits: 7, time: 6, reach: 2 },
     lifetime: 20, wiltTime: 0.8, armTime: 0.4, radius: 0.3, nearby: 2.5, delay: 0.12,
-    cone: { damage: 4, enemyKnockbackForce: 8, halfDeg: 50, from: 0.4, range: 5.5, time: 0.4 },
-    ring: { damage: 3, enemyKnockbackForce: 6, from: 0.3, range: 4.2, time: 0.4 },
+    cone: { damage: 5, enemyKnockbackForce: 8, halfDeg: 50, from: 0.4, range: 5.5, time: 0.4 },
+    ring: { damage: 4, enemyKnockbackForce: 6, from: 0.3, range: 4.2, time: 0.4 },
     // The look: a small pale lotus (about half the player's size), pink at its petal tips and
     // white within round a pale green seed pod, see-through, breathing and swaying a little
     // under a soft pink glow and shedding motes (pink, white and a little green). It blooms out of
@@ -691,7 +691,7 @@ export const ASPECTS = [
     //   only enemy left in the fight.
     // Out of strikes, or roamed out, it flies on and fades out; it gives up after `lifetime`
     // going for a target without reaching it.
-    damage: 0.5, enemyKnockbackForce: 4, targets: 5, perStreak: 1, speed: 21, reach: 13, lifetime: 3, roam: 5,
+    damage: 1, enemyKnockbackForce: 4, targets: 5, perStreak: 1, speed: 21, reach: 13, lifetime: 3, roam: 5,
     arc: { out: 0.1, turnRate: 20 },
     // The look: a disc almost the player's size, a thin ring of white metal (its hole 70% of its
     // radius) with teal round the outside of half of it, spinning so fast it blurs into one pale
@@ -741,8 +741,8 @@ export const ASPECTS = [
       exaltedDarken: 0.5,
       wings: { feather: 0x050407, echo: 0x000000, strand: 0x09080b, smoke: 0x060508, smokeFade: 0x000000, shed: 0x050407 },
     },
-    pulse: { damage: 7, to: 4.6, min: 1.2, moveTime: 0.2 },
-    implode: { damage: 9, fill: 0.92, moveTime: 0.12 },
+    pulse: { damage: 10, to: 4.6, min: 1.2, moveTime: 0.2 },
+    implode: { damage: 15, fill: 0.92, moveTime: 0.12 },
     // The look: the world itself tears where it happens (src/render/distortion.js: gone black,
     // tear.opacity at its ragged edge and within, and space stretched out in random bands and
     // wedges, `stretch` how hard, and warped), under black mist: for a pulse, a ring of it

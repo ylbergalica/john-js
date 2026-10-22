@@ -30,10 +30,11 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'goblin', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 3, toFloor: 5 },
       { type: 'striker', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 3, toFloor: 5 },
       { type: 'mauler', weight: { min: 0.5, max: 1 }, fromFloor: 3, peakFloor: 4, toFloor: 9 },
-      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 5, peakFloor: 7 },
-      { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 6, peakFloor: 7 },
-      { type: 'lemur', weight: { min: 0.6, max: 1 }, fromFloor: 8, peakFloor: 9 },
-      { type: 'boxer', weight: { min: 0.5, max: 1 }, fromFloor: 10, peakFloor: 12 },
+      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 5, peakFloor: 7, toFloor: 11 },
+      { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 6, peakFloor: 7, toFloor: 9 },
+      { type: 'lemur', weight: { min: 0.6, max: 1 }, fromFloor: 8, peakFloor: 9, toFloor: 13 },
+      { type: 'boxer', weight: { min: 0.5, max: 1 }, fromFloor: 10, peakFloor: 12, toFloor: 16 },
+      { type: 'gunner', weight: { min: 0.5, max: 1 }, fromFloor: 10, peakFloor: 13, toFloor: 19 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
     // in a room) until killing them all fills `meterShare` of a meter even if each drops

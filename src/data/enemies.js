@@ -85,12 +85,23 @@ export const ENEMY_TYPES = {
   // front, striking all round there like the Mauler's slam; or a big step in and a flurry
   // of punches across a wide cone that only a parry stops.
   boxer: {
-    name: 'Boxer', maxHealth: 20, damage: 1.7, radius: 0.56, mass: 4, linearDamping: 1,
+    name: 'Boxer', maxHealth: 23, damage: 1.7, radius: 0.56, mass: 4, linearDamping: 1,
     knockbackResistance: 0.15, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 3, maxAdrenalineDrops: 4, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd8303e, sfxPitch: 0.9,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xd8303e, sfxPitch: 0.9,
     visual: { kind: 'sprite', outline: 'boxer_idle', void: 'boxer_idle_void', size: 1.7, sparkleCount: 24, rig: 'fists' },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.2, moveSpeed: 3, orbitSpeed: 2.6, repositionSpeed: 2.6, maxTurnSpeed: 4.5,
       attacks: [{ ability: 'BoxerHook', weight: 0.5 }, { ability: 'BoxerClap', weight: 0.25 }, { ability: 'BoxerFlurry', weight: 0.25 }] },
+  },
+  // A light blue gun platform: a bubbly ring of six bumps with three cannons side by side
+  // across its front, the middle one a little shorter. It keeps its distance and fires all
+  // three straight ahead: one after another in a random order, or all at once, three times over.
+  gunner: {
+    name: 'Gunner', maxHealth: 20, damage: 1.5, radius: 0.5, mass: 4, linearDamping: 1,
+    knockbackResistance: 0.1, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x7fd6ff, sfxPitch: 0.95,
+    visual: { kind: 'sprite', outline: 'gunner_idle', void: 'gunner_idle_void', size: 1.65, sparkleCount: 22 },
+    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 6, moveSpeed: 2.6, orbitSpeed: 2.4, repositionSpeed: 2.4, maxTurnSpeed: 3,
+      attacks: [{ ability: 'GunnerCascade', weight: 0.55 }, { ability: 'GunnerBarrage', weight: 0.45 }] },
   },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,

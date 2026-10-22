@@ -388,6 +388,18 @@ const SOUNDS = {
     tone(v, { freq: 110, to: 38, dur: 0.4, vol: 0.5 });
     noise(v, { filter: 'lowpass', freq: 800, to: 90, dur: 0.35, vol: 0.4 });
   },
+  // the Gunner
+  cannon(v) { // one cannon going off: a hard pop over a thump
+    noise(v, { freq: 900, to: 260, q: 1, dur: 0.12, vol: 0.3, attack: 0.003 });
+    tone(v, { type: 'square', freq: 240, to: 70, dur: 0.1, vol: 0.08 });
+    tone(v, { freq: 120, to: 45, dur: 0.18, vol: 0.3 });
+  },
+  broadside(v) { // all three at once: heavier, with a ringing crack
+    noise(v, { filter: 'highpass', freq: 1500, to: 600, q: 0.7, dur: 0.07, vol: 0.28, attack: 0.002 });
+    noise(v, { freq: 700, to: 180, q: 0.9, dur: 0.2, vol: 0.38, attack: 0.003 });
+    tone(v, { type: 'square', freq: 200, to: 60, dur: 0.12, vol: 0.1 });
+    tone(v, { freq: 95, to: 35, dur: 0.3, vol: 0.45 });
+  },
   // the Seraph
   boost(v) { // a jet lighting up for the ram
     noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });

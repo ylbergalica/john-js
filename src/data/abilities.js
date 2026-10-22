@@ -165,6 +165,30 @@ export const ABILITIES = {
     linger: 0.07, hitboxScale: 1.4, hitboxes: 3,
     strikeSound: 'enemyDash', punchSound: 'jab', fists: 'flurry',
   },
+  // The Gunner's cannons: `muzzles`, in its frame (+x forward, world units): the ends of
+  // its three barrels, the middle one a touch further back (GUNNER in sprites.js). Each
+  // fires its shot straight ahead, a little bigger than the Goblin's and about as fast as
+  // the Lemur's crescents, kicking the Gunner back `recoil` (speed) as it goes. A shot forms at each
+  // cannon over the wind-up and waits there until fired. `salvos` of them, one every
+  // `salvoInterval`, each cued at the cannons about to fire.
+  // Cascade: each salvo is a single cannon, all three in a random order, its aim locked.
+  GunnerCascade: {
+    type: 'cannons', tell: 'cannons', cooldown: 4, range: 13, windUpTime: 0.8, lockTime: 0.25, duration: 0, recoveryTime: 0.4,
+    damageMultiplier: 1, parryStunTime: 0.8, ...clearPath({ x: 1.2, y: 1.2 }, 0.3),
+    projectileSpeed: 10, projectileLifetime: 2.5, projectileSize: 0.42,
+    muzzles: [{ x: 0.7, y: -0.314 }, { x: 0.6, y: 0 }, { x: 0.7, y: 0.314 }],
+    salvos: 3, salvoInterval: 0.3, recoil: 0.5,
+  },
+  // Barrage: all three at once, `salvos` times. Each fresh set of shots forms over
+  // `regrowTime`; between salvos it turns after the player at up to `turnRate` (rad/s),
+  // except for the last `lockTime` before the next.
+  GunnerBarrage: {
+    type: 'cannons', tell: 'barrage', cooldown: 5.5, range: 11, windUpTime: 0.9, lockTime: 0.2, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.2, y: 1.2 }, 0.3),
+    projectileSpeed: 10, projectileLifetime: 2.5, projectileSize: 0.42,
+    muzzles: [{ x: 0.7, y: -0.314 }, { x: 0.6, y: 0 }, { x: 0.7, y: 0.314 }],
+    salvos: 3, salvoInterval: 0.55, together: true, regrowTime: 0.3, turnRate: 1.2, recoil: 1,
+  },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),

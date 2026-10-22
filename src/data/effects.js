@@ -132,6 +132,8 @@ export const ATTACK_FX = {
     hook: { shape: 'none', lean: 0.1, squash: 0, swell: 0.04, twist: 16 }, // its fist shows the side
     clap: { shape: 'arc', arcDeg: 120, lines: 2, reach: 0.7, to: 1.15, lean: 0.18, squash: 0.06, swell: 0.1 },
     flurry: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.3, lean: 0.22, squash: 0.1, swell: 0.04 },
+    cannons: { shape: 'none', lean: 0.06, squash: 0, swell: 0.03 }, // its shots show which cannon
+    barrage: { shape: 'arc', arcDeg: 60, lines: 2, reach: 0.6, to: 1.2, lean: 0.14, squash: 0.1, swell: 0.06 }, // bracing for the kick
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -173,6 +175,7 @@ export const ATTACK_FX = {
   projectile: {
     glowSize: 3.4, glowAlpha: 0.75, pulseSpeed: 9, trailLength: 1.6, trailWidth: 1.3, // × projectile size, except trailLength
     chargeFrom: 0.25, // a throw's orb starts at this fraction of the projectile's size
+    muzzle: { count: 6, speed: 6, lifetime: 0.18, size: 0.28, coneDeg: 40 }, // a cannon's flash as it fires
     fizzle: { count: 10, speed: 5, lifetime: 0.3, size: 0.25, coneDeg: 180 },
   },
   // Beams: widths are × the beam's width. It grows in over growTime with a white-hot flash,

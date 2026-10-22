@@ -49,6 +49,8 @@ export function sprites() {
     boxer_idle: boxerOutline(),
     boxer_idle_void: voidFill(boxerPath(), VOIDS.boxer),
     boxer_fist: boxerFist(),
+    gunner_idle: gunnerOutline(),
+    gunner_idle_void: voidFill(gunnerPath(), VOIDS.gunner),
     tail: tail(),
     dash_ghost: dashGhost(),
     spark: spark(),
@@ -346,7 +348,7 @@ function swingFrames(def, S = 256) {
 // A thin crescent on a circle centred off to the left (PLAYER.parry.look, which the hitbox
 // follows too); it sweeps from bottom to top.
 const PARRY_LOOK = PLAYER.parry.look;
-const PARRY_ARC = { ...PARRY_LOOK.arc, width: 0.045 };
+const PARRY_ARC = { ...PARRY_LOOK.arc, width: 0.035 };
 // Its head (degrees; 0 is straight ahead along the aim) sweeps up from `head[0]` to
 // `head[1]` along the timing curve `ease` (gentle at both ends, quick between), and its tail
 // follows from `tail[0]` to `tail[1]` along the same curve run backwards, hanging back
@@ -856,6 +858,7 @@ const VOIDS = {
   seer: { core: '#0b1645', edge: '#03040f', clouds: [['#2d4fd8', 0.24], ['#16288a', 0.22]], seed: 53 },
   lemur: { core: '#17361d', edge: '#040a05', clouds: [['#3f8a3a', 0.18], ['#6b4320', 0.26]], seed: 59 },
   boxer: { core: '#2e0a0e', edge: '#070304', clouds: [['#b02030', 0.2], ['#5e0e1a', 0.24]], seed: 61 },
+  gunner: { core: '#0b2a3a', edge: '#03080c', clouds: [['#3fb4e8', 0.22], ['#1c5c8a', 0.2]], seed: 67 },
 };
 // The Mauler's body: a square with heavily rounded corners ([x, y, size, corner radius]).
 const MAULER = { body: [0.14, 0.14, 0.72, 0.27], line: 0.045 };
@@ -905,6 +908,14 @@ const BOXER_PALETTE = { stroke: ['#ffa8a8', '#d8303e', '#7a1018'], glow: rgba('#
 // A conjured fist, a separate sprite: a circle `body` of the texture's width in radius (the
 // rest is room for its glow).
 export const FIST_ART = { body: 0.36, line: 0.07 };
+// The Gunner's body: bubbly, a ring of `bumps` round lobes end to end, each `bulge` degrees
+// of its own circle, meeting at radius `r`, one joint straight ahead so it is symmetrical.
+// Three cannons side by side, `gauge` thick: one out of each front lobe, `spread` out to
+// either side, its barrel from `barrel[0]` to `[1]` along +x, and one out of the notch
+// between them, from `middle[0]` to `[1]`, a little shorter. Its muzzles
+// (GunnerCascade.muzzles) are the barrels' ends, at its sprite's size.
+const GUNNER = { r: 0.27, bumps: 6, bulge: 120, line: 0.045, barrel: [0.7, 0.9], middle: [0.67, 0.85], gauge: 0.12, spread: 0.19 };
+const GUNNER_PALETTE = { stroke: ['#e0f7ff', '#7fd6ff', '#2f9fd8'], glow: rgba('#5cc8ff', 0.65) };
 // The Seraph's hull, nose to the right: [x, y] for the top half, mirrored below.
 // Nose, wingtip, trailing edge, engine nozzle (outer, inner), tail notch.
 const SERAPH_HULL = [[0.9, 0.5], [0.15, 0.18], [0.27, 0.3], [0.17, 0.35], [0.2, 0.43], [0.33, 0.5]];
@@ -1199,6 +1210,50 @@ function boxerFist(S = 128) {
   });
   sparkle(ctx, 0.41, 0.39, r * 0.4, '#ffd6d6', 0.85);
   return c;
+}
+
+function gunnerBarrels() {
+  const { barrel, middle, gauge, spread } = GUNNER, p = new Path2D();
+  for (const [y, [x0, x1]] of [[0.5 - spread, barrel], [0.5, middle], [0.5 + spread, barrel]]) {
+    p.roundRect(x0, y - gauge / 2, x1 - x0, gauge, gauge * 0.3);
+  }
+  return p;
+}
+
+// The lobes, clockwise from the joint straight ahead: each an arc whose centre sits inward
+// along its middle, far enough that its ends land on the joints.
+function gunnerBody(p = new Path2D()) {
+  const { r, bumps, bulge } = GUNNER, half = Math.PI / bumps, a = (bulge * DEG) / 2;
+  const radius = (r * Math.sin(half)) / Math.sin(a), centre = r * Math.cos(half) - radius * Math.cos(a);
+  for (let i = 0; i < bumps; i++) {
+    const mid = (2 * i + 1) * half;
+    p.arc(0.5 + Math.cos(mid) * centre, 0.5 + Math.sin(mid) * centre, radius, mid - a, mid + a);
+  }
+  p.closePath();
+  return p;
+}
+
+function gunnerPath() {
+  const p = gunnerBody();
+  p.addPath(gunnerBarrels());
+  return p;
+}
+
+// The bumps, broken where the barrels pass through them, and the barrels.
+function gunnerOutline(S = 256) {
+  const barrels = gunnerBarrels();
+  const outsideBarrels = new Path2D();
+  outsideBarrels.rect(0, 0, 1, 1);
+  outsideBarrels.addPath(barrels);
+  return outline(S, GUNNER_PALETTE, (ctx) => {
+    ctx.lineWidth = GUNNER.line;
+    ctx.lineJoin = 'round';
+    ctx.save();
+    ctx.clip(outsideBarrels, 'evenodd');
+    ctx.stroke(gunnerBody());
+    ctx.restore();
+    ctx.stroke(barrels);
+  });
 }
 
 function seerOutline(S = 256) {

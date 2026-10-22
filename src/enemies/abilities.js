@@ -133,6 +133,16 @@ class Ability {
     }
   }
 
+  // Before a parry stuns the enemy afresh: whatever else it was winding up comes to nothing,
+  // and a stun still running from an earlier parry gives way to this one.
+  takeOverStun() {
+    for (const a of this.enemy.abilities.values()) {
+      if (a === this) continue;
+      if (a.phase === 'windup' || a.phase === 'stunned') a.phase = 'ready';
+      if (a.parriedStunEndsAt != null) a.parriedStunEndsAt = null;
+    }
+  }
+
   // Damage taken when parried, plus the player's parry-streak bonus, both scaled by Exalted.
   parryDamage() {
     const base = this.data.damageMultiplier * this.enemy.damage;
@@ -228,9 +238,9 @@ class HitboxAbility extends Ability {
   // A zone stays active (and keeps its look) with its hitbox off. The stun starts now either
   // way; for a zone, whatever is left of it once the strike ends follows (see advance).
   // A late parry (Player.hitBy) can come once the strike is over; then the stun just starts,
-  // breaking off anything the enemy has begun since.
+  // breaking off anything the enemy has begun since. Parried again while stunned, it all
+  // happens again: the knockback, the damage and the stun from the start.
   onParry() {
-    if (this.phase === 'stunned' || this.parriedStunEndsAt !== null) return;
     const e = this.enemy, striking = this.phase === 'active', zone = striking && this.kind === 'zone';
     if (zone) this.hitbox.setActive(false);
     else if (striking) this.endActive();
@@ -240,11 +250,11 @@ class HitboxAbility extends Ability {
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
     if (e.dead || e.dying) return;
     e.stunned = true;
+    this.takeOverStun();
     if (zone) {
       this.parriedStunEndsAt = this.world.time + this.data.parryStunTime;
       return;
     }
-    if (!striking) for (const a of e.abilities.values()) if (a !== this && a.phase === 'windup') a.phase = 'ready';
     this.setPhase('stunned', this.data.parryStunTime);
   }
 }
@@ -736,16 +746,17 @@ class ThrowAbility extends Ability {
 
   // A parried projectile punishes its thrower, even mid-way through a later attack, which
   // the stun breaks off if it was still winding up. With no `parryStunTime` it only hurts.
+  // Another of its shots parried while the enemy is stunned hurts and stuns it afresh.
   onParry() {
     const e = this.enemy;
-    if (this.phase === 'stunned' || e.dead) return;
+    if (e.dead) return;
     const stuns = this.data.parryStunTime > 0;
     if (stuns) e.body.stop();
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
     if (!stuns || e.dead || e.dying) return;
     e.stunned = true;
     e.isActing = false;
-    for (const a of e.abilities.values()) if (a !== this && a.phase === 'windup') a.phase = 'ready';
+    this.takeOverStun();
     this.setPhase('stunned', this.data.parryStunTime);
   }
 }

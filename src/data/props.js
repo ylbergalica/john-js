@@ -49,7 +49,7 @@ export const PROPS = {
       shake: { duration: 0.14, strength: 0.1, frequency: 26 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.22, table: 'common' },
+    loot: { rolls: 1, chance: 0.07, table: 'common' },
   },
   cagedStar: {
     health: 1, radius: 0.34, size: 0.86, mass: 2, damping: 14, spin: 0.35,
@@ -77,7 +77,7 @@ export const PROPS = {
       shake: { duration: 0.14, strength: 0.1, frequency: 26 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.22, table: 'common' },
+    loot: { rolls: 1, chance: 0.1, table: 'common' },
   },
   starEgg: {
     health: 2, radius: 0.34, size: 0.84, mass: 3, damping: 14,
@@ -105,7 +105,7 @@ export const PROPS = {
       shake: { duration: 0.16, strength: 0.12, frequency: 24 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.3, table: 'common' },
+    loot: { rolls: 1, chance: 0.2, table: 'common' },
   },
   geode: {
     health: 3, radius: 0.42, size: 1.05, mass: 4, damping: 14,
@@ -133,7 +133,7 @@ export const PROPS = {
       shake: { duration: 0.18, strength: 0.14, frequency: 24 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.4, table: 'common' },
+    loot: { rolls: 1, chance: 0.3, table: 'common' },
   },
   reliquary: {
     health: 5, radius: 0.48, size: 1.12, mass: 6, damping: 14,
@@ -165,7 +165,7 @@ export const PROPS = {
       shake: { duration: 0.3, strength: 0.22, frequency: 20 },
       ripple: { duration: 0.9, strength: 0.025, width: 0.07, glow: 0.4, grade: [1, 1, 1] },
     },
-    loot: { rolls: 1, chance: 1, table: 'rich' },
+    loot: { rolls: 1, chance: 0.5, table: 'rich' },
   },
   // A spawner (src/game/spawner.js, SPAWNERS): a festering wound in the void, rooted to the
   // floor, a slit of an eye in a crown of thorns, red veins throbbing out to them. It births
@@ -303,8 +303,8 @@ export const PROP_SPAWN = {
 // one given by an aspect sounds at quietVolume.
 // While one holds the player shows it (`color`), and the HUD lists it with what's left.
 export const BUFFS = {
-  swift: { time: 30, speed: 1.3, color: 0x7fe8ff },
-  fury: { time: 30, damage: 1.5, color: 0xff5fc8 },
+  swift: { time: 30, speed: 1.2, color: 0x7fe8ff },
+  fury: { time: 30, damage: 1.3, color: 0xff5fc8 },
   haste: { time: 30, cooldown: 0.8, color: 0xffe95a },
   ward: { color: 0xc8d4ff, quietVolume: 0.45 },
 };

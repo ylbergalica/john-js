@@ -504,6 +504,67 @@ const SOUNDS = {
     tone(v, { type: 'triangle', freq: 1870, to: 1820, at: 0.01, dur: 0.6, vol: 0.06 });
     tone(v, { freq: 2950, to: 2900, at: 0.01, dur: 0.45, vol: 0.04 });
   },
+  // the Blight (its own attacks are played at its sfxPitch, a good deal lower)
+  blobVolley(v) { // every rim mouth retching at once: a thick wet burst over a low gulp and a gurgle
+    splat(v, { freq: 1100, to: 320, q: 0.8, dur: 0.22, vol: 0.5 });
+    splat(v, { freq: 420, to: 170, q: 0.7, at: 0.02, dur: 0.28, vol: 0.65 });
+    tone(v, { freq: 150, to: 55, dur: 0.24, vol: 0.35, out: grit(v, 1.6, 0.3) });
+    noise(v, { freq: 700, to: 260, q: 4, dur: 0.2, vol: 0.12, attack: 0.01 });
+  },
+  spit(v) { // a few mouths spitting: a short wet pop
+    splat(v, { freq: 1500, to: 520, dur: 0.11, vol: 0.42 });
+    tone(v, { freq: 280, to: 120, dur: 0.08, vol: 0.14 });
+  },
+  retch(v) { // a glob heaved up and hurled: a deep gurgling heave
+    tone(v, { type: 'sawtooth', freq: 90, to: 55, dur: 0.28, vol: 0.12, attack: 0.02, out: grit(v, 2, 0.25) });
+    splat(v, { freq: 700, to: 220, q: 0.7, dur: 0.24, vol: 0.5 });
+    noise(v, { freq: 480, to: 260, q: 5, dur: 0.22, vol: 0.1, attack: 0.03 });
+  },
+  // Heads tearing free and flying off: a wet rip, and a strangled shriek straining upward.
+  headLoose(v) {
+    splat(v, { freq: 700, to: 2400, q: 0.7, dur: 0.18, vol: 0.5 });
+    splat(v, { freq: 320, to: 150, q: 0.8, at: 0.03, dur: 0.2, vol: 0.5 });
+    const throat = dull(v, 2600, 1);
+    for (const freq of [300, 309]) tone(v, { type: 'sawtooth', freq, to: freq * 2.1, at: 0.05, dur: 0.5, vol: 0.05, attack: 0.04, out: throat });
+    noise(v, { freq: 1100, to: 1800, q: 4, at: 0.05, dur: 0.45, vol: 0.12, attack: 0.04 });
+  },
+  globSplat(v) { // a glob landing: a big wet splat over a thud, then the poison sizzling
+    tone(v, { freq: 110, to: 35, dur: 0.35, vol: 0.45 });
+    splat(v, { freq: 1500, to: 350, dur: 0.3, vol: 0.55 });
+    splat(v, { freq: 380, to: 150, q: 0.7, at: 0.02, dur: 0.35, vol: 0.7 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 5200, at: 0.08, dur: 0.6, vol: 0.05, attack: 0.15 });
+  },
+  // A head torn off as it dies: a wet tearing rip and a choked scream, cut short.
+  headRip(v) {
+    splat(v, { freq: 600, to: 2200, q: 0.6, dur: 0.16, vol: 0.55 });
+    splat(v, { freq: 300, to: 130, q: 0.8, at: 0.05, dur: 0.22, vol: 0.6 });
+    const throat = dull(v, 2200, 1);
+    const cry = tone(v, { type: 'sawtooth', freq: 420, to: 190, dur: 0.38, vol: 0.07, attack: 0.02, out: throat });
+    lfo(v, cry.frequency, { rate: 13, depth: 18, dur: 0.38 });
+    noise(v, { freq: 1300, to: 800, q: 5, dur: 0.32, vol: 0.12, attack: 0.02 });
+  },
+  // Dying, about as long as its `dying`: a low chorus of groans swelling and sliding down, a
+  // wet churning under it, cut off by bossKill as it bursts.
+  blightDying(v) {
+    const throat = dull(v, 900);
+    [62, 74, 83, 98, 117].forEach((freq, i) => {
+      const o = tone(v, { type: 'sawtooth', freq, to: freq * 0.7, at: i * 0.12, dur: 2.8 - i * 0.12, vol: 0.06, attack: 0.5, hold: 2.5 - i * 0.12, out: throat });
+      lfo(v, o.frequency, { rate: 4 + i * 0.9, depth: freq * 0.04, dur: 2.8 });
+    });
+    const churn = ctx.createGain();
+    churn.gain.value = 0.5;
+    churn.connect(v.out);
+    lfo(v, churn.gain, { rate: 7, depth: 0.45, dur: 2.8 });
+    noise(v, { freq: 350, to: 700, q: 1.2, dur: 2.8, vol: 0.18, attack: 1.2, hold: 2.6, out: churn, buffer: goo() });
+    tone(v, { freq: 70, to: 120, dur: 2.8, vol: 0.25, attack: 0.1, hold: 2.65 });
+  },
+  moan(v) { // now and then, idle: a low, hollow groan sliding down
+    const throat = dull(v, 1000);
+    const o = tone(v, { type: 'sawtooth', freq: 140, to: 100, dur: 1.3, vol: 0.07, attack: 0.3, hold: 0.8, out: throat });
+    lfo(v, o.frequency, { rate: 5, depth: 3, dur: 1.3 });
+    tone(v, { type: 'sawtooth', freq: 106, to: 82, at: 0.15, dur: 1.1, vol: 0.04, attack: 0.3, hold: 0.6, out: throat });
+    noise(v, { freq: 520, to: 340, q: 3, dur: 1.2, vol: 0.05, attack: 0.3, hold: 0.7 });
+  },
   // the Seraph
   boost(v) { // a jet lighting up for the ram
     noise(v, { freq: 200, to: 1600, q: 0.9, dur: 0.5, vol: 0.32, attack: 0.04 });

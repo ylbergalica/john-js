@@ -7,6 +7,7 @@ export function scaleConfig(base, floor) {
   // Types come and go floor by floor, their weight resolved for this floor.
   es.enemies = spawnableOn(es.enemies, floor);
   s.chasers = spawnableOn(s.chasers, floor);
+  if (!s.chasers.length) s.chasers = base.chasers.map((c) => ({ ...c, weight: 1 })); // deeper than any guards: all of them
 
   // Enemy count follows the adrenaline budget; rooms can hold more as they grow.
   es.maxEnemiesPerRoom = Math.min(es.maxEnemiesPerRoom + F(floor * 0.4), 15);

@@ -6,7 +6,8 @@
 import { seededRandom, lerp, lerpColor, clamp01, smoothStep01, TAU } from '../engine/math.js';
 import { ASPECTS } from '../data/aspects.js';
 import { PLAYER } from '../data/player.js';
-import { LEMUR_TAIL } from '../data/effects.js';
+import { BLIGHT, LEMUR_TAIL } from '../data/effects.js';
+import { ENEMY_TYPES } from '../data/enemies.js';
 import { antlerParts, mirrored } from './antlerShape.js';
 
 const DEG = Math.PI / 180;
@@ -54,6 +55,9 @@ export function sprites() {
     corsair_idle: corsairOutline(),
     corsair_idle_void: corsairVoid(),
     scimitar: scimitar(),
+    blight_idle: blightOutline(),
+    blight_idle_void: blightVoid(),
+    ...blightHeadSprites(),
     tail: tail(),
     dash_ghost: dashGhost(),
     spark: spark(),
@@ -863,6 +867,7 @@ const VOIDS = {
   boxer: { core: '#2e0a0e', edge: '#070304', clouds: [['#b02030', 0.2], ['#5e0e1a', 0.24]], seed: 61 },
   gunner: { core: '#0b2a3a', edge: '#03080c', clouds: [['#3fb4e8', 0.22], ['#1c5c8a', 0.2]], seed: 67 },
   corsair: { core: '#33270a', edge: '#090602', clouds: [['#c8961e', 0.22], ['#7a5a12', 0.24]], seed: 71 },
+  blight: { core: '#1d3312', edge: '#050903', clouds: [['#4f8a22', 0.26], ['#8a9a26', 0.14], ['#2a4a14', 0.3]], seed: 73 },
 };
 // The Mauler's body: a square with heavily rounded corners ([x, y, size, corner radius]).
 const MAULER = { body: [0.14, 0.14, 0.72, 0.27], line: 0.045 };
@@ -939,6 +944,85 @@ export const SCIMITAR_ART = {
   w: 1.24, h: 0.62, rootX: 0.26, rootY: 0.17, unit: 216, len: 0.88, curve: 0.34, handle: 0.16, cue: 0.72,
   back: 0.034, bumpAt: 0.46, bump: 0.14, belly: 0.075, bellyAt: 0.66,
 };
+// The Blight's body: rotten flesh (`rot`) inside one lumpy outline traced round its heads,
+// swelling over each rim head (`over` × its size past its centre) and sagging between them
+// to `sag` out from its centre, the two blended smoothly (`blend`: higher is sharper),
+// roughened by `lumps`, each [waves, depth (× radius), phase]. World units, in its frame.
+// Its heads, and the puckers and sinews joining them, are drawn over it by its rig (BLIGHT,
+// src/enemies/blightRig.js). The rot: a sickly `base`, mottled with `blotches` ([colour,
+// alpha]), creased with folds, threaded with dark `vein`s and pocked with pits and `pus`.
+const BLIGHT_BODY = { over: 1.25, sag: 0.95, blend: 14, line: 0.04, lumps: [[3, 0.025, 1.1], [7, 0.015, 2.3], [13, 0.008, 0.4]] };
+const ROT = {
+  base: ['#3d4629', '#2b311e', '#14180c'],
+  blotches: [['#3a2433', 0.35], ['#7a7430', 0.16], ['#080b05', 0.5], ['#5a6040', 0.22], ['#4a2a22', 0.3], ['#1e2a12', 0.4]],
+  vein: '#3a1622', pus: '#c8bf5a',
+};
+const BLIGHT_PALETTE = { stroke: ['#d8f2a4', '#6fa83a', '#2f5a18'], glow: rgba('#5a9a2a', 0.7) };
+// A head, its own sprite so the rig can move each one, drawn round a head `size` 1 spanning
+// `body` of the texture's width (its shape reaching past that; the rest room for a glow),
+// its face looking along +x, crown back, jaw forward. On the Blight it has no edge at all:
+// it fades over `feather` (of the texture's width) into the flesh and the heads round it,
+// so they grow into each other. Torn loose it is outlined (`line`) like any projectile.
+export const HEAD_ART = { body: 0.27, line: 0.045, feather: 0.045 };
+const HEAD_PALETTE = { stroke: ['#d8f2a4', '#6fa83a', '#2f5a18'], glow: rgba('#5a9a2a', 0.7) };
+
+// The Blight's heads at rest in its frame (+x forward, world units), its rim heads first,
+// the first straight ahead (BLIGHT): [{ x, y, size, rot, rim, shape }], `rot` the way it
+// faces, `shape` how it is deformed (see headPoint) and its face.
+let blightHeadList = null;
+export function blightHeads() {
+  if (blightHeadList) return blightHeadList;
+  const { rim, inner, shape: S } = BLIGHT, J = rim.jitter, jr = seededRandom(rim.seed);
+  const heads = [
+    ...Array.from({ length: rim.count }, (_, i) => {
+      const k = i ? 1 : 0; // the first stays straight ahead
+      const a = (TAU * i) / rim.count + k * lerp(-J.angle, J.angle, jr()) * DEG, r = rim.r + lerp(-J.r, J.r, jr());
+      return { x: Math.cos(a) * r, y: Math.sin(a) * r, size: rim.size * lerp(...J.size, jr()), rot: a + k * lerp(-J.facing, J.facing, jr()) * DEG, rim: true };
+    }),
+    ...inner.map(([x, y, size, deg]) => ({ x, y, size, rot: deg * DEG, rim: false })),
+  ];
+  blightHeadList = heads.map((h, i) => {
+    const r = seededRandom(S.seed + i * 7919), side = () => (r() < 0.5 ? -1 : 1);
+    const shape = {
+      len: lerp(...S.length, r()), wid: lerp(...S.width, r()), pinch: lerp(...S.pinch, r()),
+      skew: side() * S.skew * r(), bend: side() * S.bend * r(),
+      waves: [2, 3, 5].map((n) => [n, S.wobble * r(), r() * TAU]),
+      skin: S.skin[Math.floor(r() * S.skin.length)],
+      eyes: [1, -1].map((v) => ({ v: v * lerp(0.34, 0.46, r()), u: lerp(-0.3, -0.12, r()), size: lerp(0.8, 1.3, r()), tilt: v * lerp(0.05, 0.3, r()) })),
+      mouth: { v: lerp(-0.08, 0.08, r()), size: lerp(0.85, 1.2, r()), tilt: lerp(-0.2, 0.2, r()) },
+      seed: Math.floor(r() * 1e6),
+    };
+    return { ...h, shape };
+  });
+  return blightHeadList;
+}
+
+// A point of a head's face, `u` along it (crown -1, jaw +1) and `v` across (-1 to 1), as
+// deformed by its `shape`, × its size round its centre (+x the way it faces).
+export function headPoint(shape, u, v) {
+  const x = u * shape.len, y = v * shape.wid * (1 - shape.pinch * Math.max(0, u));
+  return { x, y: y + shape.skew * x + shape.bend * x * x };
+}
+
+// The heads near enough to be strung together by sinews (BLIGHT.flesh.reach): [[i, j]],
+// indices into blightHeads().
+let blightFleshList = null;
+export function blightFlesh() {
+  if (blightFleshList) return blightFleshList;
+  const heads = blightHeads(), reach = BLIGHT.flesh.reach;
+  blightFleshList = [];
+  heads.forEach((a, i) => heads.forEach((b, j) => {
+    if (j > i && Math.hypot(a.x - b.x, a.y - b.y) < (a.size + b.size) * reach) blightFleshList.push([i, j]);
+  }));
+  return blightFleshList;
+}
+
+// Where head `h`'s mouth is, pushed `push` out along the way it faces, in the Blight's frame.
+export function blightMouth(h, push = 0) {
+  const m = headPoint(h.shape, BLIGHT.mouth, h.shape.mouth.v), c = Math.cos(h.rot), s = Math.sin(h.rot);
+  const x = m.x * h.size + push, y = m.y * h.size;
+  return { x: h.x + c * x - s * y, y: h.y + s * x + c * y };
+}
 // A point on the scimitar's spine `along` from the guard, in the sprite's frame (guard at 0).
 export function scimitarAt(along) {
   const t = along / SCIMITAR_ART.len;
@@ -1308,6 +1392,182 @@ function corsairVoid() {
     ctx.restore();
   }
   return c;
+}
+
+// In texture units (its visual.size across), traced round its rim heads (BLIGHT_BODY).
+function blightPath() {
+  const B = BLIGHT_BODY, size = ENEMY_TYPES.blight.visual.size, rim = blightHeads().filter((h) => h.rim), p = new Path2D(), N = 240;
+  for (let i = 0; i <= N; i++) {
+    const a = (TAU * i) / N, dx = Math.cos(a), dy = Math.sin(a);
+    let sum = Math.exp(B.blend * B.sag);
+    for (const h of rim) { // how far this way the circle over the head reaches
+      const R = h.size * B.over, t = h.x * dx + h.y * dy, d2 = R * R - (h.x * h.x + h.y * h.y - t * t);
+      if (d2 > 0 && t > 0) sum += Math.exp(B.blend * (t + Math.sqrt(d2)));
+    }
+    const r = (Math.log(sum) / B.blend) * (1 + B.lumps.reduce((s, [w, depth, phase]) => s + depth * Math.sin(w * a + phase), 0));
+    const x = 0.5 + (dx * r) / size, y = 0.5 + (dy * r) / size;
+    if (i) p.lineTo(x, y); else p.moveTo(x, y);
+  }
+  p.closePath();
+  return p;
+}
+
+function blightOutline(S = 320) {
+  return outline(S, BLIGHT_PALETTE, (ctx) => {
+    ctx.lineWidth = BLIGHT_BODY.line;
+    ctx.stroke(blightPath());
+  });
+}
+
+// Its rotten flesh (ROT): a sickly base, mottled with bruises and rot, creased with folds,
+// threaded with dark veins, pocked with pits and swollen with pus.
+function blightVoid(S = 512) {
+  const { c, ctx } = surface(S), rand = seededRandom(73), R = ROT;
+  ctx.save();
+  ctx.clip(blightPath());
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, 0.4, R.base, 0.46, 0.44);
+  ctx.fillRect(0, 0, 1, 1);
+  const at = () => [lerp(0.12, 0.88, rand()), lerp(0.12, 0.88, rand())];
+  for (let i = 0; i < 110; i++) {
+    const [color, a] = R.blotches[i % R.blotches.length], [x, y] = at(), r = lerp(0.012, 0.07, rand() ** 1.6);
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(rand() * TAU); ctx.scale(1, lerp(0.35, 1, rand()));
+    ctx.fillStyle = radial(ctx, 0, 0, r, [rgba(color, a), rgba(color, a * 0.5), rgba(color, 0)]);
+    ctx.fillRect(-r, -r, 2 * r, 2 * r);
+    ctx.restore();
+  }
+  // Folds: a dark crease with a pale lip along it.
+  for (let i = 0; i < 40; i++) {
+    const [x, y] = at(), a = rand() * TAU, len = lerp(0.03, 0.09, rand()), bow = lerp(-0.03, 0.03, rand());
+    const ex = x + Math.cos(a) * len, ey = y + Math.sin(a) * len, mx = (x + ex) / 2 - Math.sin(a) * bow, my = (y + ey) / 2 + Math.cos(a) * bow;
+    for (const [color, alpha, width, off] of [['#060804', 0.5, 0.006, 0], ['#7a7a52', 0.16, 0.003, 0.006]]) {
+      ctx.strokeStyle = rgba(color, alpha);
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(x, y + off); ctx.quadraticCurveTo(mx, my + off, ex, ey + off);
+      ctx.stroke();
+    }
+  }
+  // Veins wandering and forking.
+  const vein = (x, y, a, width, steps) => {
+    ctx.strokeStyle = rgba(R.vein, 0.55);
+    for (let s = 0; s < steps; s++) {
+      const nx = x + Math.cos(a) * 0.012, ny = y + Math.sin(a) * 0.012;
+      ctx.lineWidth = width * (1 - s / steps) + 0.001;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
+      if (rand() < 0.12 && width > 0.003) vein(nx, ny, a + (rand() < 0.5 ? -1 : 1) * lerp(0.5, 1.1, rand()), width * 0.6, Math.floor(steps * 0.6));
+      x = nx; y = ny; a += (rand() - 0.5) * 0.9;
+    }
+  };
+  for (let i = 0; i < 16; i++) { const [x, y] = at(); vein(x, y, rand() * TAU, lerp(0.004, 0.008, rand()), 10 + Math.floor(rand() * 10)); }
+  // Pits, and pustules of pus.
+  for (let i = 0; i < 45; i++) {
+    const [x, y] = at(), r = lerp(0.004, 0.014, rand());
+    if (rand() < 0.5) {
+      ctx.fillStyle = radial(ctx, x, y, r * 1.6, ['#000000', rgba('#000000', 0.6), rgba('#000000', 0)]);
+      ctx.fillRect(x - r * 1.6, y - r * 1.6, r * 3.2, r * 3.2);
+    } else {
+      ctx.fillStyle = radial(ctx, x, y, r, [rgba(R.pus, 0.9), rgba(R.pus, 0.7), rgba('#3a3a14', 0.8)], x - r * 0.3, y - r * 0.3);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.restore();
+  return c;
+}
+
+// Head `h` (blightHeads): its deformed skull in rotten skin, blotched and bruised, fading
+// out at its edge into whatever it grows from, and a scream for a face: hollow cheeks, eyes
+// and a long mouth all but black holes. `open`: the mouth gaping wider, a sickly glow deep
+// in it (as it spits). `loose`: torn free, its edge crisp and ringed in the Blight's outline.
+function blightHead(h, open, loose = false, S = 160) {
+  const { c, ctx, px } = surface(S), sh = h.shape, B = HEAD_ART.body, rand = seededRandom(sh.seed);
+  const to = (u, v) => { const p = headPoint(sh, u, v); return [0.5 + p.x * B, 0.5 + p.y * B]; };
+  const skull = new Path2D(), N = 72;
+  for (let i = 0; i <= N; i++) {
+    const a = (TAU * i) / N, w = 1 + sh.waves.reduce((s, [n, amp, ph]) => s + amp * Math.sin(n * a + ph), 0);
+    const [x, y] = to(Math.cos(a) * w, Math.sin(a) * w);
+    if (i) skull.lineTo(x, y); else skull.moveTo(x, y);
+  }
+  skull.closePath();
+  const [light, mid, dark] = sh.skin, [cx, cy] = to(-0.3, -0.1);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, B * sh.len * 1.1, [light, mid, dark], cx, cy);
+  ctx.fill(skull);
+  ctx.save();
+  ctx.clip(skull);
+  const blot = (u, v, r, color, alpha) => {
+    const [x, y] = to(u, v);
+    ctx.fillStyle = radial(ctx, x, y, r, [rgba(color, alpha), rgba(color, 0)]);
+    ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  };
+  for (let i = 0; i < 7; i++) blot(lerp(-0.9, 0.9, rand()), lerp(-0.9, 0.9, rand()), B * lerp(0.15, 0.4, rand()), ['#2a1622', '#0a0e06', '#6a6420', '#3a2a20'][i % 4], lerp(0.25, 0.5, rand()));
+  // Sunken cheeks and temples, bags under the eyes.
+  for (const v of [-1, 1]) {
+    blot(0.22, v * 0.55, B * 0.32, '#000000', 0.45);
+    blot(-0.5, v * 0.6, B * 0.22, '#000000', 0.3);
+    const e = sh.eyes[v > 0 ? 0 : 1];
+    blot(e.u + 0.22, e.v, B * 0.2, '#1a0a10', 0.5);
+  }
+  // Furrows across the brow.
+  ctx.strokeStyle = rgba('#050703', 0.45);
+  ctx.lineWidth = 0.012;
+  for (let i = 0; i < 3; i++) {
+    const u = -0.45 - i * 0.12 + lerp(-0.04, 0.04, rand());
+    ctx.beginPath();
+    for (let k = 0; k <= 8; k++) { const [x, y] = to(u + 0.06 * Math.sin((k / 8) * Math.PI), lerp(-0.45, 0.45, k / 8)); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+    ctx.stroke();
+  }
+  // A hole: black, its edge soft, along the face `ru` × `rv` (× the head), turned `tilt`.
+  const hole = (u, v, ru, rv, tilt, glow = null) => {
+    const [x, y] = to(u, v);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt + Math.atan(sh.skew + 2 * sh.bend * u * sh.len));
+    ctx.scale(ru * sh.len * B, rv * sh.wid * B);
+    ctx.fillStyle = radial(ctx, 0, 0, 1.25, ['#000000', '#000000', '#020201', rgba('#000000', 0)]);
+    ctx.beginPath(); ctx.arc(0, 0, 1.25, 0, TAU); ctx.fill();
+    if (glow) {
+      ctx.fillStyle = radial(ctx, 0.1, 0, 0.7, [rgba(glow, 0.75), rgba(glow, 0.2), rgba(glow, 0)]);
+      ctx.beginPath(); ctx.arc(0.1, 0, 0.7, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  };
+  for (const e of sh.eyes) hole(e.u, e.v, 0.15 * e.size, 0.13 * e.size, e.tilt);
+  for (const v of [-0.08, 0.08]) hole(0.04, v, 0.045, 0.035, 0);
+  const m = sh.mouth, gape = open ? 1.3 : 1;
+  hole(BLIGHT.mouth, m.v, 0.36 * m.size * gape, 0.21 * m.size * gape, m.tilt, open ? '#8fdc4a' : null);
+  ctx.restore();
+  if (!loose) {
+    // Fading out all round its edge: kept only where a blurred copy of its shape is (the
+    // shape's shadow, cast back from off the canvas; a shadow's blur is in pixels whatever
+    // the drawing's scale).
+    const mask = surface(S).ctx;
+    mask.shadowColor = '#000000';
+    mask.shadowBlur = S * HEAD_ART.feather;
+    mask.shadowOffsetX = S * 2;
+    mask.translate(-2, 0);
+    mask.fill(skull);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(mask.canvas, 0, 0);
+    ctx.restore();
+    return c;
+  }
+  glow(ctx, HEAD_PALETTE.glow, px * 0.035, () => {
+    ctx.strokeStyle = linear(ctx, 0.2, 0.15, 0.8, 0.85, HEAD_PALETTE.stroke);
+    ctx.lineWidth = HEAD_ART.line;
+    ctx.stroke(skull);
+  });
+  return c;
+}
+
+// Every head's textures: on the Blight (mouth open, and gaping), and torn loose.
+function blightHeadSprites() {
+  return Object.fromEntries(blightHeads().flatMap((h, i) => [
+    [`blight_head_${i}`, blightHead(h, false)],
+    [`blight_head_${i}_open`, blightHead(h, true)],
+    [`blight_head_${i}_loose`, blightHead(h, true, true)],
+  ]));
 }
 
 // The scimitar: a pale steel blade with a white-hot cutting edge and a groove down its back,

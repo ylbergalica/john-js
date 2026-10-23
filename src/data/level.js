@@ -48,9 +48,12 @@ export const BASE_LEVEL_CONFIG = {
     skipLastRoom: true,
   },
   chaserCount: 1,
+  // Guardians, the same way. Past the last floor any of them guards, every one of them can
+  // (see scaleConfig).
   chasers: [
-    { type: 'warden', weight: 1, fromFloor: 1 }, 
-    { type: 'seraph', weight: 1, fromFloor: 1 }
+    { type: 'warden', weight: 1, fromFloor: 1, toFloor: 5 },
+    { type: 'seraph', weight: 1, fromFloor: 1, toFloor: 5 },
+    { type: 'blight', weight: 1, fromFloor: 6, toFloor: 10 },
   ],
 };
 

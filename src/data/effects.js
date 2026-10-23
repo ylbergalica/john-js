@@ -58,9 +58,10 @@ export const DEATH_FX = {
     // trembles harder and harder (× body radius, at the start and end), swells, glows and
     // heats up in its colour, blinks white faster and faster (blinks a second, at the start
     // and end; solid white for the last `whiteOut`), and light leaks out of it in sparks
-    // (every `sparkEvery` seconds, at the start and end).
+    // (every `sparkEvery` seconds, at the start and end). It sounds `sound` as it starts. A
+    // guardian type's own `dying` overrides any of these (the Blight's lasts longer).
     dying: {
-      time: 1.8,
+      time: 1.8, sound: 'bossDying',
       tremble: [0.015, 0.08], swell: 0.14,
       glow: { size: 2.6, grow: 0.6, alpha: [0.15, 0.85] }, heat: 0.55,
       blink: [2.5, 14], blinkOn: 0.35, whiteOut: 0.12,
@@ -147,6 +148,10 @@ export const ATTACK_FX = {
     barrage: { shape: 'arc', arcDeg: 60, lines: 2, reach: 0.6, to: 1.2, lean: 0.14, squash: 0.1, swell: 0.06 }, // bracing for the kick
     scimitar: { shape: 'none', lean: 0.1, squash: 0, swell: 0.04, twist: 18 }, // its blade shows the side
     rush: { shape: 'chevrons', count: 4, spacing: 0.4, size: 0.32, lean: 0.3, squash: 0.16, swell: 0.03 },
+    gape: { shape: 'none', lean: 0, squash: 0, swell: 0.06 }, // its mouths show the blobs forming
+    loose: { shape: 'none', lean: 0, squash: 0, swell: 0.08 }, // its heads strain out
+    spew: { shape: 'ring', reach: 0.5, to: 1.05, lean: 0, squash: 0, swell: 0.14 }, // heaving, about to spew all round
+    retch: { shape: 'none', lean: 0.14, squash: 0.06, swell: 0.06 }, // rearing back to hurl
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -450,4 +455,110 @@ export const CAPES = {
   fold: [0.4, 0.95],
   color: { light: 0xf6f2e6, shadow: 0x8e887a, outline: 0xfff3c8, glow: 0xffe08a, hem: 0xe0ac2a },
   line: 0.035, glowLine: 0.14, glowAlpha: 0.25, hem: 0.05,
+};
+
+// The Blight (src/enemies/blightRig.js), a heaving mass of rotten flesh grown through with
+// heads. In its frame (+x forward, +y to its right, world units): `rim.count` heads round
+// its rim, `rim.r` out from its centre and `rim.size` (its radius) give or take `rim.jitter`
+// (degrees round, distance out, × size, degrees its facing is off straight out; picked from
+// `rim.seed`, the first left straight ahead); `inner`, more sunk into its body, each [x, y,
+// size, facing°]. No two heads are alike (`shape`, from `shape.seed`): each is drawn out
+// `length` long and `width` wide (× a round head), its jaw pinched in by `pinch`, skewed by
+// up to `skew` and bent by up to `bend`, its edge wobbling by `wobble`, in one of the `skin`s
+// (light, mid, dark); its face a scream, eyes and mouth all but black holes. Its mouth is
+// `mouth` of the way out along its length from its centre: where its blobs form.
+// Idle, it breathes (`breath`: grows `across` and shrinks `along` its facing by those
+// fractions and back, `rate` times a second) and each of its heads, at its own pace (`pace`,
+// × the rates), bobs `bob` (× its size) in and out `bobRate` times a second, lolls `loll`
+// radians either way `lollRate` times a second, now and then jerks round by up to
+// `twitch.turn`, springing back over `twitch.time` (every `twitch.every` seconds or so), and
+// moans, its mouth falling open (`moan`: every `every` seconds or so, for `time`). Every
+// `groan` seconds or so a groan rolls out of it, and goo oozes off its rim (`ooze`, a
+// second). Each head warms with its body as it winds up or dies, only `warm` as strongly
+// (a whole head takes it far harder than the body's thin outline). Mouths open over `open`
+// seconds and close over `close`. A head that spits jerks
+// out `retch` (× its size) and back over `retchTime`; one straining to tear free
+// (BlightHeads) is pushed out by the ability, swells by `strain.grow` and trembles
+// `strain.shake` (× its size), more as it nears. Torn free, a head grows back popping out of
+// the body (the ability's regrowDelay and regrowTime).
+// Dying (its `dying`, longer than other guardians'), its heads are torn off one by one in a
+// random order, from `tear.from` to `tear.to` of the way through, crowding together toward
+// the end (`tear.ease` < 1). Each strains first for `tear.strain` seconds, mouth wide,
+// dragged out `tear.pull` and stretched `tear.stretch` along the way it is pulled (× its
+// size), trembling up to `tear.shake`, then rips free in a spray of goo (`tear.gore`, and
+// `tear.spray` of white) and flies off at `tear.speed` (slowing with `tear.drag`), spinning
+// at up to `tear.spin`, shrinking to `tear.shrink` and fading over `tear.fly`. Meanwhile
+// the heads still on it writhe, lolling and twitching `writhe` times as much.
+// The body is rotten flesh (painted in sprites.js), outlined round the heads at its rim,
+// and the heads are grown into it and each other with no edge to them (HEAD_ART.feather):
+// each pair closer than `reach` × their sizes added is strung together by `sinews` (from,
+// to) twisted strands,
+// each `sinew` (from, to) × the smaller head thick, bowing up to `bow` × the gap to one
+// side, in one of `colors`. All of it moves with the heads, warms and flashes with them,
+// and goes with a head that tears out, leaving a dark wound `wound` × its size, ragged
+// (`jag` (from, to) × that, at `jagPoints` points round it), until it grows back. Only the body has an outline; heads torn loose are outlined like any projectile.
+export const BLIGHT = {
+  rim: { count: 10, r: 0.9, size: 0.21, jitter: { angle: 9, r: 0.07, size: [0.7, 1.35], facing: 26 }, seed: 101 },
+  inner: [
+    [0.44, 0.12, 0.21, 30], [0.06, 0.47, 0.14, 100], [-0.37, 0.31, 0.19, 145], [-0.47, -0.13, 0.13, 200],
+    [-0.1, -0.46, 0.2, 245], [0.37, -0.33, 0.15, -60], [-0.02, 0.03, 0.24, 15],
+  ],
+  shape: {
+    seed: 211, length: [1.02, 1.38], width: [0.66, 0.92], pinch: [0.12, 0.5], skew: 0.32, bend: 0.3, wobble: 0.09,
+    skin: [['#7d8a5c', '#56633c', '#2a3219'], ['#7a7863', '#545441', '#2a2a1e'], ['#7c6a62', '#56443f', '#2b1f1e'], ['#86844f', '#5e5c33', '#2f2e17'], ['#6c8264', '#4a5c42', '#232e1e']],
+  },
+  flesh: {
+    jag: [0.75, 1.25], jagPoints: 13, reach: 1.5, sinews: [1, 3], sinew: [0.14, 0.42], bow: 0.35,
+    colors: [0x6e6a48, 0x5e3a34, 0x76784e, 0x4e5434, 0x7a6450],
+    wound: 0.85, woundColor: 0x080604, woundRim: 0x3a1a1c,
+  },
+  mouth: 0.4,
+  breath: { across: 0.035, along: 0.025, rate: 0.35 },
+  pace: [0.7, 1.4], bob: 0.07, bobRate: 0.5, loll: 0.22, lollRate: 0.3,
+  twitch: { turn: 0.7, time: 0.45, every: [2.5, 7] },
+  moan: { every: [3, 9], time: [0.5, 1.2] },
+  groan: [5, 10],
+  ooze: { rate: 2.5, count: 2, speed: 1.2, lifetime: 0.8, size: 0.5, coneDeg: 30, color: 0x4f8f24 },
+  warm: 0.35, open: 0.25, close: 0.35, retch: 0.22, retchTime: 0.18,
+  strain: { grow: 0.18, shake: 0.12 },
+  writhe: 2.5,
+  tear: {
+    from: 0.08, to: 0.84, ease: 0.75, strain: 0.4, pull: 0.45, stretch: 0.35, shake: 0.14,
+    speed: [5, 9], drag: 2.5, spin: 9, shrink: 0.45, fly: 0.5,
+    gore: { count: 16, speed: 7, lifetime: 0.6, size: 0.9, coneDeg: 45, color: 0x5a9a2a },
+    spray: { count: 8, speed: 10, lifetime: 0.3, size: 0.4, coneDeg: 30, color: 0xffffff },
+  },
+};
+
+// The Blight's goo (BlobLook and HeadLook in src/enemies/attackView.js): a dark green
+// blob in a sickly glow, wobbling as it flies, a gleam on it. Sizes × the blob's size,
+// except `trail` (world units). Its heads fly in the same glow, gaping, rocking `rock`
+// radians either way `rockRate` times a second.
+// A glob (BlightGlobs, src/enemies/glob.js) marks where it will land on the floor
+// (`marker`, as the Seer's Omen's) and splats there into a pool of poison: it spreads out
+// from `pool.from` of its size over `pool.spread` seconds with a flash, its edge rippling
+// (`pool.ripple`: [lobes, × its radius, rad/s] for each wave), bubbles rising in it
+// (`pool.bubbles` a second, each `size` (× its radius) across, popping after `life`),
+// fumes drifting up off it (`pool.fumes` a second), and shrinks and fades over `pool.fade`
+// once it is spent. `splat`: the goo flung out as it lands.
+export const BLOB = {
+  color: 0x6cc832, deep: 0x10240a, bright: 0xc8f582,
+  halo: { size: 2.6, alpha: 0.5 },
+  core: { size: 0.95, alpha: 1 },
+  gleam: { size: 0.4, alpha: 0.55, at: 0.16 },
+  wobble: { amount: 0.13, speed: 7 },
+  pulseSpeed: 4, trail: 1.3, trailWidth: 0.85,
+  rock: 0.3, rockRate: 2.5,
+  launch: { count: 10, speed: 5, lifetime: 0.4, size: 0.6, coneDeg: 35 },
+  marker: { lineWidth: 0.06, ringAlpha: 0.7, fillAlpha: 0.25, pulse: [2, 7] },
+  splat: { count: 22, speed: 8, lifetime: 0.5, size: 0.8, coneDeg: 180 },
+  pool: {
+    from: 0.35, spread: 0.25, fade: 0.8, flash: 0.5,
+    ripple: [[3, 0.05, 1.3], [5, 0.04, -2.1], [8, 0.02, 3.2]],
+    fill: 0x1f4a12, fillAlpha: 0.62, inner: 0x3f8a22, innerAlpha: 0.3, rim: 0x8fe04a, rimAlpha: 0.65, rimWidth: 0.06,
+    glow: { size: 2.4, alpha: 0.28 },
+    bubbles: 7, bubble: { size: [0.06, 0.13], life: [0.4, 0.9] },
+    pop: { count: 3, speed: 2, lifetime: 0.25, size: 0.25, coneDeg: 180, color: 0xa8f060 },
+    fumes: 4, fume: { count: 1, speed: 1.5, lifetime: 0.7, size: 0.4, coneDeg: 20, color: 0x5ab02a },
+  },
 };

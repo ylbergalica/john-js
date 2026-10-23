@@ -16,12 +16,13 @@ import { ShadeRig } from './shadeRig.js';
 import { LemurRig } from './lemurRig.js';
 import { BoxerRig } from './boxerRig.js';
 import { CorsairRig } from './corsairRig.js';
+import { BlightRig } from './blightRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, heads: BlightRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -40,6 +41,7 @@ export class Enemy extends Entity {
     this.lastHitDir = null; // direction of the latest hit, so the death bursts along the killing blow
     this.summoned = false; // spawned from the spawn menu (World.summonEnemy)
     this.dying = null; // { at, nextSparkAt } while a slain guardian goes critical (see die)
+    this.dyingFx = this.type.isChaser ? { ...DEATH_FX.guardian.dying, ...this.type.dying } : null; // how: its type's own, if it has one
     this.dyingWhite = false; // blinking white while dying
     this.pace = 1; // × its speed: a guardian losing patience (GuardianRage)
     this.rageGlow = null; // the red haze it smoulders in meanwhile, made when first needed
@@ -171,7 +173,7 @@ export class Enemy extends Entity {
   }
 
   // A guardian doesn't burst at once: it stops dead and goes critical first (see
-  // DEATH_FX.guardian.dying), out of the fight and the enemy list, and bursts after.
+  // DEATH_FX.guardian.dying, under its type's `dying`), out of the fight and the enemy list, and bursts after.
   die(cause = null) {
     if (this.type.isChaser) this.startDying();
     else this.burst();
@@ -187,11 +189,11 @@ export class Enemy extends Entity {
     this.stunUntil = -Infinity;
     swapRemove(world.enemies, this);
     this.dying = { at: world.time, nextSparkAt: world.time };
-    world.sound('bossDying', body.pos);
+    world.sound(this.dyingFx.sound, body.pos);
   }
 
   stepDying() {
-    const D = DEATH_FX.guardian.dying, w = this.world, b = this.body;
+    const D = this.dyingFx, w = this.world, b = this.body;
     b.stop();
     const k = clamp01((w.time - this.dying.at) / D.time);
     if (k >= 1) { this.burst(); return; }
@@ -222,7 +224,7 @@ export class Enemy extends Entity {
 
   // Going critical: trembling, swelling, glowing and blinking white ever faster.
   renderDying(now, p) {
-    const D = DEATH_FX.guardian.dying, fx = this.attackFx, r = this.body.radius, color = this.type.hitColor;
+    const D = this.dyingFx, fx = this.attackFx, r = this.body.radius, color = this.type.hitColor;
     const e = Math.max(0, now - this.dying.at), k = clamp01(e / D.time), kk = k * k;
     const j = randInsideUnitCircle(), shake = lerp(D.tremble[0], D.tremble[1], kk) * r;
     this.view.position.set(p.x + j.x * shake, p.y + j.y * shake);

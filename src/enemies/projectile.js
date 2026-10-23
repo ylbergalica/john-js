@@ -12,7 +12,8 @@ export class Projectile extends Entity {
   // opts: { dir, speed, lifetime, damage, size, passesWalls = false,
   //         turnRate = 0 (rad/s), homingDelay = 0, homingTime = Infinity (s after launch),
   //         curve = 0 (rad/s, + turning the way rotation grows), curveTime = 0 (s),
-  //         look = 'orb' (PROJECTILE_LOOKS), spin = 1 (the way a spinning look turns) }
+  //         look = 'orb' (PROJECTILE_LOOKS), spin = 1 (the way a spinning look turns),
+  //         variant (which one of a look's kinds, e.g. which of the Blight's heads) }
   constructor(world, sourceAbility, x, y, opts) {
     super(world);
     this.sourceAbility = sourceAbility;
@@ -31,7 +32,7 @@ export class Projectile extends Entity {
     this.expiresAt = world.time + opts.lifetime;
     this.body = world.physics.add(new Body({ x, y, radius: opts.size / 2, solid: false }));
     this.body.rotation = Math.atan2(opts.dir.y, opts.dir.x);
-    this.look = new PROJECTILE_LOOKS[opts.look ?? 'orb'](world.layers.projectiles, { spin: opts.spin });
+    this.look = new PROJECTILE_LOOKS[opts.look ?? 'orb'](world.layers.projectiles, { spin: opts.spin, variant: opts.variant });
     this.look.render(world.time, x, y, this.body.rotation, this.size);
     world.hostileAttacks.add(this);
   }

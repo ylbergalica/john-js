@@ -10,13 +10,15 @@
 //   ProjectileLook a glowing orb with a comet trail, shared by projectiles and ChargeView.
 //   MistBallLook   the same for the Seer's balls of blue mist.
 //   CrescentLook   the same for the Lemur's spinning crescents.
+//   BlobLook       the same for the Blight's blobs of goo.
+//   HeadLook       the same for its heads flying free.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, CRESCENT as CR, FIXED_DT, MIST_BALL as M } from '../data/config.js';
+import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
-import { COMET_HEAD, ORB_PAD, RING_RADIUS } from '../render/sprites.js';
+import { COMET_HEAD, HEAD_ART, ORB_PAD, RING_RADIUS, blightHeads } from '../render/sprites.js';
 
 const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone, C = X.cue;
 const FADE_IN = 0.1; // seconds for a wind-up's marks to appear
@@ -485,7 +487,7 @@ export class ZoneView {
 
 // A throw: each projectile's orb grows exactly where it will be released (the ability's
 // chargePoints) while the ability says one is forming (its charge: over the wind-up, unless
-// it says otherwise), to `chargeSize` if given, else the projectile's size.
+// it says otherwise, or a point's own `t`), to `chargeSize` if given, else the projectile's size.
 export class ChargeView {
   constructor(ability) {
     this.ability = ability;
@@ -497,15 +499,15 @@ export class ChargeView {
 
   render(now, alpha) {
     const a = this.ability, d = a.data, c = a.player ? a.charge(now) : null;
-    const points = c ? a.chargePoints(alpha) : [];
+    const points = c ? a.chargePoints(alpha, now) : [];
     while (this.looks.length < points.length) this.looks.push(new this.Look(a.world.layers.projectiles, { trail: false }));
-    const t = c?.t ?? 0;
-    const size = (d.chargeSize ?? d.projectileSize) * lerp(X.projectile.chargeFrom, 1, t);
-    const glow = clamp01((c?.since ?? 0) / FADE_IN) * lerp(0.4, 1, t);
+    const fade = clamp01((c?.since ?? 0) / FADE_IN);
     this.looks.forEach((look, i) => {
       const pt = points[i];
       look.container.visible = !!pt;
-      if (pt) look.render(now, pt.x, pt.y, pt.rot, size, { glow });
+      if (!pt) return;
+      const t = pt.t ?? c.t; // a point can say how far its own orb has formed
+      look.render(now, pt.x, pt.y, pt.rot, (d.chargeSize ?? d.projectileSize) * lerp(X.projectile.chargeFrom, 1, t), { glow: fade * lerp(0.4, 1, t) });
     });
   }
 
@@ -736,5 +738,82 @@ export class CrescentLook {
   }
 }
 
+// A Blight's blob of goo (BLOB): a dark green ball wobbling in a sickly glow, a gleam on it
+// and, once spat, a trail. Drawn like ProjectileLook.
+export class BlobLook {
+  get color() { return BL.color; }
+  get maxTrail() { return BL.trail; }
+
+  constructor(parent, { trail = true } = {}) {
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: BL.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: BL.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: BL.deep });
+    this.gleam = sprite(tex.mist, this.container, { blendMode: 'add', tint: BL.bright });
+    for (const s of this.container.children) s.visible = true;
+    this.seed = Math.random() * TAU; // so blobs side by side don't wobble as one
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const pulse = 0.5 + 0.5 * Math.sin(now * BL.pulseSpeed * TAU), W = BL.wobble;
+    const wob = W.amount * Math.sin(now * W.speed * TAU + this.seed), c = size * BL.core.size * ORB_PAD;
+    this.container.position.set(x, y);
+    this.halo.width = this.halo.height = size * BL.halo.size * lerp(0.9, 1.1, pulse);
+    this.halo.alpha = BL.halo.alpha * glow;
+    this.core.rotation = rot;
+    this.core.width = c * (1 + wob);
+    this.core.height = c * (1 - wob);
+    this.core.alpha = BL.core.alpha;
+    this.gleam.position.set(-size * BL.gleam.at, -size * BL.gleam.at);
+    this.gleam.width = this.gleam.height = size * BL.gleam.size * 2;
+    this.gleam.alpha = BL.gleam.alpha * glow;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * BL.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+// One of a Blight's heads torn free: gaping and outlined like any projectile, rocking as it
+// flies mouth first, in the goo's glow, with its trail. Its size is its width across;
+// `variant`: which of the Blight's heads it is (any, if not given).
+export class HeadLook {
+  get color() { return BL.color; }
+  get maxTrail() { return BL.trail; }
+
+  constructor(parent, { trail = true, variant = Math.floor(Math.random() * blightHeads().length) } = {}) {
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: BL.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: BL.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.head = sprite(tex[`blight_head_${variant}_loose`], this.container, { tint: 0xffffff });
+    for (const s of this.container.children) s.visible = true;
+    this.seed = Math.random() * TAU;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    this.container.position.set(x, y);
+    this.halo.width = this.halo.height = size * BL.halo.size;
+    this.halo.alpha = BL.halo.alpha * glow;
+    this.head.rotation = rot + BL.rock * Math.sin(now * BL.rockRate * TAU + this.seed);
+    this.head.width = this.head.height = size / 2 / HEAD_ART.body;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * BL.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
 // Projectile looks by an ability's `look`.
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook };
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, head: HeadLook };
+// The colour a look bursts into, by an ability's `look`.
+export const lookColor = (look) => ({ mist: M.color, blob: BL.color, head: BL.color })[look] ?? X.color;

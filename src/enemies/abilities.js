@@ -9,15 +9,17 @@
 //               parry only disarms it: it plays out harmlessly while the enemy is stunned
 //   projectile  something is thrown; a parry breaks the projectile
 import { clamp, clamp01, clampLength, deltaAngle, dist, dirTo, fromAngle, lerp, randRange, randSign, smoothStep01, TAU } from '../engine/math.js';
-import { ATTACK_FX, FIXED_DT } from '../data/config.js';
+import { ATTACK_FX, BLIGHT, FIXED_DT } from '../data/config.js';
 import { EnemyHitbox } from './hitbox.js';
 import { Projectile } from './projectile.js';
 import { MistShell } from './mistShell.js';
 import { DamageCause } from '../game/damage.js';
-import { ZoneView, ChargeView, BeamView, CHARGE_STRETCH, followThrough } from './attackView.js';
+import { ZoneView, ChargeView, BeamView, CHARGE_STRETCH, followThrough, lookColor } from './attackView.js';
 import { maulSwingPose, onMaul, sizeOf } from './maulerRig.js';
 import { fistSweep, hookFist, punchFist } from './boxerRig.js';
 import { onScimitar, scimitarSwingPose } from './corsairRig.js';
+import { Glob } from './glob.js';
+import { blightHeads, blightMouth } from '../render/sprites.js';
 
 const DEG = Math.PI / 180;
 
@@ -1282,7 +1284,8 @@ class VolleyAbility extends ThrowAbility {
 }
 
 // Projectile: `salvos` of shots from fixed cannons (`muzzles`, the Gunner's), one every
-// `salvoInterval`, each straight ahead along its facing: a single cannon a salvo, all of
+// `salvoInterval`, each straight out its cannon (ahead, unless it has an `angle` off its
+// facing): a single cannon a salvo, all of
 // them once in a random order, or all of them at once (`together`). A shot forms at every
 // cannon over the wind-up and waits there until fired; between `together` salvos a fresh
 // set forms over `regrowTime`, the enemy turning after the player at up to `turnRate`
@@ -1291,6 +1294,7 @@ class VolleyAbility extends ThrowAbility {
 class CannonsAbility extends ThrowAbility {
   constructor(enemy, data) {
     super(enemy, data);
+    this.muzzles = data.muzzles; // each { x, y, angle? }
     this.salvos = []; // each salvo's cannons (indices into `muzzles`)
     this.fired = 0; // salvos fired since the attack began
     this.cued = 0; // salvos cued
@@ -1299,7 +1303,7 @@ class CannonsAbility extends ThrowAbility {
   }
 
   execute() {
-    const d = this.data, all = d.muzzles.map((_, i) => i);
+    const d = this.data, all = this.muzzles.map((_, i) => i);
     if (d.together) this.salvos = Array.from({ length: d.salvos }, () => all);
     else {
       const order = [];
@@ -1351,23 +1355,24 @@ class CannonsAbility extends ThrowAbility {
     super.advance();
   }
 
-  // Each of this salvo's cannons fires straight ahead with a flash, kicking the enemy back.
+  // Each of this salvo's cannons fires straight out with a flash, kicking the enemy back.
   fireSalvo() {
     const e = this.enemy, d = this.data, b = e.body, dir = fromAngle(b.rotation);
     const cannons = this.salvos[this.fired++];
     this.strikeAt = this.world.time;
     if (!this.player) return;
     for (const i of cannons) {
-      const m = d.muzzles[i], x = b.pos.x + dir.x * m.x - dir.y * m.y, y = b.pos.y + dir.y * m.x + dir.x * m.y;
+      const m = this.muzzles[i], x = b.pos.x + dir.x * m.x - dir.y * m.y, y = b.pos.y + dir.y * m.x + dir.x * m.y;
+      const rot = b.rotation + (m.angle ?? 0);
       this.world.add(new Projectile(this.world, this, x, y, {
-        dir, speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
-        size: d.projectileSize,
+        dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
+        size: d.projectileSize, look: d.look,
       }));
-      this.world.effects.burst(x, y, b.rotation, { ...ATTACK_FX.projectile.muzzle, color: ATTACK_FX.color });
+      this.world.effects.burst(x, y, rot, { ...ATTACK_FX.projectile.muzzle, color: lookColor(d.look) });
     }
     b.vel.x -= dir.x * d.recoil;
     b.vel.y -= dir.y * d.recoil;
-    this.sound(cannons.length > 1 ? 'broadside' : 'cannon');
+    this.sound(d.salvoSound ?? (cannons.length > 1 ? 'broadside' : 'cannon'));
   }
 
   // A shot sits at every cannon yet to fire: formed over the wind-up, then a fresh set
@@ -1383,18 +1388,279 @@ class CannonsAbility extends ThrowAbility {
     const b = this.enemy.body, p = b.lerpPos(alpha), rot = b.lerpRotation(alpha), c = Math.cos(rot), s = Math.sin(rot);
     const loaded = new Set(this.salvos.slice(this.fired).flat());
     return [...loaded].map((i) => {
-      const m = this.data.muzzles[i];
-      return { x: p.x + c * m.x - s * m.y, y: p.y + s * m.x + c * m.y, rot };
+      const m = this.muzzles[i];
+      return { x: p.x + c * m.x - s * m.y, y: p.y + s * m.x + c * m.y, rot: rot + (m.angle ?? 0) };
     });
   }
 
-  cuePoints() { return (this.salvos[this.cuedSalvo] ?? []).map((i) => ({ ...this.data.muzzles[i] })); }
+  cuePoints() { return (this.salvos[this.cuedSalvo] ?? []).map((i) => ({ x: this.muzzles[i].x, y: this.muzzles[i].y })); }
+}
+
+// The Blight's heads (blightHeads), which spit its goo from their mouths (blightMouth), at
+// their places at rest; its rig moves them to match (`heads`, see blightRig.js).
+function shuffled(list) {
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+const rimHeads = () => blightHeads().filter((h) => h.rim);
+
+// A point in the enemy's frame → the world, for its body as it is now.
+function bodyToWorld(e, p) {
+  const b = e.body, c = Math.cos(b.rotation), s = Math.sin(b.rotation);
+  return { x: b.pos.x + c * p.x - s * p.y, y: b.pos.y + s * p.x + c * p.y };
+}
+
+// Projectile: cannons all round (the Blight's ring), one in each rim head's mouth, firing
+// out evenly round however askew the heads sit. It turns after the player the whole time
+// (lockTime 0), so the head in front always fires at them, and only that shot is cued.
+class RingAbility extends CannonsAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.muzzles = rimHeads().map((h, i, all) => ({ ...blightMouth(h), angle: (TAU * i) / all.length }));
+  }
+
+  cuePoints() { return [{ x: this.muzzles[0].x, y: this.muzzles[0].y }]; }
+}
+
+// Projectile: `count` of the Blight's heads strain out through the wind-up, then tear free
+// and fly off away from its centre, homing in on the player (the heads themselves show the
+// wind-up, so it has no ChargeView). Each grows back in time (`launched`, which its rig
+// reads); one still growing back isn't picked.
+class LooseHeadsAbility extends ThrowAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.view = null;
+    this.chosen = []; // the heads tearing free this time
+    this.launched = new Map(); // head index → when it last tore free
+  }
+
+  regrowing(i) {
+    const at = this.launched.get(i), d = this.data;
+    return at != null && this.world.time < at + d.regrowDelay + d.regrowTime;
+  }
+
+  execute() {
+    const free = blightHeads().map((_, i) => i).filter((i) => !this.regrowing(i));
+    this.chosen = shuffled(free).slice(0, this.data.count);
+    super.execute();
+  }
+
+  // Where head `h` is once pushed out, in the enemy's frame.
+  strained(h) {
+    const k = this.data.pushOut;
+    return { x: h.x + Math.cos(h.rot) * k, y: h.y + Math.sin(h.rot) * k };
+  }
+
+  release() {
+    const e = this.enemy, d = this.data, heads = blightHeads();
+    for (const i of this.chosen) {
+      const h = heads[i], { x, y } = bodyToWorld(e, this.strained(h));
+      const rot = e.body.rotation + (Math.hypot(h.x, h.y) > 0.1 ? Math.atan2(h.y, h.x) : h.rot); // away from its centre
+      this.world.add(new Projectile(this.world, this, x, y, {
+        dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
+        size: d.projectileSize, look: d.look, turnRate: d.turnRate, homingDelay: d.homingDelay, homingTime: d.homingTime,
+        passesWalls: d.passesWalls, variant: i,
+      }));
+      this.launched.set(i, this.world.time);
+      this.world.effects.burst(x, y, rot, { ...BLIGHT.tear.gore, count: BLIGHT.tear.gore.count / 2 });
+    }
+    this.sound('headLoose');
+  }
+
+  cuePoints() { return this.chosen.map((i) => this.strained(blightHeads()[i])); }
+}
+
+// Projectile: it heaves through the wind-up, every rim head gaping, then spits `bursts` of
+// blobs, `burstInterval` apart, each from `perBurst` of its rim heads picked at random,
+// straight out of each, a little off at random. Each burst's blobs flying at the player are
+// cued. A stun (a blob parried) stops the rest.
+class SpewAbility extends ThrowAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.view = null; // its tell and gaping heads show the wind-up
+    this.plan = []; // each burst's spits: [{ i (rim head), off (radians) }]
+    this.fired = 0;
+    this.cued = 0;
+    this.cuedBurst = 0;
+    this.firstAt = 0;
+    this.spatAt = new Map(); // head index → when it last spat (for its rig)
+  }
+
+  execute() {
+    const d = this.data, rim = rimHeads().map((_, i) => i);
+    this.plan = Array.from({ length: d.bursts }, () => shuffled(rim).slice(0, d.perBurst).map((i) => ({ i, off: randRange(-d.jitterDeg, d.jitterDeg) * DEG })));
+    this.fired = this.cued = this.cuedBurst = 0;
+    super.execute();
+    this.firstAt = this.phaseEndsAt;
+  }
+
+  burstTime(n) { return this.firstAt + n * this.data.burstInterval; }
+
+  step(dt) {
+    const live = this.phase === 'windup' || this.phase === 'active';
+    if (live && this.cued < this.plan.length && this.world.time >= this.burstTime(this.cued) - ATTACK_FX.cue.lead) {
+      this.cuedBurst = this.cued++;
+      if (this.aimed(this.cuedBurst).length) this.cueAt = this.world.time;
+    }
+    super.step(dt);
+    if (this.phase !== 'active') return;
+    while (this.fired < this.plan.length && this.world.time >= this.burstTime(this.fired)) this.burst();
+  }
+
+  advance() {
+    switch (this.phase) {
+      case 'windup':
+        this.notifyAttackStarted();
+        this.burst();
+        this.setPhase('active', (this.plan.length - 1) * this.data.burstInterval);
+        return;
+      case 'active':
+        while (this.fired < this.plan.length) this.burst();
+        this.setPhase('recovery', this.data.recoveryTime);
+        return;
+    }
+    super.advance();
+  }
+
+  burst() {
+    const e = this.enemy, d = this.data, b = e.body, heads = rimHeads();
+    const spits = this.plan[this.fired++];
+    if (this.fired === 1) this.strikeAt = this.world.time; // the body pops once, as it starts; each spit jerks its head (spatAt)
+    if (!this.player) return;
+    for (const { i, off } of spits) {
+      const { x, y } = bodyToWorld(e, blightMouth(heads[i])), rot = b.rotation + heads[i].rot + off;
+      this.world.add(new Projectile(this.world, this, x, y, {
+        dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
+        size: d.projectileSize, look: d.look,
+      }));
+      this.world.effects.burst(x, y, rot, { ...ATTACK_FX.projectile.muzzle, color: lookColor(d.look) });
+      this.spatAt.set(i, this.world.time);
+    }
+    this.sound('spit');
+  }
+
+  // Burst `n`'s spits flying within `cueWithinDeg` of the player, as it faces now.
+  aimed(n) {
+    const p = this.player, b = this.enemy.body, heads = rimHeads();
+    if (!p || !this.plan[n]) return [];
+    const to = Math.atan2(p.body.pos.y - b.pos.y, p.body.pos.x - b.pos.x) - b.rotation;
+    return this.plan[n].filter(({ i, off }) => Math.abs(deltaAngle(heads[i].rot + off, to)) <= this.data.cueWithinDeg * DEG);
+  }
+
+  cuePoints() { return this.aimed(this.cuedBurst).map(({ i }) => blightMouth(rimHeads()[i])); }
+}
+
+// Projectile: big globs form in the mouths of the heads `from` over the wind-up, then
+// `globs` of them are hurled, `globInterval` apart, from each of those heads in turn, each at
+// a spot around where the player is as it is thrown (the first right at them), where it
+// splats into a pool of poison (Glob). Meanwhile it turns after the player at up to
+// `turnRate`, each mouth's next glob re-forms as the others are thrown, and each throw is
+// cued at its mouth. A stun (a glob parried) stops the rest.
+class GlobsAbility extends ThrowAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.offsets = []; // each glob's landing spot off the player: { angle, dist }, or null for right at them
+    this.thrown = 0;
+    this.cued = 0;
+    this.cuedGlob = 0;
+    this.firstAt = 0;
+    this.spatAt = new Map(); // head index → when it last hurled (for its rig)
+  }
+
+  execute() {
+    const d = this.data, n = d.globs, start = Math.random() * TAU;
+    this.offsets = Array.from({ length: n }, (_, k) => (k === 0 ? null
+      : { angle: start + (TAU * (k - 1 + randRange(-0.3, 0.3))) / Math.max(1, n - 1), dist: randRange(...d.spread) }));
+    this.thrown = this.cued = this.cuedGlob = 0;
+    super.execute();
+    this.firstAt = this.phaseEndsAt;
+  }
+
+  throwTime(k) { return this.firstAt + k * this.data.globInterval; }
+
+  step(dt) {
+    const d = this.data, live = this.phase === 'windup' || this.phase === 'active';
+    if (live && this.cued < d.globs && this.world.time >= this.throwTime(this.cued) - ATTACK_FX.cue.lead) {
+      this.cueAt = this.world.time;
+      this.cuedGlob = this.cued++;
+    }
+    super.step(dt);
+    if (this.phase !== 'active') return;
+    while (this.thrown < d.globs && this.world.time >= this.throwTime(this.thrown)) this.hurl();
+    if (this.player) {
+      const b = this.enemy.body, want = this.dirToPlayer(), max = d.turnRate * dt;
+      b.rotation += clamp(deltaAngle(b.rotation, Math.atan2(want.y, want.x)), -max, max);
+    }
+  }
+
+  advance() {
+    switch (this.phase) {
+      case 'windup':
+        this.notifyAttackStarted();
+        this.hurl();
+        this.setPhase('active', (this.data.globs - 1) * this.data.globInterval);
+        return;
+      case 'active':
+        while (this.thrown < this.data.globs) this.hurl();
+        this.setPhase('recovery', this.data.recoveryTime);
+        return;
+    }
+    super.advance();
+  }
+
+  hurl() {
+    const e = this.enemy, d = this.data, k = this.thrown++, i = d.from[k % d.from.length];
+    this.strikeAt = this.world.time;
+    if (!this.player) return;
+    const from = bodyToWorld(e, blightMouth(blightHeads()[i]));
+    this.world.add(new Glob(this.world, this, from, this.landingSpot(this.offsets[k]), {
+      speed: d.projectileSpeed, size: d.projectileSize, damage: e.damage * d.damageMultiplier,
+      pool: { radius: d.pool.radius, time: d.pool.time, damage: e.damage * d.pool.damageMultiplier },
+    }));
+    this.spatAt.set(i, this.world.time);
+    this.sound('retch');
+  }
+
+  // `off` from where the player is now, never past a wall in the way.
+  landingSpot(off) {
+    const p = this.player.body.pos;
+    if (!off) return { x: p.x, y: p.y };
+    const dx = Math.cos(off.angle), dy = Math.sin(off.angle), margin = 0.5;
+    const reach = Math.min(off.dist, Math.max(0, this.world.physics.rayLength(p.x, p.y, dx, dy, off.dist + margin) - margin));
+    return { x: p.x + dx * reach, y: p.y + dy * reach };
+  }
+
+  // A glob is forming then sitting in each mouth with one still to throw: the first of
+  // each mouth's over the wind-up, each later one from that mouth's last throw until two
+  // throws before its own.
+  charge(now) {
+    if (this.phase === 'active' && this.thrown < this.data.globs) return { t: 1, since: Infinity };
+    return super.charge(now);
+  }
+
+  chargePoints(alpha, now) {
+    const d = this.data, n = d.from.length, b = this.enemy.body, p = b.lerpPos(alpha), rot = b.lerpRotation(alpha);
+    const c = Math.cos(rot), s = Math.sin(rot), first = this.phase === 'windup' ? 0 : this.thrown, out = [];
+    for (let k = first; k < Math.min(first + n, d.globs); k++) {
+      const h = blightHeads()[d.from[k % n]], m = blightMouth(h);
+      const t = k < n ? undefined : clamp01((now - this.throwTime(k - n)) / (d.globInterval * (n - 1)));
+      out.push({ x: p.x + c * m.x - s * m.y, y: p.y + s * m.x + c * m.y, rot: rot + h.rot, t });
+    }
+    return out;
+  }
+
+  cuePoints() { return [blightMouth(blightHeads()[this.data.from[this.cuedGlob % this.data.from.length]])]; }
 }
 
 const TYPES = {
   dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, slashes: SlashesAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
   slam: SlamAbility, hook: HookAbility, flurry: FlurryAbility, throw: ThrowAbility, lob: LobAbility, missiles: MissilesAbility, spin: SpinThrowAbility, volley: VolleyAbility,
-  cannons: CannonsAbility, scimitar: ScimitarAbility, rush: RushAbility,
+  cannons: CannonsAbility, scimitar: ScimitarAbility, rush: RushAbility, ring: RingAbility, heads: LooseHeadsAbility, spew: SpewAbility,
+  globs: GlobsAbility,
 };
 
 export function createAbility(enemy, data) {

@@ -219,6 +219,61 @@ export const ABILITIES = {
     strikeSound: 'rush', swingSound: 'swish', crashSound: 'clang', blade: 'rush',
     crashShake: { duration: 0.22, strength: 0.3, frequency: 20 },
   },
+  // The Blight's heads (BLIGHT, blightRig.js): ten ring its rim, the first straight ahead,
+  // and more are sunk into its body. Its blobs of goo (`look: 'blob'`, see BLOB) form in the
+  // heads' mouths and fly straight out; `heads` says how the heads move (its rig).
+  // Ring: the ten rim heads gape, a blob forming in each mouth over the wind-up, then all
+  // ten fire straight out, evenly round, `salvos` times, `salvoInterval` apart, a fresh set
+  // forming over `regrowTime` between. It turns after the player at up to `turnRate` the
+  // whole time, so the head in front always fires at them; only its blob is cued.
+  BlightRing: {
+    type: 'ring', tell: 'gape', cooldown: 5, range: 12, windUpTime: 1, lockTime: 0, duration: 0, recoveryTime: 0.6,
+    damageMultiplier: 0.35, parryStunTime: 0.6, requireClearAttackPath: false,
+    look: 'blob', projectileSpeed: 7, projectileLifetime: 3.5, projectileSize: 0.42,
+    salvos: 3, salvoInterval: 0.65, together: true, regrowTime: 0.35, turnRate: 2.5, recoil: 0,
+    salvoSound: 'blobVolley', heads: 'gape',
+  },
+  // Heads: `count` of its heads, anywhere on it (none still growing back), strain outward
+  // through the wind-up, pushed out `pushOut`, then tear free and fly straight out away from
+  // its centre, homing in on the player at up to `turnRate` from `homingDelay` until
+  // `homingTime` after launch, through walls. Each grows back `regrowTime` after
+  // `regrowDelay`. A parried head only hurts the Blight; it isn't stunned.
+  BlightHeads: {
+    type: 'heads', tell: 'loose', cooldown: 6, range: 13, windUpTime: 1, lockTime: 0.2, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 0.6, parryStunTime: 0, requireClearAttackPath: false,
+    look: 'head', count: 3, pushOut: 0.24, projectileSpeed: 7.5, projectileLifetime: 5, projectileSize: 0.5,
+    turnRate: 2.4, homingDelay: 0.35, homingTime: 3.2, passesWalls: true,
+    regrowDelay: 1.5, regrowTime: 0.8, heads: 'loose',
+  },
+  // Spew: it heaves through the wind-up, every rim head gaping, then for `bursts` ×
+  // `burstInterval` seconds, every `burstInterval`, `perBurst` of the rim heads at random
+  // each spit a blob straight out, up to `jitterDeg` off: a steady stream all round. Only
+  // blobs spat within `cueWithinDeg` of the player are cued. A parried blob only hurts the
+  // Blight; it isn't stunned and keeps spewing.
+  BlightSpew: {
+    type: 'spew', tell: 'spew', cooldown: 9, range: 9, windUpTime: 1.2, lockTime: 0, duration: 0, recoveryTime: 0.7,
+    damageMultiplier: 0.3, parryStunTime: 0, requireClearAttackPath: false,
+    look: 'blob', projectileSpeed: 7.5, projectileLifetime: 3, projectileSize: 0.4,
+    bursts: 30, burstInterval: 0.1, perBurst: 1, jitterDeg: 12, cueWithinDeg: 30, heads: 'spew',
+  },
+  // Globs: big globs form in the mouths of the heads `from` (its front three) over the
+  // wind-up, then `globs` of them are hurled, one every `globInterval`, from each of those
+  // heads in turn, each at a spot around where the player is as it is thrown (turning after
+  // them at up to `turnRate` meanwhile; each mouth's next glob re-forms as the others go,
+  // and each is cued as it is thrown): the first
+  // right at them, the rest `spread` (from, to) away, evenly round (never past a wall). Each
+  // flies there at `projectileSpeed`, the spot marked meanwhile, and splats into a pool of
+  // poison `pool.radius` round, which hurts the player whenever their invincibility runs
+  // out for `pool.time` seconds, at `pool.damageMultiplier`. One that hits the player on the
+  // way splats there; parried or broken on a wall, it doesn't splat at all.
+  BlightGlobs: {
+    type: 'globs', tell: 'retch', cooldown: 6, range: 11, windUpTime: 1, lockTime: 0.25, duration: 0, recoveryTime: 0.6,
+    damageMultiplier: 0.7, parryStunTime: 0.8, ...clearPath({ x: 1.2, y: 1.2 }, 1),
+    look: 'blob', chargeSize: 0.8, projectileSize: 0.75, projectileSpeed: 9,
+    globs: 5, globInterval: 0.6, turnRate: 1.5, from: [9, 0, 1], spread: [1.3, 3.2],
+    pool: { radius: 1.7, time: 5, damageMultiplier: 0.25 },
+    heads: 'retch',
+  },
   WardenDash: {
     type: 'dash', tell: 'charge', cooldown: 3, range: 7, windUpTime: 1, duration: 1, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1.25, y: 1.25 }, 0.35),

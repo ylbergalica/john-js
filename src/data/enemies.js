@@ -149,6 +149,29 @@ export const ENEMY_TYPES = {
         { ability: 'SeraphLaser', weight: 0.2 },
       ] },
   },
+  // A big mass of rotten flesh grown through with deformed heads, no two alike, each frozen
+  // in a scream, eyes and mouth black holes. Ten ring its rim, more are sunk into its body
+  // (`rig`, see blightRig.js): idle they bob, loll, twitch and moan; dying, they are torn out
+  // one by one, leaving wounds, before it bursts (`dying`, over DEATH_FX).
+  // Slow, it keeps its distance and floods the floor with goo: rings of blobs out of every
+  // rim head, heads tearing free to hunt the player, a spew all round, and globs that splat
+  // into pools of poison.
+  blight: {
+    name: 'Blight', maxHealth: 1100, damage: 8, radius: 1.15, mass: 120, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x5a9a2a, sfxPitch: 0.7,
+    navFootprint: 3,
+    visual: { kind: 'sprite', outline: 'blight_idle', void: 'blight_idle_void', size: 3.2, sparkleCount: 0, rig: 'heads' }, // rotten flesh, no stars
+    dying: { time: 2.8, sound: 'blightDying' },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 6, attackEngageRange: 8, moveSpeed: 2.5, orbitSpeed: 1.5, repositionSpeed: 1.5,
+      maxTurnSpeed: 2, turnSmoothTime: 0.25,
+      attacks: [
+        { ability: 'BlightRing', weight: 0.3 },
+        { ability: 'BlightHeads', weight: 0.25 },
+        { ability: 'BlightSpew', weight: 0.2 },
+        { ability: 'BlightGlobs', weight: 0.25 },
+      ] },
+  },
 };
 
 // Guardians lose patience as a floor drags on (src/game/guardianRage.js). A floor's fill

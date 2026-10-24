@@ -504,6 +504,63 @@ const SOUNDS = {
     tone(v, { type: 'triangle', freq: 1870, to: 1820, at: 0.01, dur: 0.6, vol: 0.06 });
     tone(v, { freq: 2950, to: 2900, at: 0.01, dur: 0.45, vol: 0.04 });
   },
+  // the Weaver
+  silkSpit(v) { // an anchor of silk spat out: a wet pthew, then silk zipping out after it
+    splat(v, { freq: 2200, to: 800, dur: 0.07, vol: 0.32 });
+    tone(v, { type: 'triangle', freq: 620, to: 1500, dur: 0.1, vol: 0.05 });
+    noise(v, { filter: 'highpass', freq: 2600, to: 6200, q: 0.8, at: 0.02, dur: 0.26, vol: 0.12, attack: 0.03 });
+  },
+  threadStrung(v) { // its thread pulled taut: a click and a low, wiry twang ringing off
+    noise(v, { filter: 'highpass', freq: 3200, dur: 0.012, vol: 0.22, attack: 0.001 });
+    const string = tone(v, { type: 'triangle', freq: 196, to: 188, dur: 0.75, vol: 0.12, attack: 0.002 });
+    lfo(v, string.frequency, { rate: 7, depth: 3, dur: 0.75 });
+    tone(v, { type: 'sawtooth', freq: 392, to: 378, dur: 0.35, vol: 0.025, attack: 0.002, out: dull(v, 2400) });
+    tone(v, { freq: 588, to: 570, dur: 0.25, vol: 0.03, attack: 0.002 });
+  },
+  threadSnap(v) { // cut: a sharp snap and the twang falling away as its halves spring back
+    noise(v, { filter: 'highpass', freq: 3600, to: 1800, q: 0.7, dur: 0.04, vol: 0.32, attack: 0.001 });
+    tone(v, { type: 'triangle', freq: 520, to: 150, dur: 0.22, vol: 0.09, attack: 0.002 });
+    tone(v, { freq: 1040, to: 310, dur: 0.12, vol: 0.03, attack: 0.002 });
+  },
+  strain(v) { // the player caught struggling in the web: it jerks taut with a creak and a twang
+    noise(v, { freq: 950, to: 700, q: 7, dur: 0.2, vol: 0.1, attack: 0.01 });
+    tone(v, { type: 'sawtooth', freq: 118, to: 92, dur: 0.2, vol: 0.04, attack: 0.01, out: dull(v, 900) });
+    tone(v, { type: 'triangle', freq: 300, to: 250, dur: 0.3, vol: 0.07, attack: 0.002 });
+    noise(v, { filter: 'highpass', freq: 3200, to: 2200, q: 0.7, at: 0.02, dur: 0.12, vol: 0.06, attack: 0.005 });
+  },
+  webThrow(v) { // a ball of web flung out: a soft wet whoosh and the line zipping out after it
+    noise(v, { freq: 400, to: 1800, q: 0.8, dur: 0.2, vol: 0.24, attack: 0.02 });
+    splat(v, { freq: 1600, to: 700, dur: 0.06, vol: 0.18 });
+    noise(v, { filter: 'highpass', freq: 2600, to: 6000, q: 0.8, at: 0.04, dur: 0.24, vol: 0.09, attack: 0.03 });
+  },
+  webCatch(v) { // bursting round the player: a wet slap, strands rustling as they wind on, the line going taut
+    splat(v, { freq: 1700, to: 500, dur: 0.1, vol: 0.4 });
+    tone(v, { freq: 130, to: 60, dur: 0.12, vol: 0.25, attack: 0.002 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 5200, q: 0.8, at: 0.03, dur: 0.18, vol: 0.08, attack: 0.02 });
+    tone(v, { type: 'triangle', freq: 240, to: 228, at: 0.06, dur: 0.4, vol: 0.07, attack: 0.002 });
+  },
+  webSplat(v) { // splatting on stone
+    splat(v, { freq: 1500, to: 450, dur: 0.12, vol: 0.32 });
+    tone(v, { freq: 120, to: 55, dur: 0.1, vol: 0.15 });
+  },
+  reel(v) { // reeling in: a ratchet clicking faster and faster under a straining creak
+    for (let t = 0, gap = 0.07; t < 0.5; t += gap, gap = Math.max(0.03, gap * 0.85)) tone(v, { type: 'square', freq: 1700 + t * 900, at: t, dur: 0.012, vol: 0.035 });
+    noise(v, { freq: 700, to: 1100, q: 6, dur: 0.5, vol: 0.06, attack: 0.1 });
+  },
+  bite(v) { // fangs snapping shut: two clicks and a wet crunch
+    noise(v, { filter: 'highpass', freq: 3800, dur: 0.012, vol: 0.3, attack: 0.001 });
+    noise(v, { filter: 'highpass', freq: 3400, at: 0.035, dur: 0.012, vol: 0.26, attack: 0.001 });
+    tone(v, { freq: 190, to: 70, at: 0.03, dur: 0.1, vol: 0.25, attack: 0.002 });
+    splat(v, { freq: 1100, to: 380, at: 0.035, dur: 0.12, vol: 0.45 });
+  },
+  yank(v) { // parried, dragged off its feet along its own line: a rush and the line twanging
+    noise(v, { freq: 300, to: 1700, q: 0.9, dur: 0.32, vol: 0.28, attack: 0.03 });
+    tone(v, { type: 'triangle', freq: 420, to: 160, dur: 0.32, vol: 0.08, attack: 0.002 });
+  },
+  thud(v) { // landing in a heap
+    tone(v, { freq: 110, to: 40, dur: 0.22, vol: 0.4 });
+    noise(v, { filter: 'lowpass', freq: 900, to: 120, dur: 0.2, vol: 0.35 });
+  },
   // the Alembic (its own attacks are played at its sfxPitch, a good deal lower)
   ventVolley(v) { // every valve firing at once: a hard pneumatic chuff over a thump, a hiss and a clack of metal
     tone(v, { freq: 140, to: 45, dur: 0.26, vol: 0.4 });

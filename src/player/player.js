@@ -32,6 +32,7 @@ export class Player extends Entity {
     this.hidden = false; // not drawn: gone into the exit, or not yet appeared on a new floor
     this.alight = false; // drawn solid white: dissolving into the exit's light
     this.shoved = null; // { vx, vy, at, time }: a push fading out on top of walking (see shove)
+    this.reeledBy = null; // the Weaver's reel while it has the player caught in web: it drags them instead of walking (its pullOn), and they can't attack or dash, only struggle
 
     this.attacking = false;
     this.attackEndsAt = 0;
@@ -98,7 +99,10 @@ export class Player extends Entity {
     if (this.dashing && now >= this.dashEndsAt) this.dashing = false;
     this.dashBuffer.consume(now, () => this.tryStartDash());
 
-    if (this.hurtBy && !this.world.hostileAttacks.has(this.hurtBy)) this.hurtBy = null;
+    // The attack that hurt the player passes through their parries while it can still hurt
+    // them: until it's over, or for one that lingers (a thread), until they're out of it.
+    const hurt = this.hurtBy, b = this.body.pos;
+    if (hurt && (!this.world.hostileAttacks.has(hurt) || (hurt.lingers && !hurt.overlapsCircle(b.x, b.y, this.body.radius)))) this.hurtBy = null;
     if (input.wasPressed('parry')) this.parryBuffer.press(now);
     if (this.parrying && now >= this.parryEndsAt) this.endParry();
     this.parryBuffer.consume(now, () => this.tryStartParry());
@@ -111,6 +115,8 @@ export class Player extends Entity {
     if (this.teleporting) {
       this.steer(0, 0, 1);
     } else if (!this.dashing) {
+      const pull = this.reeledBy?.pullOn(this);
+      if (pull) { this.steer(pull.x, pull.y, 1); return; }
       const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier * this.buffs.speedMultiplier * (devFlags.noclip ? 3 : 1);
       const push = this.shoveVelocity(now);
       this.steer(this.movement.x * speed + push.x, this.movement.y * speed + push.y, PLAYER.movementResponsiveness);
@@ -162,6 +168,7 @@ export class Player extends Entity {
 
   tryStartAttack() {
     const now = this.now;
+    if (this.reeledBy) { this.reeledBy.struggle(this); return true; } // caught in web: they only shake it
     if (now < this.attackReadyAt || this.attacking || this.parrying || this.teleporting) return false;
     this.aspects.beforeAttack();
     this.attackReadyAt = now + A.cooldown * this.buffs.cooldownMultiplier;
@@ -270,6 +277,7 @@ export class Player extends Entity {
   // ── dash ─────────────────────────────────────────────────────────
   tryStartDash() {
     const now = this.now;
+    if (this.reeledBy) { this.reeledBy.struggle(this); return true; } // caught in web: they only shake it
     if (this.dashing || this.teleporting || now < this.dashReadyAt || isZero(this.movement)) return false;
     const d = norm(this.movement);
     this.dashing = true;
@@ -355,10 +363,13 @@ export class Player extends Entity {
   // ── health ───────────────────────────────────────────────────────
   // An enemy attack connects (having beaten any parry). The hit lands H.hitCoyoteTime later,
   // unless a parry started by then takes the attack instead (see tryStartParry). Nothing
-  // else can hit the player meanwhile.
+  // else can hit the player meanwhile. An attack can land however recently they were hurt
+  // (its ignoresInvincibility: the Weaver's, on a player it has caught).
   hitBy(attack, damage, hitPoint, source) {
-    if (this.dead || this.death || this.pendingHit || this.now < this.invincibleUntil) return;
-    this.pendingHit = { attack, damage, hitPoint, source, landsAt: this.now + H.hitCoyoteTime };
+    if (this.dead || this.death || this.pendingHit) return;
+    const pierce = !!attack.ignoresInvincibility?.(this);
+    if (this.now < this.invincibleUntil && !pierce) return;
+    this.pendingHit = { attack, damage, hitPoint, source, pierce, landsAt: this.now + H.hitCoyoteTime };
     this.world.events.playerThreatened.emit(this, this.pendingHit);
   }
 
@@ -378,14 +389,15 @@ export class Player extends Entity {
   }
 
   landPendingHit() {
-    const { attack, damage, hitPoint, source } = this.pendingHit;
+    const { attack, damage, hitPoint, source, pierce } = this.pendingHit;
     this.pendingHit = null;
     this.hurtBy = this.world.hostileAttacks.has(attack) ? attack : null;
-    this.takeDamage(damage, hitPoint, source);
+    this.takeDamage(damage, hitPoint, source, pierce);
   }
 
-  takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos) {
-    if (this.dead || this.death || this.now < this.invincibleUntil) return;
+  // `pierce`: however recently they were hurt.
+  takeDamage(damage, hitPoint = this.body.pos, source = this.body.pos, pierce = false) {
+    if (this.dead || this.death || (this.now < this.invincibleUntil && !pierce)) return;
     // A ward takes the hit instead, with the moment of invulnerability a hit would give.
     if (damage > 0 && this.buffs.absorb(source)) {
       this.lastHitAt = this.now;

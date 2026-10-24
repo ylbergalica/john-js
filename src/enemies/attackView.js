@@ -12,9 +12,10 @@
 //   CrescentLook   the same for the Lemur's spinning crescents.
 //   BlobLook       the same for the Alembic's orbs of toxin.
 //   CanisterLook   the same for its canisters launched.
+//   SilkLook       the same for the Weaver's anchors and balls of web.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M } from '../data/config.js';
+import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, WEB as WB } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -818,6 +819,40 @@ export class CanisterLook {
 }
 
 // Projectile looks by an ability's `look`.
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook };
+// A Weaver's anchor or ball of web (WEB.silk): a white knot of strands, turning, in the hostile
+// glow, trailing a streak once spat. Drawn like ProjectileLook.
+export class SilkLook {
+  get color() { return X.color; }
+  get maxTrail() { return X.projectile.trailLength; }
+
+  constructor(parent, { trail = true, spin = 1 } = {}) {
+    this.container = new Container();
+    this.glow = sprite(tex.mist, this.container, { blendMode: 'add' });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add' }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.silk_knot, this.container, { tint: 0xffffff });
+    for (const s of this.container.children) s.visible = true;
+    this.spin = spin;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const K = WB.silk, pulse = 0.5 + 0.5 * Math.sin(now * K.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.glow.width = this.glow.height = size * K.glowSize * lerp(0.9, 1.1, pulse);
+    this.glow.alpha = K.glowAlpha * glow * lerp(0.75, 1, pulse);
+    this.core.width = this.core.height = size * ORB_PAD * 1.15;
+    this.core.rotation = now * K.spin * this.spin;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * K.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook };
 // The colour a look bursts into, by an ability's `look`.
 export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color })[look] ?? X.color;

@@ -152,6 +152,8 @@ export const ATTACK_FX = {
     loose: { shape: 'none', lean: 0, squash: 0, swell: 0.08 }, // its canisters strain out
     spew: { shape: 'ring', reach: 0.5, to: 1.05, lean: 0, squash: 0, swell: 0.14 }, // building pressure, about to spew all round
     retch: { shape: 'none', lean: 0.14, squash: 0.06, swell: 0.06 }, // rearing back to lob
+    spit: { shape: 'none', lean: 0.12, squash: 0.08, swell: 0.03 }, // drawing back to spit, its silk showing at its mouth
+    rear: { shape: 'none', lean: 0.08, squash: 0, swell: 0.07 }, // rearing up, front legs raised wide
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -455,6 +457,82 @@ export const CAPES = {
   fold: [0.4, 0.95],
   color: { light: 0xf6f2e6, shadow: 0x8e887a, outline: 0xfff3c8, glow: 0xffe08a, hem: 0xe0ac2a },
   line: 0.035, glowLine: 0.14, glowAlpha: 0.25, hem: 0.05,
+};
+
+// The Weaver's legs (src/enemies/weaverRig.js): eight, four a side, each from a hip on its
+// head out to a foot, a `femur` then a `tibia` long, the knee bent out away from the body.
+// In its frame (+x forward, +y to its right, world units), `legs` lists its right legs,
+// front first, as [hip x, hip y, foot x, foot y] with the foot where it rests (the left
+// ones mirror them). Walking, each foot stays planted on the floor until it is
+// `step.threshold` from where it would rest, then steps there in `step.time`, aimed
+// `step.lead` seconds of the Weaver's velocity ahead, swinging `step.lift` out on the way;
+// one too far for the leg to reach (`step.reach` × the leg's length) steps at once. Legs
+// step in two sets of four (each side's first and third with the other's second and
+// fourth), never both at once, so it always stands on one. At rest its legs flex in and
+// out (`breathe`, × their reach, Hz).
+// An attack poses them (its `legs`, `poses`): each listed foot lifts off the floor and
+// is held where it says (null: left walking), trembling `tremble` as the wind-up nears
+// its end (× that, Hz), the walking feet set wider by `spread`. `haul`: hand over hand,
+// each front foot reaching to `reach` and hauling back to `pull` in turn, `rate` times a
+// second. Stunned or yanked, it draws every leg in to `curl` of its reach, twitching
+// (`twitch`). Lifted feet chase where they are held over `ease` seconds.
+// Drawn as a dark leg in a pale outline and a soft glow (`width`: the femur's and tibia's,
+// `line`, `glowLine`), warming with its body as it winds up.
+export const WEAVER_LEGS = {
+  legs: [[0.19, 0.08, 0.47, 0.3], [0.155, 0.1, 0.24, 0.44], [0.115, 0.1, -0.08, 0.44], [0.075, 0.08, -0.35, 0.32]],
+  femur: 0.26, tibia: 0.3,
+  step: { threshold: 0.18, time: 0.08, lead: 0.1, lift: 0.07, reach: 0.97 },
+  breathe: { amount: 0.025, freq: 0.6 },
+  poses: {
+    spit: { feet: [[0.45, 0.12], null, null, null], spread: 1.06 },
+    rear: { feet: [[0.31, 0.4], [0.35, 0.5], null, null], spread: 1.1 },
+    reel: { feet: ['haul', null, null, null], spread: 1.14 },
+    bite: { feet: [[0.36, 0.06], null, null, null], spread: 1.05 },
+  },
+  haul: { reach: [0.55, 0.09], pull: [0.18, 0.26], rate: 4 },
+  tremble: { amount: 0.024, freq: 11 },
+  curl: { stunned: 0.55, yank: 0.7 },
+  twitch: { amount: 0.035, freq: 7 },
+  ease: 0.05,
+  width: [0.036, 0.025], line: 0.014, glowLine: 0.08, glowAlpha: 0.18,
+  color: { fill: 0x121118, outline: 0x8e88ac, glow: 0x7a70b8 },
+};
+
+// The Weaver's silk (src/enemies/web.js): `color` with a soft `glow`.
+// A thread is a line of it `width` thick in a glow `glowWidth` wide, a knot at each end
+// (`knot`: `strands` short strands `length` long round a dot `dot` across). Dew glints
+// along it every `dew.spacing`, twinkling; now and then (`shimmer.every` seconds or so) a
+// glint runs along it (`speed`, `length`). Fastened, and whenever it hurts someone, it
+// twangs, quivering up to `twang.amount` across at `twang.freq` Hz, dying away over
+// `twang.decay` s. Cut, its halves spring back to their knots over `snap.time`,
+// wriggling; a thread that falls slack (its anchor hitting or parried, or too short to
+// keep) sags away over `slack`. Paying out behind an anchor in flight, it ripples
+// (`payout`: up to `amount` across, `waves` along it).
+// An anchor or a ball of web in flight (SilkLook) is a knot of it in the hostile glow. The
+// ball (`snare`) flies on a line of silk `line` thick back to the Weaver's mouth, bursting
+// into strands round the player it catches (`wrap`) or splatting on a wall (`splat`), and
+// winds them in a few loops of web (`cocoon`: `loops` of them, each `span` [min, max]
+// radians round, `reach` × their radius out, winding on over `wrap` s). Each time they
+// struggle, the web shakes (up to `shake` × their radius, settling over `settle` s) and
+// the line jerks (quivering like a twang), throwing off `strain` sparks.
+export const WEB = {
+  color: 0xece6ff, glow: 0x8f7ff0,
+  width: 0.035, glowWidth: 0.17, alpha: 0.9, glowAlpha: 0.3,
+  knot: { strands: 6, length: 0.15, dot: 0.07 },
+  dew: { spacing: 0.85, size: 0.12, twinkle: [0.8, 2.2] },
+  shimmer: { every: 1.8, speed: 10, length: 1.1 },
+  twang: { amount: 0.16, freq: 21, decay: 0.4 },
+  snap: { time: 0.35, sparks: { count: 10, speed: 6, lifetime: 0.3, size: 0.24, coneDeg: 180 } },
+  slack: 0.45,
+  payout: { amount: 0.08, waves: 2.5 },
+  silk: { glowSize: 3, glowAlpha: 0.75, pulseSpeed: 9, spin: 4, trailWidth: 1.1 }, // × the anchor's size
+  snare: {
+    line: 0.03,
+    cocoon: { loops: 4, span: [2.4, 4.2], reach: 1.18, wrap: 0.16, shake: 0.18, settle: 0.25 },
+    wrap: { count: 14, speed: 5, lifetime: 0.35, size: 0.26, coneDeg: 180 },
+    splat: { count: 10, speed: 5, lifetime: 0.3, size: 0.24, coneDeg: 100 },
+    strain: { count: 5, speed: 3, lifetime: 0.25, size: 0.2, coneDeg: 180 },
+  },
 };
 
 // The Alembic (type blight, src/enemies/blightRig.js), a still for poison made a guardian:

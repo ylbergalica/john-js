@@ -90,6 +90,9 @@ export class EnemyHitbox {
     }
   }
 
+  // Whether it lands on `player` however recently they were hurt (its ability says).
+  ignoresInvincibility(player) { return this.ability.ignoresInvincibility?.(player) ?? false; }
+
   // Player parry hook (also just after it has struck, see Player.hitBy).
   parry() {
     this.parried = true;

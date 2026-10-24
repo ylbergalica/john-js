@@ -3,8 +3,8 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges } from './sprites.js';
-import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR } from '../data/config.js';
+import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges, weaverKnee, weaverLegsRest } from './sprites.js';
+import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR, WEAVER_LEGS } from '../data/config.js';
 import { capeRest } from '../enemies/cape.js';
 
 export const tex = {};
@@ -31,7 +31,7 @@ export async function loadAssets() {
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack. A prop's cracks never change its
   // outline, so one serves all its stages.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'blight_idle', 'blight_idle_void', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'weaver_idle', 'weaver_idle_void', 'blight_idle', 'blight_idle_void', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
   blightParts().forEach((_, i) => { tex[`blight_part_${i}_white`] = toTexture(whiteSilhouette(tex[`blight_part_${i}`].source.resource)); });
@@ -78,6 +78,7 @@ function enemyPortrait(visual, S = 128) {
   if (visual.rig === 'tail') return lemurPortrait(c, ctx, visual, S);
   if (visual.rig === 'scimitar') return corsairPortrait(c, ctx, visual, S);
   if (visual.rig === 'alembic') return blightPortrait(c, ctx, visual, S);
+  if (visual.rig === 'legs') return weaverPortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -178,6 +179,26 @@ function corsairPortrait(c, ctx, visual, S) {
   ctx.translate(cx + Math.cos(phi) * r * u, cy + Math.sin(phi) * r * u);
   ctx.rotate(rot);
   ctx.drawImage(tex.scimitar.source.resource, -SCIMITAR_ART.rootX * u, -SCIMITAR_ART.rootY * u, SCIMITAR_ART.w * u, SCIMITAR_ART.h * u);
+  return c;
+}
+
+// The Weaver with its legs at rest, splayed all round it: shrunk to fit.
+function weaverPortrait(c, ctx, visual, S) {
+  const u = S / 1.2, cx = S / 2 - 0.06 * u, cy = S / 2, half = (visual.size / 2) * u, C = WEAVER_LEGS.color, [w0, w1] = WEAVER_LEGS.width;
+  const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
+  const at = (p) => [cx + p.x * u, cy + p.y * u];
+  const legs = weaverLegsRest().map((leg) => ({ ...leg, knee: weaverKnee(leg.hip, leg.foot) }));
+  ctx.lineCap = ctx.lineJoin = 'round';
+  for (const [grow, color] of [[WEAVER_LEGS.line, C.outline], [0, C.fill]]) {
+    ctx.strokeStyle = hex(color);
+    for (const { hip, knee, foot } of legs) {
+      ctx.lineWidth = (w0 + grow * 2) * u;
+      ctx.beginPath(); ctx.moveTo(...at(hip)); ctx.lineTo(...at(knee)); ctx.stroke();
+      ctx.lineWidth = (w1 + grow * 2) * u;
+      ctx.beginPath(); ctx.moveTo(...at(knee)); ctx.lineTo(...at(foot)); ctx.stroke();
+    }
+  }
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
   return c;
 }
 

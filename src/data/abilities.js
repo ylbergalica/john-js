@@ -219,6 +219,60 @@ export const ABILITIES = {
     strikeSound: 'rush', swingSound: 'swish', crashSound: 'clang', blade: 'rush',
     crashShake: { duration: 0.22, strength: 0.3, frequency: 20 },
   },
+  // The Weaver's silk, spat from its mouth `spawnDistance` / `muzzle` ahead of its centre
+  // (both attacks rear up its front legs as they wind up; `legs` says how, WEAVER_LEGS,
+  // weaverRig.js).
+  // Weave: it strings a thread from wall to wall, through where it stands (WeaveAbility).
+  // Picking a line (`line`: of `tries` through it at random, one `length` [min, max] long
+  // from wall to wall, clear of the player by `clear`, not lying along one of its threads
+  // within `apart`, the nearer the player the better, out to `near`, and the shorter the
+  // better), it spits an anchor of silk (`look: 'silk'`) into its far end, then turns and
+  // walks to the near end at `walkSpeed`, the thread paying out of its spinnerets
+  // (`spinneret` behind its centre), and fastens it there (within `reach` of the wall;
+  // failing that, wherever it is). Walking more than `walkTime`, getting stuck, stunned,
+  // slain or the player coming within `minPlayerDist` (it doesn't start one with them that
+  // close), it fastens it where it is (letting it fall if shorter than `minThread`). The
+  // anchor hits the player on the way for `damageMultiplier` and its line falls; parried,
+  // it stuns the Weaver.
+  // A thread (web.js) stays strung until cut, through its Weaver's death too: touching it
+  // hurts (× `thread.damage`, again every `thread.rehit` they stay in it), the thread being
+  // spun too. A sword stroke across it cuts it; a parry breaks it and hurts the Weaver as
+  // any parry would (`damageMultiplier`), but doesn't stun it. Each Weaver keeps at most
+  // `max` strung and stops weaving while it has that many.
+  WeaverWeave: {
+    type: 'weave', tell: 'spit', cooldown: 2.5, range: 16, windUpTime: 0.55, lockTime: 0, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 0.7, requireClearAttackPath: false,
+    look: 'silk', projectileSpeed: 18, projectileSize: 0.28, spawnDistance: 0.36,
+    line: { length: [2.5, 22], tries: 16, clear: 1.3, apart: 1, near: 5 },
+    walkSpeed: 3.4, walkTime: 6, reach: 1.5, minThread: 1.5, minPlayerDist: 2.5, spinneret: 0.28, max: 5,
+    thread: { width: 0.05, damage: 0.6, rehit: 0.8 },
+    legs: 'spit',
+  },
+  // Reel: a ball of web (`look: 'silk'`) forms at its mouth, then is thrown straight out on
+  // a line, `ballSpeed` out to `ballReach`. Catching the player (no hurt yet), it winds them
+  // in a few strands of web and reels them in, braced, its front legs hauling hand over
+  // hand: the player is dragged straight at it at a steady `pullSpeed` (through any of its
+  // threads in the way) until they are `biteRange` from it, then held there through the
+  // bite's wind-up (`biteWindup`, cued at its mouth), and it bites: a circle `biteRadius`
+  // round a point `biteForward` ahead, lunging `biteStep` over `duration`, then lets go.
+  // Caught, the player can't attack or dash, only shake the web; a thread's hurt and the
+  // bite land however recently they were hurt. The line breaks only if they get out of
+  // reach (`snapRange` past the ball's reach) or out of the fight; it gives up reeling after
+  // `reelTime` and bites anyway. Missing (a wall, or out of line), the ball is drawn back
+  // over `retractTime`. Parried,
+  // the pull flips: the line drags the Weaver to the player at `yankSpeed` until it is
+  // `yankStop` from them (or `yankTime` runs out), and it lies there stunned. A parried
+  // bite stuns it too.
+  WeaverReel: {
+    type: 'reel', tell: 'rear', cooldown: 4.5, range: 8, windUpTime: 0.75, lockTime: 0.25, duration: 0.14, recoveryTime: 0.5,
+    damageMultiplier: 1.5, parryStunTime: 1.3, ...clearPath({ x: 0.5, y: 0.5 }, 0.3),
+    look: 'silk', projectileSize: 0.42, muzzle: 0.36,
+    ballSpeed: 17, ballReach: 8.5, snapRange: 2.5, retractTime: 0.22,
+    pullSpeed: 4.5, reelTime: 3, biteRange: 0.95, biteWindup: 0.45,
+    biteRadius: 0.5, biteForward: 0.38, biteStep: 0.35,
+    yankSpeed: 13, yankStop: 1.1, yankTime: 1, parryKnockback: 6,
+    legs: 'rear',
+  },
   // The Alembic's parts (BLIGHT, blightRig.js): ten iris valves ring its rim, the first
   // straight ahead, and canisters of toxin sit in its body. Its orbs of toxin (`look:
   // 'blob'`, see BLOB) form over its valves and fly straight out; `parts` says how its parts

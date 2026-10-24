@@ -116,6 +116,19 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 13, orbitRadius: 3, moveSpeed: 3.2, orbitSpeed: 2.6, repositionSpeed: 2.6, maxTurnSpeed: 4.5,
       attacks: [{ ability: 'CorsairSlash', weight: 0.6 }, { ability: 'CorsairRush', weight: 0.4 }] },
   },
+  // A small spider of starlight, all but black, with a dim silver edge, a pale hourglass on
+  // its abdomen and a cluster of glowing eyes, scuttling on eight legs that plant and step
+  // (`rig`, see weaverRig.js). It keeps its distance and strings the room with threads
+  // from wall to wall that hurt whoever touches them, left there for good (web.js); or casts
+  // a hook on a line that, catching the player, reels them in for a bite.
+  weaver: {
+    name: 'Weaver', maxHealth: 18, damage: 1.5, radius: 0.36, mass: 3.5, linearDamping: 1,
+    knockbackResistance: 0.05, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xa99be8, sfxPitch: 1.05,
+    visual: { kind: 'sprite', outline: 'weaver_idle', void: 'weaver_idle_void', size: 1.15, sparkleCount: 10, rig: 'legs' },
+    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5.5, moveSpeed: 3.6, orbitSpeed: 3, repositionSpeed: 3.2, maxTurnSpeed: 6,
+      attacks: [{ ability: 'WeaverWeave', weight: 0.6 }, { ability: 'WeaverReel', weight: 0.4 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

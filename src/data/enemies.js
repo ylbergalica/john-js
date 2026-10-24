@@ -138,7 +138,7 @@ export const ENEMY_TYPES = {
     knockbackResistance: 0, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xb9a4ff, sfxPitch: 0.75,
     navFootprint: 3,
-    visual: { kind: 'sprite', outline: 'seraph_idle', void: 'seraph_idle_void', size: 2.2, sparkleCount: 30 },
+    visual: { kind: 'sprite', outline: 'seraph_idle', void: 'seraph_idle_void', size: 2.2, sparkleCount: 0 },
     hurtbox: [[0.88, 0], [-0.77, 0.7], [-0.77, -0.7]], // nose and wingtips, leaving out the tail
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 6, attackEngageRange: 8, moveSpeed: 2.5, orbitSpeed: 1.6, repositionSpeed: 1.6,
       turnSmoothTime: 0.2,

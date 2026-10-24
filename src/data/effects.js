@@ -154,6 +154,7 @@ export const ATTACK_FX = {
     retch: { shape: 'none', lean: 0.14, squash: 0.06, swell: 0.06 }, // rearing back to lob
     spit: { shape: 'none', lean: 0.12, squash: 0.08, swell: 0.03 }, // drawing back to spit, its silk showing at its mouth
     rear: { shape: 'none', lean: 0.08, squash: 0, swell: 0.07 }, // rearing up, front legs raised wide
+    swell: { shape: 'ring', reach: 2.2, to: 1.8, lean: 0, squash: 0, swell: 0 }, // about to burst all round (its rig swells it)
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -532,6 +533,41 @@ export const WEB = {
     wrap: { count: 14, speed: 5, lifetime: 0.35, size: 0.26, coneDeg: 180 },
     splat: { count: 10, speed: 5, lifetime: 0.3, size: 0.24, coneDeg: 100 },
     strain: { count: 5, speed: 3, lifetime: 0.25, size: 0.2, coneDeg: 180 },
+  },
+};
+
+// The Nova (src/enemies/novaRig.js): a ball of light with every one of `hues` mixing in it
+// round a white-hot heart. It flickers, `rate` times a second (Hz) while whoever it hunts
+// is `far` off, up to [1] once they are `near`, faster still as it swells (`swellRate`,
+// by the end) and once lit (`litRate`: critical, launched or caught in a blast). Each
+// flicker lights it up (`flash`: how much brighter) and swells its corona (`corona`:
+// × body radius across, its alpha unlit and lit) and its colour drifts round the hues
+// `hueSpeed` times a second. Swelling it grows `swell` larger, `critical` more as it goes
+// critical, and `lit` once launched. Rushing and launched it sheds sparks of its colour
+// (`rushTrail`, `trail`: `rate` a second).
+// Its supernova (FlareAbility) is drawn as an enemy's death (`burst`, see DEATH_FX: sizes in
+// body radii, its rings reaching about as far as the blast), with sparks in every hue.
+const NOVA_HUES = [0xff4d5e, 0xff9a3c, 0xffe94a, 0x6dff7a, 0x48e6ff, 0x5a78ff, 0xb35cff, 0xff5cd8];
+export const NOVA = {
+  hues: NOVA_HUES,
+  far: 9, near: 1.5, rate: [1.2, 9], swellRate: 22, litRate: 26, hueSpeed: 0.35,
+  flash: 0.5, corona: { size: 3.4, alpha: [0.22, 0.65] },
+  swell: 0.6, critical: 0.15, lit: 0.12,
+  rushTrail: { rate: 30, count: 1, speed: 2, lifetime: 0.3, size: 0.3, coneDeg: 40 },
+  trail: { rate: 70, count: 1, speed: 3, lifetime: 0.4, size: 0.4, coneDeg: 30 },
+  burst: {
+    flash: { size: 9, grow: 1.6, time: 0.3, alpha: 1 },
+    rings: [
+      { delay: 0, time: 0.3, from: 1, to: 6, alpha: 1, color: 0xffffff },
+      { delay: 0.04, time: 0.55, from: 1.5, to: 8, alpha: 0.7 },
+    ],
+    rays: { count: 10, length: [4, 8], width: [0.4, 0.7], time: [0.3, 0.5] },
+    sparks: NOVA_HUES.map((color) => ({ count: 12, speed: 16, lifetime: 0.55, size: 0.5, coneDeg: 180, color })),
+    stars: { count: 24, speed: [4, 11], size: [0.22, 0.42], life: [0.6, 1.2], color: 0xffffff },
+    mist: { count: 14, speed: [2, 5], size: [1.2, 1.9], grow: 2.4, life: [0.5, 0.9], alpha: 0.4 },
+    embers: null,
+    shake: { duration: 0.3, strength: 0.35, frequency: 18 },
+    ripple: { duration: 0.7, strength: 0.025, width: 0.07, glow: 0.5, grade: [0.92, 0.92, 0.96] },
   },
 };
 

@@ -6,7 +6,7 @@
 import { seededRandom, lerp, lerpColor, clamp01, smoothStep01, TAU } from '../engine/math.js';
 import { ASPECTS } from '../data/aspects.js';
 import { PLAYER } from '../data/player.js';
-import { BLIGHT, LEMUR_TAIL, WEAVER_LEGS } from '../data/effects.js';
+import { BLIGHT, LEMUR_TAIL, NOVA, WEAVER_LEGS } from '../data/effects.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { antlerParts, mirrored } from './antlerShape.js';
 
@@ -58,6 +58,8 @@ export function sprites() {
     weaver_idle: weaverOutline(),
     weaver_idle_void: weaverVoid(),
     silk_knot: silkKnot(),
+    nova_idle: novaOutline(),
+    nova_idle_void: novaVoid(),
     blight_idle: blightOutline(),
     blight_idle_void: blightVoid(),
     ...blightPartSprites(),
@@ -1529,6 +1531,36 @@ function weaverVoid() {
       ctx.beginPath(); ctx.arc(x + r * 0.25, yy - r * 0.25, r * 0.35, 0, TAU); ctx.fill(); // a glint
     }
   }
+  return c;
+}
+
+// The Nova's body, a plain circle `r` across: its rim lit in every one of NOVA.hues round it
+// (paled toward white by `pale`), and inside, `clouds` of every hue mixing over a glow
+// fading from warm white to deep violet at the edge, round a white-hot heart `heart` across.
+const NOVA_ART = { r: 0.3, line: 0.04, pale: 0.4, clouds: 0.34, heart: 0.15, seed: 89 };
+const hexOf = (n) => `#${n.toString(16).padStart(6, '0')}`;
+
+function novaOutline(S = 256) {
+  const { c, ctx, px } = surface(S);
+  const hues = NOVA.hues, g = ctx.createConicGradient(0, 0.5, 0.5);
+  const pale = (h) => hexOf(lerpColor(h, 0xffffff, NOVA_ART.pale));
+  hues.forEach((h, i) => g.addColorStop(i / hues.length, pale(h)));
+  g.addColorStop(1, pale(hues[0]));
+  ctx.strokeStyle = g;
+  ctx.lineWidth = NOVA_ART.line;
+  glow(ctx, rgba('#ffffff', 0.6), px * 0.04, () => ctx.stroke(circlePath(NOVA_ART.r)));
+  return c;
+}
+
+function novaVoid(S = 256) {
+  const { c, ctx } = surface(S);
+  const rand = seededRandom(NOVA_ART.seed);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, NOVA_ART.r, ['#fff4dc', '#ff9fb8', '#7a3cc8', '#1c0a3a']);
+  ctx.fill(circlePath(NOVA_ART.r));
+  ctx.globalCompositeOperation = 'source-atop'; // only over the body
+  nebula(ctx, rand, NOVA.hues.map((h) => [hexOf(h), NOVA_ART.clouds]), NOVA.hues.length * 2, [0.22, 0.78, 0.22, 0.78]);
+  ctx.fillStyle = radial(ctx, 0.5, 0.5, NOVA_ART.heart, [rgba('#ffffff', 1), rgba('#fff6dc', 0.6), rgba('#ffffff', 0)]);
+  ctx.fillRect(0, 0, 1, 1);
   return c;
 }
 

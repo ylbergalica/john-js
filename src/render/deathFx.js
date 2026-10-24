@@ -30,7 +30,7 @@ export class DeathFx {
   play(enemy, dir) {
     const { type, body } = enemy, w = this.world;
     const D = type.isChaser ? DEATH_FX.guardian : DEATH_FX.enemy;
-    const { x, y } = body.pos, r = body.radius, color = type.hitColor;
+    const { x, y } = body.pos, r = body.radius, color = enemy.hitColor;
     const blowAngle = Math.atan2(dir.y, dir.x);
 
     // The silhouette pops white and swells away, cooling to the enemy's colour.

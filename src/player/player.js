@@ -201,7 +201,7 @@ export class Player extends Entity {
     this.world.holdStill(enemy.dead ? ENEMY_HIT.killHitstop : ENEMY_HIT.hitstop);
     this.world.camera.shakeAtLeast(ENEMY_HIT.shake);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
-    if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src);
+    if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src, this.facing);
     this.applyRecoil(A.playerKnockbackForce);
     this.aspects.onHitEnemy(enemy, hitPoint);
   }

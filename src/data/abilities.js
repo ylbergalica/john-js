@@ -273,6 +273,26 @@ export const ABILITIES = {
     yankSpeed: 13, yankStop: 1.1, yankTime: 1, parryKnockback: 6,
     legs: 'rear',
   },
+  // The Nova's flare (FlareAbility): it rushes the player at `rushSpeed` (steering in by
+  // `rushResponsiveness` a step, along the paths round walls) until it is `swellRange`
+  // from them, or `rushTime` runs out, skidding to a halt (keeping `swellSkid` of its
+  // speed), then swells up over the wind-up and goes critical: for `duration` its blast,
+  // `blastRadius` all round it, can hurt the player (cued at its heart), and then it bursts
+  // in a supernova. Struck while it swells, it is knocked back hard but swells on, bursting
+  // wherever it ends up. Parried as it goes critical, it is launched along the parry at
+  // `launchSpeed`, lit, and bursts the moment it touches an enemy or a prop (within
+  // `contactMargin`), a wall, or `launchTime` runs out, sparing the player. Every burst
+  // hurts the enemies and props in its blast for `blastDamage` (a launched one's scaled by
+  // Exalted), throwing them back (`blastKnockback`); another Nova in it is lit instead, and
+  // bursts `chainDelay` later (going critical first, unless the burst was a launched one's).
+  NovaFlare: {
+    type: 'flare', tell: 'swell', cooldown: 1.5, range: 7, windUpTime: 0.95, duration: 0.08, recoveryTime: 0,
+    damageMultiplier: 2, parryStunTime: 0, cueAt: 0,
+    rushSpeed: 5.5, rushTime: 2.5, rushResponsiveness: 0.25, swellRange: 1.4, swellSkid: 0.35,
+    blastRadius: 2.3, blastDamage: 8, blastKnockback: 25,
+    launchSpeed: 17, launchTime: 0.7, contactMargin: 0.08, chainDelay: 0.12,
+    rushSound: 'novaRush', swellSound: 'novaSwell', burstSound: 'supernova', launchSound: 'novaLaunch', fuseSound: 'novaFuse',
+  },
   // The Alembic's parts (BLIGHT, blightRig.js): ten iris valves ring its rim, the first
   // straight ahead, and canisters of toxin sit in its body. Its orbs of toxin (`look:
   // 'blob'`, see BLOB) form over its valves and fly straight out; `parts` says how its parts

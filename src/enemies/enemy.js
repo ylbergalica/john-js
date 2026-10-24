@@ -18,12 +18,13 @@ import { BoxerRig } from './boxerRig.js';
 import { CorsairRig } from './corsairRig.js';
 import { BlightRig } from './blightRig.js';
 import { WeaverRig } from './weaverRig.js';
+import { NovaRig } from './novaRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -46,6 +47,7 @@ export class Enemy extends Entity {
     this.dyingWhite = false; // blinking white while dying
     this.pace = 1; // × its speed: a guardian losing patience (GuardianRage)
     this.rageGlow = null; // the red haze it smoulders in meanwhile, made when first needed
+    this.detonated = false; // a Nova bursting: its supernova is its death's look (FlareAbility)
 
     this.buildView();
     this.abilities = new Map();
@@ -60,6 +62,8 @@ export class Enemy extends Entity {
   }
 
   get damage() { return this.type.damage; }
+  // What its hits and death spray: its type's colour, or the colour its rig shows just now.
+  get hitColor() { return this.rig?.hue ?? this.type.hitColor; }
   // Who it hunts: the player, or a decoy standing in for them (World.quarry). Blows it takes
   // still come from the player itself.
   get player() { return this.world.quarry; }
@@ -149,19 +153,21 @@ export class Enemy extends Entity {
     const off = b.radius + this.type.particleOffset;
     const x = b.pos.x + dir.x * off, y = b.pos.y + dir.y * off, angle = Math.atan2(dir.y, dir.x);
     this.world.effects.burst(x, y, angle, PARTICLES.enemyHit);
-    this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitTinted, color: this.type.hitColor });
-    this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitGore, color: this.type.hitColor });
+    this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitTinted, color: this.hitColor });
+    this.world.effects.burst(x, y, angle, { ...PARTICLES.enemyHitGore, color: this.hitColor });
     this.world.sound(this.world.adrenaline.isExalted ? 'hitExalted' : 'hit', b.pos, { pitch: this.type.sfxPitch });
     this.hurtAt = this.world.time;
   }
 
-  applyKnockback(force, source = null) {
+  // Straight away from `source`; a type knocked `alongBlow` goes along `along` instead, if
+  // given (the way a swing was aimed).
+  applyKnockback(force, source = null, along = null) {
     if (force <= 0 || this.dead || this.dying) return;
     const eff = force * (1 - this.type.knockbackResistance);
     if (eff <= 0) return;
     const b = this.body;
     source ??= this.world.livePlayer?.body.pos ?? b.pos;
-    let dir = norm({ x: b.pos.x - source.x, y: b.pos.y - source.y });
+    let dir = norm(this.type.alongBlow && along ? along : { x: b.pos.x - source.x, y: b.pos.y - source.y });
     if (dir.x === 0 && dir.y === 0) {
       const f = fromAngle(b.rotation);
       dir = { x: -f.x, y: -f.y };
@@ -208,9 +214,11 @@ export class Enemy extends Entity {
   burst() {
     const { world, body, type } = this;
     this.ai.onDeath();
-    world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
+    if (!this.detonated) {
+      world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
+      world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
+    }
     this.rig?.onDeath();
-    world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });
     if (type.isChaser) world.shove(body.pos, DEATH_FX.guardian.push, this);
     if (type.isChaser && !this.summoned) world.guardianBurst(this);
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);

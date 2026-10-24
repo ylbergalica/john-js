@@ -561,6 +561,43 @@ const SOUNDS = {
     tone(v, { freq: 110, to: 40, dur: 0.22, vol: 0.4 });
     noise(v, { filter: 'lowpass', freq: 900, to: 120, dur: 0.2, vol: 0.35 });
   },
+  // the Nova
+  novaRush(v) { // setting off at the player: a bright rush of air with a shimmer climbing through it
+    noise(v, { freq: 500, to: 2600, q: 0.9, dur: 0.32, vol: 0.2, attack: 0.04 });
+    tone(v, { type: 'triangle', freq: 660, to: 1320, dur: 0.28, vol: 0.05, attack: 0.02 });
+    tinkles(v, 4, { spread: 0.25, vol: 0.025, lo: 3000, hi: 6500 });
+  },
+  novaSwell(v) { // swelling up: a whine climbing over a hum that throbs faster and faster, as long as its swell
+    const throb = ctx.createGain(), wobble = ctx.createOscillator(), depth = ctx.createGain();
+    throb.gain.value = 0.5;
+    throb.connect(v.out);
+    wobble.frequency.setValueAtTime(5, v.t);
+    wobble.frequency.exponentialRampToValueAtTime(26, v.t + 0.95);
+    depth.gain.value = 0.5;
+    wobble.connect(depth).connect(throb.gain);
+    wobble.start(v.t);
+    schedule(v, wobble, v.t, 0.95);
+    tone(v, { type: 'sawtooth', freq: 110, to: 230, dur: 0.95, vol: 0.09, attack: 0.25, hold: 0.9, out: throb });
+    tone(v, { freq: 320, to: 1500, dur: 0.95, vol: 0.07, attack: 0.3, hold: 0.9, out: throb });
+    noise(v, { filter: 'highpass', freq: 2500, to: 6000, q: 0.7, dur: 0.95, vol: 0.05, attack: 0.5, hold: 0.9 });
+  },
+  supernova(v) { // bursting: a deep boom and a crack, light roaring out, a bright chord shimmering down after
+    tone(v, { freq: 72, to: 24, dur: 0.9, vol: 0.6 });
+    noise(v, { filter: 'lowpass', freq: 3200, to: 90, dur: 0.9, vol: 0.5, attack: 0.002 });
+    noise(v, { filter: 'highpass', freq: 3800, to: 1600, q: 0.7, dur: 0.08, vol: 0.32, attack: 0.001 });
+    noise(v, { freq: 1800, to: 500, q: 0.6, at: 0.02, dur: 0.6, vol: 0.18, attack: 0.01 });
+    for (const [i, freq] of [1568, 1976, 2349, 2794].entries()) tone(v, { type: 'triangle', freq, to: freq * 0.94, at: 0.02 + i * 0.03, dur: 1.1, vol: 0.035 });
+    tinkles(v, 12, { at: 0.05, spread: 0.8, vol: 0.03 });
+  },
+  novaLaunch(v) { // parried and lit: a hard ping and a fuse fizzing as it streaks off, its whistle climbing
+    tone(v, { type: 'triangle', freq: 1900, to: 2500, dur: 0.06, vol: 0.08, attack: 0.001 });
+    noise(v, { filter: 'highpass', freq: 4000, to: 7500, q: 0.7, dur: 0.6, vol: 0.1, attack: 0.02 });
+    tone(v, { freq: 700, to: 1800, dur: 0.55, vol: 0.05, attack: 0.02 });
+  },
+  novaFuse(v) { // caught in a blast and lit: a quick crackle and a rising zip
+    noise(v, { filter: 'highpass', freq: 3000, to: 5000, q: 0.8, dur: 0.1, vol: 0.16, attack: 0.002 });
+    tone(v, { type: 'square', freq: 900, to: 2200, dur: 0.1, vol: 0.03 });
+  },
   // the Alembic (its own attacks are played at its sfxPitch, a good deal lower)
   ventVolley(v) { // every valve firing at once: a hard pneumatic chuff over a thump, a hiss and a clack of metal
     tone(v, { freq: 140, to: 45, dur: 0.26, vol: 0.4 });

@@ -1,6 +1,7 @@
 // Enemy types: stats, drops, visuals and AI. Chasers are the floor bosses. A `hurtbox`
 // (convex polygon in the enemy's frame, +x forward) is where it can be struck, if not its
-// round body (see game/hurtbox.js).
+// round body (see game/hurtbox.js). One knocked `alongBlow` flies the way the player's
+// swing was aimed, not straight away from it.
 
 const AI_DEFAULTS = {
   aggroRange: 12, orbitRadius: 4, attackEngageRange: 0,
@@ -128,6 +129,19 @@ export const ENEMY_TYPES = {
     visual: { kind: 'sprite', outline: 'weaver_idle', void: 'weaver_idle_void', size: 1.15, sparkleCount: 10, rig: 'legs' },
     ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5.5, moveSpeed: 3.6, orbitSpeed: 3, repositionSpeed: 3.2, maxTurnSpeed: 6,
       attacks: [{ ability: 'WeaverWeave', weight: 0.6 }, { ability: 'WeaverReel', weight: 0.4 }] },
+  },
+  // A ball of light in every colour, flickering faster and faster as it closes in (`rig`,
+  // see novaRig.js). It rushes the player, swells up and bursts in a supernova that hurts
+  // anything near, enemies too. Light, it barely resists knockback: a hit sends it flying,
+  // still swelling, and a parry launches it to burst on whatever it hits.
+  nova: {
+    name: 'Nova', maxHealth: 5, damage: 1.5, radius: 0.4, mass: 1, linearDamping: 1.5,
+    knockbackResistance: 0.15, knockbackMovementPause: 0.45, alongBlow: true,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffd27a, sfxPitch: 1.15,
+    visual: { kind: 'sprite', outline: 'nova_idle', void: 'nova_idle_void', size: 1.36, sparkleCount: 8, rig: 'nova' },
+    ai: { ...AI_DEFAULTS, aggroRange: 13, orbitRadius: 5, moveSpeed: 2, orbitSpeed: 1.6, repositionSpeed: 1.7, maxTurnSpeed: 8,
+      preservedExternalVelocityLimit: 20, decisionDelayRange: { x: 0.4, y: 1 },
+      attacks: [{ ability: 'NovaFlare', weight: 1 }] },
   },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,

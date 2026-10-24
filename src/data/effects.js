@@ -59,7 +59,7 @@ export const DEATH_FX = {
     // heats up in its colour, blinks white faster and faster (blinks a second, at the start
     // and end; solid white for the last `whiteOut`), and light leaks out of it in sparks
     // (every `sparkEvery` seconds, at the start and end). It sounds `sound` as it starts. A
-    // guardian type's own `dying` overrides any of these (the Blight's lasts longer).
+    // guardian type's own `dying` overrides any of these (the Alembic's lasts longer).
     dying: {
       time: 1.8, sound: 'bossDying',
       tremble: [0.015, 0.08], swell: 0.14,
@@ -148,10 +148,10 @@ export const ATTACK_FX = {
     barrage: { shape: 'arc', arcDeg: 60, lines: 2, reach: 0.6, to: 1.2, lean: 0.14, squash: 0.1, swell: 0.06 }, // bracing for the kick
     scimitar: { shape: 'none', lean: 0.1, squash: 0, swell: 0.04, twist: 18 }, // its blade shows the side
     rush: { shape: 'chevrons', count: 4, spacing: 0.4, size: 0.32, lean: 0.3, squash: 0.16, swell: 0.03 },
-    gape: { shape: 'none', lean: 0, squash: 0, swell: 0.06 }, // its mouths show the blobs forming
-    loose: { shape: 'none', lean: 0, squash: 0, swell: 0.08 }, // its heads strain out
-    spew: { shape: 'ring', reach: 0.5, to: 1.05, lean: 0, squash: 0, swell: 0.14 }, // heaving, about to spew all round
-    retch: { shape: 'none', lean: 0.14, squash: 0.06, swell: 0.06 }, // rearing back to hurl
+    gape: { shape: 'none', lean: 0, squash: 0, swell: 0.06 }, // its irises show the toxin forming
+    loose: { shape: 'none', lean: 0, squash: 0, swell: 0.08 }, // its canisters strain out
+    spew: { shape: 'ring', reach: 0.5, to: 1.05, lean: 0, squash: 0, swell: 0.14 }, // building pressure, about to spew all round
+    retch: { shape: 'none', lean: 0.14, squash: 0.06, swell: 0.06 }, // rearing back to lob
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -457,98 +457,95 @@ export const CAPES = {
   line: 0.035, glowLine: 0.14, glowAlpha: 0.25, hem: 0.05,
 };
 
-// The Blight (src/enemies/blightRig.js), a heaving mass of rotten flesh grown through with
-// heads. In its frame (+x forward, +y to its right, world units): `rim.count` heads round
-// its rim, `rim.r` out from its centre and `rim.size` (its radius) give or take `rim.jitter`
-// (degrees round, distance out, × size, degrees its facing is off straight out; picked from
-// `rim.seed`, the first left straight ahead); `inner`, more sunk into its body, each [x, y,
-// size, facing°]. No two heads are alike (`shape`, from `shape.seed`): each is drawn out
-// `length` long and `width` wide (× a round head), its jaw pinched in by `pinch`, skewed by
-// up to `skew` and bent by up to `bend`, its edge wobbling by `wobble`, in one of the `skin`s
-// (light, mid, dark); its face a scream, eyes and mouth all but black holes. Its mouth is
-// `mouth` of the way out along its length from its centre: where its blobs form.
-// Idle, it breathes (`breath`: grows `across` and shrinks `along` its facing by those
-// fractions and back, `rate` times a second) and each of its heads, at its own pace (`pace`,
-// × the rates), bobs `bob` (× its size) in and out `bobRate` times a second, lolls `loll`
-// radians either way `lollRate` times a second, now and then jerks round by up to
-// `twitch.turn`, springing back over `twitch.time` (every `twitch.every` seconds or so), and
-// moans, its mouth falling open (`moan`: every `every` seconds or so, for `time`). Every
-// `groan` seconds or so a groan rolls out of it, and goo oozes off its rim (`ooze`, a
-// second). Each head warms with its body as it winds up or dies, only `warm` as strongly
-// (a whole head takes it far harder than the body's thin outline). Mouths open over `open`
-// seconds and close over `close`. A head that spits jerks
-// out `retch` (× its size) and back over `retchTime`; one straining to tear free
-// (BlightHeads) is pushed out by the ability, swells by `strain.grow` and trembles
-// `strain.shake` (× its size), more as it nears. Torn free, a head grows back popping out of
-// the body (the ability's regrowDelay and regrowTime).
-// Dying (its `dying`, longer than other guardians'), its heads are torn off one by one in a
-// random order, from `tear.from` to `tear.to` of the way through, crowding together toward
-// the end (`tear.ease` < 1). Each strains first for `tear.strain` seconds, mouth wide,
-// dragged out `tear.pull` and stretched `tear.stretch` along the way it is pulled (× its
-// size), trembling up to `tear.shake`, then rips free in a spray of goo (`tear.gore`, and
-// `tear.spray` of white) and flies off at `tear.speed` (slowing with `tear.drag`), spinning
-// at up to `tear.spin`, shrinking to `tear.shrink` and fading over `tear.fly`. Meanwhile
-// the heads still on it writhe, lolling and twitching `writhe` times as much.
-// The body is rotten flesh (painted in sprites.js), outlined round the heads at its rim,
-// and the heads are grown into it and each other with no edge to them (HEAD_ART.feather):
-// each pair closer than `reach` × their sizes added is strung together by `sinews` (from,
-// to) twisted strands,
-// each `sinew` (from, to) × the smaller head thick, bowing up to `bow` × the gap to one
-// side, in one of `colors`. All of it moves with the heads, warms and flashes with them,
-// and goes with a head that tears out, leaving a dark wound `wound` × its size, ragged
-// (`jag` (from, to) × that, at `jagPoints` points round it), until it grows back. Only the body has an outline; heads torn loose are outlined like any projectile.
+// The Alembic (type blight, src/enemies/blightRig.js), a still for poison made a guardian:
+// a ten-sided shell of plates round a heart of toxic nebula, each part of it drawn on its
+// own so its rig can move it. In its frame (+x forward, +y to its right, world units; see
+// blightParts): `valves`, `count` iris valves round its rim `r` out, the first straight
+// ahead, each `size` round (its radius); `pods`, `count` canisters of toxin `r` out, the
+// first `angle`° round, each set into the conduit out to a valve, lying along the way
+// out, each `size` (half its width; it is longer than wide); and its `core`, a star of
+// poison in a glass sphere at its centre, `size` round.
+// Each valve's iris (`iris`) is `blades` blades closing over a recess `recess` (× its size)
+// round, shut to `shut` of that and opening to `wide`, turning `turn` radians as they do;
+// its toxin forms over its centre, `muzzle` (× its size) further out.
+// Idle it pumps (`pump`: swelling `across` and shrinking `along` its facing by those
+// fractions and back, `rate` times a second, in a quick beat, `beat` sharpening it), its
+// canisters slide out of their sockets and back `bob` (× their size), one after another
+// round it, `bobRate` times a second, the toxin in each brightening and fading at its own
+// pace (`glowRate`, × `pace`); its gear ring (`gear`: `r` out, `ticks` round, every
+// `major`th longer, turning `spin` turns a second) and the ring round its core (`orbit`:
+// `r` × the core's size, turning `spin`, `nodes` riding it) turn opposite ways; and toxin
+// runs out along the conduits from its core to each valve (`flow`: `pulses` on each,
+// `speed` along it a second, `rush` times faster while it winds up). Now and then a valve
+// vents (`vent`: its iris opening to `open` for `time`, every `every` seconds or so,
+// letting out a puff of gas, `puff`), a creak rolls out of it (every `creak` seconds or
+// so) and vapour drifts off its rim (`vapour`, a second). Its colours: `colors`.
+// Each part warms with its body as it winds up or dies, only `warm` as strongly (a whole
+// part takes it far harder than the body's thin outline). Irises open over `open` seconds
+// and close over `close`. A valve kicks back `kick` (× its size) as it fires and settles
+// over `kickTime`; a canister about to launch (BlightHeads) is pushed out by the ability,
+// swells by `strain.grow`, trembles `strain.shake` (× its size) and glows hotter.
+// Launched, it leaves in a jet of gas (`launch`), and a new one slides up out of its empty
+// socket (the ability's regrowDelay and regrowTime).
+// Dying (its `dying`, longer than other guardians'), its valves and canisters blow off one
+// by one in a random order, from `burst.from` to `burst.to` of the way through, crowding
+// together toward the end (`burst.ease` < 1). Each strains first for `burst.strain`
+// seconds, pushed out `burst.pull` (× its size), trembling up to `burst.shake`, a valve's
+// iris flung wide, then blows off in a jet of gas (`burst.gas`) and sparks
+// (`burst.sparks`) and flies off at `burst.speed` (slowing with `burst.drag`), spinning at
+// up to `burst.spin`, shrinking to `burst.shrink` and fading over `burst.fly`. Meanwhile
+// it races, its rings spinning and its toxin rushing `race` times as fast.
 export const BLIGHT = {
-  rim: { count: 10, r: 0.9, size: 0.21, jitter: { angle: 9, r: 0.07, size: [0.7, 1.35], facing: 26 }, seed: 101 },
-  inner: [
-    [0.44, 0.12, 0.21, 30], [0.06, 0.47, 0.14, 100], [-0.37, 0.31, 0.19, 145], [-0.47, -0.13, 0.13, 200],
-    [-0.1, -0.46, 0.2, 245], [0.37, -0.33, 0.15, -60], [-0.02, 0.03, 0.24, 15],
-  ],
-  shape: {
-    seed: 211, length: [1.02, 1.38], width: [0.66, 0.92], pinch: [0.12, 0.5], skew: 0.32, bend: 0.3, wobble: 0.09,
-    skin: [['#7d8a5c', '#56633c', '#2a3219'], ['#7a7863', '#545441', '#2a2a1e'], ['#7c6a62', '#56443f', '#2b1f1e'], ['#86844f', '#5e5c33', '#2f2e17'], ['#6c8264', '#4a5c42', '#232e1e']],
+  valves: { count: 10, r: 0.98, size: 0.2 },
+  pods: { count: 5, r: 0.5, angle: 0, size: 0.115 },
+  core: { size: 0.2 },
+  iris: { blades: 6, recess: 0.72, shut: 0.12, wide: 0.88, turn: 1.1, muzzle: 0.1 },
+  pump: { across: 0.018, along: 0.012, rate: 0.55, beat: 3 },
+  pace: [0.75, 1.3], bob: 0.16, bobRate: 0.3, glowRate: 0.7,
+  gear: { r: 0.75, ticks: 40, major: 4, spin: 0.025 },
+  orbit: { r: 1.4, spin: -0.1, nodes: 3 },
+  flow: { pulses: 2, speed: 0.55, rush: 3 },
+  vent: { every: [8, 20], time: [0.45, 0.8], open: 0.5, puff: { count: 4, speed: 2.2, lifetime: 0.6, size: 0.6, coneDeg: 25, color: 0x8fe04a } },
+  creak: [6, 12],
+  vapour: { rate: 2, count: 1, speed: 0.8, lifetime: 1, size: 0.6, coneDeg: 30, color: 0x5ab02a },
+  colors: {
+    blade: 0x2c3a28, seam: 0xa8dc6a, aperture: 0x060c04, glow: 0x9cf05a,
+    conduit: 0x121a12, toxin: 0x7cd23a, hot: 0xe0ffa8,
+    gear: 0x8fbf5a, socket: 0x040704, socketRim: 0x5a8a32,
   },
-  flesh: {
-    jag: [0.75, 1.25], jagPoints: 13, reach: 1.5, sinews: [1, 3], sinew: [0.14, 0.42], bow: 0.35,
-    colors: [0x6e6a48, 0x5e3a34, 0x76784e, 0x4e5434, 0x7a6450],
-    wound: 0.85, woundColor: 0x080604, woundRim: 0x3a1a1c,
-  },
-  mouth: 0.4,
-  breath: { across: 0.035, along: 0.025, rate: 0.35 },
-  pace: [0.7, 1.4], bob: 0.07, bobRate: 0.5, loll: 0.22, lollRate: 0.3,
-  twitch: { turn: 0.7, time: 0.45, every: [2.5, 7] },
-  moan: { every: [3, 9], time: [0.5, 1.2] },
-  groan: [5, 10],
-  ooze: { rate: 2.5, count: 2, speed: 1.2, lifetime: 0.8, size: 0.5, coneDeg: 30, color: 0x4f8f24 },
-  warm: 0.35, open: 0.25, close: 0.35, retch: 0.22, retchTime: 0.18,
-  strain: { grow: 0.18, shake: 0.12 },
-  writhe: 2.5,
-  tear: {
-    from: 0.08, to: 0.84, ease: 0.75, strain: 0.4, pull: 0.45, stretch: 0.35, shake: 0.14,
-    speed: [5, 9], drag: 2.5, spin: 9, shrink: 0.45, fly: 0.5,
-    gore: { count: 16, speed: 7, lifetime: 0.6, size: 0.9, coneDeg: 45, color: 0x5a9a2a },
-    spray: { count: 8, speed: 10, lifetime: 0.3, size: 0.4, coneDeg: 30, color: 0xffffff },
+  warm: 0.35, open: 0.22, close: 0.35, kick: 0.2, kickTime: 0.16,
+  strain: { grow: 0.15, shake: 0.1 },
+  race: 5,
+  launch: { count: 10, speed: 6, lifetime: 0.5, size: 0.8, coneDeg: 30, color: 0x8fe04a },
+  burst: {
+    from: 0.08, to: 0.84, ease: 0.75, strain: 0.4, pull: 0.3, shake: 0.12,
+    speed: [5, 9], drag: 2.5, spin: 9, shrink: 0.5, fly: 0.55,
+    gas: { count: 14, speed: 7, lifetime: 0.7, size: 1, coneDeg: 35, color: 0x8fe04a },
+    sparks: { count: 8, speed: 11, lifetime: 0.3, size: 0.4, coneDeg: 50, color: 0xfff3c8 },
   },
 };
 
-// The Blight's goo (BlobLook and HeadLook in src/enemies/attackView.js): a dark green
-// blob in a sickly glow, wobbling as it flies, a gleam on it. Sizes × the blob's size,
-// except `trail` (world units). Its heads fly in the same glow, gaping, rocking `rock`
-// radians either way `rockRate` times a second.
+// The Alembic's toxin (BlobLook in src/enemies/attackView.js): a glowing orb of poison, a
+// pale green `core` round a white-hot `heart`, a star's `glint` turning in it (`spin` turns
+// a second), in a sickly `halo`. Sizes × the orb's size, except `trail` (world units). Its
+// canisters (CanisterLook) fly in the same halo, tumbling end over end `tumble` turns a
+// second, venting a trail of gas.
 // A glob (BlightGlobs, src/enemies/glob.js) marks where it will land on the floor
 // (`marker`, as the Seer's Omen's) and splats there into a pool of poison: it spreads out
 // from `pool.from` of its size over `pool.spread` seconds with a flash, its edge rippling
 // (`pool.ripple`: [lobes, × its radius, rad/s] for each wave), bubbles rising in it
-// (`pool.bubbles` a second, each `size` (× its radius) across, popping after `life`),
-// fumes drifting up off it (`pool.fumes` a second), and shrinks and fades over `pool.fade`
-// once it is spent. `splat`: the goo flung out as it lands.
+// (`pool.bubbles` a second, each `size` (× its radius) across, popping after `life`), stars
+// glinting in it (`pool.stars`: so many, each `size` (× its radius), twinkling `twinkle`
+// times a second), fumes drifting up off it (`pool.fumes` a second), and shrinks and fades
+// over `pool.fade` once it is spent. `splat`: the toxin flung out as it lands.
 export const BLOB = {
-  color: 0x6cc832, deep: 0x10240a, bright: 0xc8f582,
-  halo: { size: 2.6, alpha: 0.5 },
+  color: 0x6cc832, deep: 0x10240a, bright: 0xc8f582, pale: 0xb4ec78,
+  halo: { size: 2.6, alpha: 0.55 },
   core: { size: 0.95, alpha: 1 },
-  gleam: { size: 0.4, alpha: 0.55, at: 0.16 },
-  wobble: { amount: 0.13, speed: 7 },
+  heart: { size: 0.9, alpha: 0.9 },
+  glint: { size: 1.25, alpha: 0.8, spin: 0.5 },
   pulseSpeed: 4, trail: 1.3, trailWidth: 0.85,
-  rock: 0.3, rockRate: 2.5,
+  tumble: 0.9,
   launch: { count: 10, speed: 5, lifetime: 0.4, size: 0.6, coneDeg: 35 },
   marker: { lineWidth: 0.06, ringAlpha: 0.7, fillAlpha: 0.25, pulse: [2, 7] },
   splat: { count: 22, speed: 8, lifetime: 0.5, size: 0.8, coneDeg: 180 },
@@ -558,6 +555,7 @@ export const BLOB = {
     fill: 0x1f4a12, fillAlpha: 0.62, inner: 0x3f8a22, innerAlpha: 0.3, rim: 0x8fe04a, rimAlpha: 0.65, rimWidth: 0.06,
     glow: { size: 2.4, alpha: 0.28 },
     bubbles: 7, bubble: { size: [0.06, 0.13], life: [0.4, 0.9] },
+    stars: { count: 6, size: [0.05, 0.1], twinkle: [0.8, 2] },
     pop: { count: 3, speed: 2, lifetime: 0.25, size: 0.25, coneDeg: 180, color: 0xa8f060 },
     fumes: 4, fume: { count: 1, speed: 1.5, lifetime: 0.7, size: 0.4, coneDeg: 20, color: 0x5ab02a },
   },

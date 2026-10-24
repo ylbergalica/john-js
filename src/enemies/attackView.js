@@ -10,15 +10,15 @@
 //   ProjectileLook a glowing orb with a comet trail, shared by projectiles and ChargeView.
 //   MistBallLook   the same for the Seer's balls of blue mist.
 //   CrescentLook   the same for the Lemur's spinning crescents.
-//   BlobLook       the same for the Blight's blobs of goo.
-//   HeadLook       the same for its heads flying free.
+//   BlobLook       the same for the Alembic's orbs of toxin.
+//   CanisterLook   the same for its canisters launched.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
-import { COMET_HEAD, HEAD_ART, ORB_PAD, RING_RADIUS, blightHeads } from '../render/sprites.js';
+import { COMET_HEAD, ORB_PAD, PART_ART, RING_RADIUS, blightParts } from '../render/sprites.js';
 
 const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone, C = X.cue;
 const FADE_IN = 0.1; // seconds for a wind-up's marks to appear
@@ -738,8 +738,9 @@ export class CrescentLook {
   }
 }
 
-// A Blight's blob of goo (BLOB): a dark green ball wobbling in a sickly glow, a gleam on it
-// and, once spat, a trail. Drawn like ProjectileLook.
+// An Alembic's orb of toxin (BLOB): a pale green core round a white-hot heart in a sickly
+// halo, a star glinting and turning in it and, once fired, a trail. Drawn like
+// ProjectileLook.
 export class BlobLook {
   get color() { return BL.color; }
   get maxTrail() { return BL.trail; }
@@ -749,26 +750,26 @@ export class BlobLook {
     this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: BL.color });
     this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: BL.color }) : null;
     this.trail?.anchor.set(COMET_HEAD, 0.5);
-    this.core = sprite(tex.orb, this.container, { tint: BL.deep });
-    this.gleam = sprite(tex.mist, this.container, { blendMode: 'add', tint: BL.bright });
+    this.core = sprite(tex.orb, this.container, { tint: BL.pale });
+    this.heart = sprite(tex.mist, this.container, { blendMode: 'add', tint: 0xffffff });
+    this.glint = sprite(tex.glint, this.container, { blendMode: 'add', tint: BL.bright });
     for (const s of this.container.children) s.visible = true;
-    this.seed = Math.random() * TAU; // so blobs side by side don't wobble as one
+    this.seed = Math.random() * TAU; // so orbs side by side don't glint as one
     parent.addChild(this.container);
   }
 
   render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
-    const pulse = 0.5 + 0.5 * Math.sin(now * BL.pulseSpeed * TAU), W = BL.wobble;
-    const wob = W.amount * Math.sin(now * W.speed * TAU + this.seed), c = size * BL.core.size * ORB_PAD;
+    const pulse = 0.5 + 0.5 * Math.sin(now * BL.pulseSpeed * TAU + this.seed);
     this.container.position.set(x, y);
     this.halo.width = this.halo.height = size * BL.halo.size * lerp(0.9, 1.1, pulse);
     this.halo.alpha = BL.halo.alpha * glow;
-    this.core.rotation = rot;
-    this.core.width = c * (1 + wob);
-    this.core.height = c * (1 - wob);
+    this.core.width = this.core.height = size * BL.core.size * ORB_PAD;
     this.core.alpha = BL.core.alpha;
-    this.gleam.position.set(-size * BL.gleam.at, -size * BL.gleam.at);
-    this.gleam.width = this.gleam.height = size * BL.gleam.size * 2;
-    this.gleam.alpha = BL.gleam.alpha * glow;
+    this.heart.width = this.heart.height = size * BL.heart.size * lerp(0.85, 1.15, pulse);
+    this.heart.alpha = BL.heart.alpha * glow;
+    this.glint.rotation = now * BL.glint.spin * TAU + this.seed;
+    this.glint.width = this.glint.height = size * BL.glint.size * lerp(0.8, 1.1, pulse);
+    this.glint.alpha = BL.glint.alpha * glow;
     if (!this.trail) return;
     this.trail.visible = trailLength > 0.01;
     this.trail.rotation = rot;
@@ -779,19 +780,22 @@ export class BlobLook {
   destroy() { this.container.destroy({ children: true }); }
 }
 
-// One of a Blight's heads torn free: gaping and outlined like any projectile, rocking as it
-// flies mouth first, in the goo's glow, with its trail. Its size is its width across;
-// `variant`: which of the Blight's heads it is (any, if not given).
-export class HeadLook {
+// One of an Alembic's canisters launched: its edge lit like any projectile, tumbling end
+// over end as it flies, in the toxin's halo, venting a trail of gas. Its size is its width
+// across; `variant`: which of the Alembic's canisters it is (any, if not given).
+const podParts = () => blightParts().flatMap((h, i) => (h.kind === 'pod' ? [i] : []));
+export class CanisterLook {
   get color() { return BL.color; }
   get maxTrail() { return BL.trail; }
 
-  constructor(parent, { trail = true, variant = Math.floor(Math.random() * blightHeads().length) } = {}) {
+  constructor(parent, { trail = true, variant } = {}) {
+    const pods = podParts();
+    variant ??= pods[Math.floor(Math.random() * pods.length)];
     this.container = new Container();
     this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: BL.color });
     this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: BL.color }) : null;
     this.trail?.anchor.set(COMET_HEAD, 0.5);
-    this.head = sprite(tex[`blight_head_${variant}_loose`], this.container, { tint: 0xffffff });
+    this.pod = sprite(tex[`blight_part_${variant}_loose`], this.container, { tint: 0xffffff });
     for (const s of this.container.children) s.visible = true;
     this.seed = Math.random() * TAU;
     parent.addChild(this.container);
@@ -801,8 +805,8 @@ export class HeadLook {
     this.container.position.set(x, y);
     this.halo.width = this.halo.height = size * BL.halo.size;
     this.halo.alpha = BL.halo.alpha * glow;
-    this.head.rotation = rot + BL.rock * Math.sin(now * BL.rockRate * TAU + this.seed);
-    this.head.width = this.head.height = size / 2 / HEAD_ART.body;
+    this.pod.rotation = rot + now * BL.tumble * TAU + this.seed;
+    this.pod.width = this.pod.height = size / 2 / PART_ART.pod / PART_ART.body; // end to end, its size
     if (!this.trail) return;
     this.trail.visible = trailLength > 0.01;
     this.trail.rotation = rot;
@@ -814,6 +818,6 @@ export class HeadLook {
 }
 
 // Projectile looks by an ability's `look`.
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, head: HeadLook };
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook };
 // The colour a look bursts into, by an ability's `look`.
-export const lookColor = (look) => ({ mist: M.color, blob: BL.color, head: BL.color })[look] ?? X.color;
+export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color })[look] ?? X.color;

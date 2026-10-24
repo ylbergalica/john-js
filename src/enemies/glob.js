@@ -1,5 +1,5 @@
-// The Blight's globs (BlightGlobs) and the poison they leave. A Glob is a big blob of goo
-// hurled at a spot: it flies there like any projectile, the spot marked on the floor
+// The Alembic's globs (BlightGlobs) and the poison they leave. A Glob is a big orb of toxin
+// lobbed at a spot: it flies there like any projectile, the spot marked on the floor
 // meanwhile, and splats there into a PoisonPool. One that reaches the player on the way
 // hurts them and splats where it hit; parried, or broken on a wall, it is gone without a
 // splat. The pool lies on the floor `time` seconds, hurting the player whenever they stand
@@ -91,7 +91,7 @@ export class PoisonPool extends Entity {
   // at: { x, y }; { radius, time, damage }
   constructor(world, sourceAbility, at, { radius, time, damage }) {
     super(world);
-    this.sourceAbility = sourceAbility; // who to blame (the Blight)
+    this.sourceAbility = sourceAbility; // who to blame (the Alembic)
     this.x = at.x;
     this.y = at.y;
     this.radius = radius;
@@ -107,6 +107,11 @@ export class PoisonPool extends Entity {
     this.gfx.scale.set(1 / U);
     world.layers.telegraphs.addChild(this.glow, this.gfx);
     this.bubbles = []; // { x, y, size, at, life }, rising in it
+    const S = BLOB.pool.stars;
+    this.stars = Array.from({ length: S.count }, () => { // glinting in it: { x, y, size, rate, phase }
+      const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * 0.7;
+      return { x: Math.cos(a) * d, y: Math.sin(a) * d, size: randRange(...S.size), rate: randRange(...S.twinkle), phase: Math.random() * TAU };
+    });
   }
 
   step() {
@@ -128,8 +133,8 @@ export class PoisonPool extends Entity {
 
   parry() { return false; } // poison can't be parried
 
-  // Spreading out with a flash, its edge rippling, bubbles rising and popping in it and fumes
-  // drifting off it; shrinking and fading once spent.
+  // Spreading out with a flash, its edge rippling, bubbles rising and popping and stars
+  // glinting in it and fumes drifting off it; shrinking and fading once spent.
   render(alpha, dt) {
     const P = BLOB.pool, now = renderTime(this.world, alpha), g = this.gfx, fx = this.world.effects;
     const since = now - this.bornAt, gone = clamp01((now - this.endsAt) / P.fade), fade = 1 - gone;
@@ -163,6 +168,11 @@ export class PoisonPool extends Entity {
         const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * R * 0.8;
         fx.burst(this.x + Math.cos(a) * d, this.y + Math.sin(a) * d, -Math.PI / 2, P.fume);
       }
+    }
+    for (const s of this.stars) { // a four-point star, twinkling
+      const tw = 0.5 + 0.5 * Math.sin(now * s.rate * TAU + s.phase), r = s.size * R * lerp(0.5, 1, tw) * U, k = r * 0.18;
+      const x = s.x * R * U, y = s.y * R * U;
+      g.poly([x + r, y, x + k, y + k, x, y + r, x - k, y + k, x - r, y, x - k, y - k, x, y - r, x + k, y - k]).fill({ color: BLOB.bright, alpha: lerp(0.25, 0.9, tw) * fade });
     }
     this.bubbles = this.bubbles.filter((b) => {
       const k = (now - b.at) / b.life;

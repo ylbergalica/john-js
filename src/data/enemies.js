@@ -149,19 +149,20 @@ export const ENEMY_TYPES = {
         { ability: 'SeraphLaser', weight: 0.2 },
       ] },
   },
-  // A big mass of rotten flesh grown through with deformed heads, no two alike, each frozen
-  // in a scream, eyes and mouth black holes. Ten ring its rim, more are sunk into its body
-  // (`rig`, see blightRig.js): idle they bob, loll, twitch and moan; dying, they are torn out
-  // one by one, leaving wounds, before it bursts (`dying`, over DEATH_FX).
-  // Slow, it keeps its distance and floods the floor with goo: rings of blobs out of every
-  // rim head, heads tearing free to hunt the player, a spew all round, and globs that splat
+  // The Alembic: a still for poison made a guardian, a ten-sided shell of plates round a
+  // heart of toxic nebula, an iris valve at each corner, canisters of toxin in its body and
+  // a star of poison at its core (`rig`, see blightRig.js): idle it pumps, its gears turn,
+  // toxin runs out to its valves and they vent; dying, its valves and canisters blow off one
+  // by one before it bursts (`dying`, over DEATH_FX).
+  // Slow, it keeps its distance and floods the floor with toxin: rings of orbs out of every
+  // valve, canisters launched to hunt the player, a spew all round, and globs that splat
   // into pools of poison.
   blight: {
-    name: 'Blight', maxHealth: 1100, damage: 8, radius: 1.15, mass: 120, linearDamping: 1,
+    name: 'Alembic', maxHealth: 1100, damage: 7, radius: 1.15, mass: 120, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,
-    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x5a9a2a, sfxPitch: 0.7,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 5, isChaser: true, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x7cd23a, sfxPitch: 0.7,
     navFootprint: 3,
-    visual: { kind: 'sprite', outline: 'blight_idle', void: 'blight_idle_void', size: 3.2, sparkleCount: 0, rig: 'heads' }, // rotten flesh, no stars
+    visual: { kind: 'sprite', outline: 'blight_idle', void: 'blight_idle_void', size: 3.2, sparkleCount: 34, rig: 'alembic' },
     dying: { time: 2.8, sound: 'blightDying' },
     ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 6, attackEngageRange: 8, moveSpeed: 2.5, orbitSpeed: 1.5, repositionSpeed: 1.5,
       maxTurnSpeed: 2, turnSmoothTime: 0.25,

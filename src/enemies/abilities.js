@@ -19,7 +19,7 @@ import { maulSwingPose, onMaul, sizeOf } from './maulerRig.js';
 import { fistSweep, hookFist, punchFist } from './boxerRig.js';
 import { onScimitar, scimitarSwingPose } from './corsairRig.js';
 import { Glob } from './glob.js';
-import { blightHeads, blightMouth } from '../render/sprites.js';
+import { blightMuzzle, blightParts } from '../render/sprites.js';
 
 const DEG = Math.PI / 180;
 
@@ -1396,8 +1396,9 @@ class CannonsAbility extends ThrowAbility {
   cuePoints() { return (this.salvos[this.cuedSalvo] ?? []).map((i) => ({ x: this.muzzles[i].x, y: this.muzzles[i].y })); }
 }
 
-// The Blight's heads (blightHeads), which spit its goo from their mouths (blightMouth), at
-// their places at rest; its rig moves them to match (`heads`, see blightRig.js).
+// The Alembic's parts (blightParts): its valves fire its toxin from over their irises
+// (blightMuzzle) and its canisters launch, from their places at rest; its rig moves them to
+// match (`parts`, see blightRig.js).
 function shuffled(list) {
   const out = list.slice();
   for (let i = out.length - 1; i > 0; i--) {
@@ -1406,7 +1407,7 @@ function shuffled(list) {
   }
   return out;
 }
-const rimHeads = () => blightHeads().filter((h) => h.rim);
+const rimValves = () => blightParts().filter((h) => h.rim);
 
 // A point in the enemy's frame → the world, for its body as it is now.
 function bodyToWorld(e, p) {
@@ -1414,28 +1415,28 @@ function bodyToWorld(e, p) {
   return { x: b.pos.x + c * p.x - s * p.y, y: b.pos.y + s * p.x + c * p.y };
 }
 
-// Projectile: cannons all round (the Blight's ring), one in each rim head's mouth, firing
-// out evenly round however askew the heads sit. It turns after the player the whole time
-// (lockTime 0), so the head in front always fires at them, and only that shot is cued.
+// Projectile: cannons all round (the Alembic's ring), one in each valve, firing out evenly
+// round. It turns after the player the whole time (lockTime 0), so the valve in front
+// always fires at them, and only that shot is cued.
 class RingAbility extends CannonsAbility {
   constructor(enemy, data) {
     super(enemy, data);
-    this.muzzles = rimHeads().map((h, i, all) => ({ ...blightMouth(h), angle: (TAU * i) / all.length }));
+    this.muzzles = rimValves().map((h, i, all) => ({ ...blightMuzzle(h), angle: (TAU * i) / all.length }));
   }
 
   cuePoints() { return [{ x: this.muzzles[0].x, y: this.muzzles[0].y }]; }
 }
 
-// Projectile: `count` of the Blight's heads strain out through the wind-up, then tear free
-// and fly off away from its centre, homing in on the player (the heads themselves show the
-// wind-up, so it has no ChargeView). Each grows back in time (`launched`, which its rig
-// reads); one still growing back isn't picked.
-class LooseHeadsAbility extends ThrowAbility {
+// Projectile: `count` of the Alembic's canisters strain out through the wind-up, then launch
+// and fly off away from its centre, homing in on the player (the canisters themselves show
+// the wind-up, so it has no ChargeView). A new one slides up in time (`launched`, which its
+// rig reads); a socket still empty isn't picked.
+class CanistersAbility extends ThrowAbility {
   constructor(enemy, data) {
     super(enemy, data);
     this.view = null;
-    this.chosen = []; // the heads tearing free this time
-    this.launched = new Map(); // head index → when it last tore free
+    this.chosen = []; // the canisters launching this time
+    this.launched = new Map(); // part index → when it last launched
   }
 
   regrowing(i) {
@@ -1444,21 +1445,21 @@ class LooseHeadsAbility extends ThrowAbility {
   }
 
   execute() {
-    const free = blightHeads().map((_, i) => i).filter((i) => !this.regrowing(i));
+    const free = blightParts().flatMap((h, i) => (h.kind === 'pod' && !this.regrowing(i) ? [i] : []));
     this.chosen = shuffled(free).slice(0, this.data.count);
     super.execute();
   }
 
-  // Where head `h` is once pushed out, in the enemy's frame.
+  // Where canister `h` is once pushed out, in the enemy's frame.
   strained(h) {
     const k = this.data.pushOut;
     return { x: h.x + Math.cos(h.rot) * k, y: h.y + Math.sin(h.rot) * k };
   }
 
   release() {
-    const e = this.enemy, d = this.data, heads = blightHeads();
+    const e = this.enemy, d = this.data, parts = blightParts();
     for (const i of this.chosen) {
-      const h = heads[i], { x, y } = bodyToWorld(e, this.strained(h));
+      const h = parts[i], { x, y } = bodyToWorld(e, this.strained(h));
       const rot = e.body.rotation + (Math.hypot(h.x, h.y) > 0.1 ? Math.atan2(h.y, h.x) : h.rot); // away from its centre
       this.world.add(new Projectile(this.world, this, x, y, {
         dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
@@ -1466,32 +1467,32 @@ class LooseHeadsAbility extends ThrowAbility {
         passesWalls: d.passesWalls, variant: i,
       }));
       this.launched.set(i, this.world.time);
-      this.world.effects.burst(x, y, rot, { ...BLIGHT.tear.gore, count: BLIGHT.tear.gore.count / 2 });
+      this.world.effects.burst(x, y, rot, BLIGHT.launch);
     }
-    this.sound('headLoose');
+    this.sound('podLaunch');
   }
 
-  cuePoints() { return this.chosen.map((i) => this.strained(blightHeads()[i])); }
+  cuePoints() { return this.chosen.map((i) => this.strained(blightParts()[i])); }
 }
 
-// Projectile: it heaves through the wind-up, every rim head gaping, then spits `bursts` of
-// blobs, `burstInterval` apart, each from `perBurst` of its rim heads picked at random,
-// straight out of each, a little off at random. Each burst's blobs flying at the player are
-// cued. A stun (a blob parried) stops the rest.
+// Projectile: it builds pressure through the wind-up, every valve opening, then fires
+// `bursts` of orbs, `burstInterval` apart, each from `perBurst` of its valves picked at
+// random, straight out of each, a little off at random. Each burst's orbs flying at the
+// player are cued. A stun (an orb parried) stops the rest.
 class SpewAbility extends ThrowAbility {
   constructor(enemy, data) {
     super(enemy, data);
-    this.view = null; // its tell and gaping heads show the wind-up
-    this.plan = []; // each burst's spits: [{ i (rim head), off (radians) }]
+    this.view = null; // its tell and opening valves show the wind-up
+    this.plan = []; // each burst's shots: [{ i (valve), off (radians) }]
     this.fired = 0;
     this.cued = 0;
     this.cuedBurst = 0;
     this.firstAt = 0;
-    this.spatAt = new Map(); // head index → when it last spat (for its rig)
+    this.spatAt = new Map(); // valve index → when it last fired (for its rig)
   }
 
   execute() {
-    const d = this.data, rim = rimHeads().map((_, i) => i);
+    const d = this.data, rim = rimValves().map((_, i) => i);
     this.plan = Array.from({ length: d.bursts }, () => shuffled(rim).slice(0, d.perBurst).map((i) => ({ i, off: randRange(-d.jitterDeg, d.jitterDeg) * DEG })));
     this.fired = this.cued = this.cuedBurst = 0;
     super.execute();
@@ -1527,12 +1528,12 @@ class SpewAbility extends ThrowAbility {
   }
 
   burst() {
-    const e = this.enemy, d = this.data, b = e.body, heads = rimHeads();
+    const e = this.enemy, d = this.data, b = e.body, heads = rimValves();
     const spits = this.plan[this.fired++];
-    if (this.fired === 1) this.strikeAt = this.world.time; // the body pops once, as it starts; each spit jerks its head (spatAt)
+    if (this.fired === 1) this.strikeAt = this.world.time; // the body pops once, as it starts; each shot kicks its valve (spatAt)
     if (!this.player) return;
     for (const { i, off } of spits) {
-      const { x, y } = bodyToWorld(e, blightMouth(heads[i])), rot = b.rotation + heads[i].rot + off;
+      const { x, y } = bodyToWorld(e, blightMuzzle(heads[i])), rot = b.rotation + heads[i].rot + off;
       this.world.add(new Projectile(this.world, this, x, y, {
         dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
         size: d.projectileSize, look: d.look,
@@ -1540,26 +1541,26 @@ class SpewAbility extends ThrowAbility {
       this.world.effects.burst(x, y, rot, { ...ATTACK_FX.projectile.muzzle, color: lookColor(d.look) });
       this.spatAt.set(i, this.world.time);
     }
-    this.sound('spit');
+    this.sound('puff');
   }
 
-  // Burst `n`'s spits flying within `cueWithinDeg` of the player, as it faces now.
+  // Burst `n`'s shots flying within `cueWithinDeg` of the player, as it faces now.
   aimed(n) {
-    const p = this.player, b = this.enemy.body, heads = rimHeads();
+    const p = this.player, b = this.enemy.body, heads = rimValves();
     if (!p || !this.plan[n]) return [];
     const to = Math.atan2(p.body.pos.y - b.pos.y, p.body.pos.x - b.pos.x) - b.rotation;
     return this.plan[n].filter(({ i, off }) => Math.abs(deltaAngle(heads[i].rot + off, to)) <= this.data.cueWithinDeg * DEG);
   }
 
-  cuePoints() { return this.aimed(this.cuedBurst).map(({ i }) => blightMouth(rimHeads()[i])); }
+  cuePoints() { return this.aimed(this.cuedBurst).map(({ i }) => blightMuzzle(rimValves()[i])); }
 }
 
-// Projectile: big globs form in the mouths of the heads `from` over the wind-up, then
-// `globs` of them are hurled, `globInterval` apart, from each of those heads in turn, each at
+// Projectile: big globs form over the valves `from` over the wind-up, then `globs` of them
+// are lobbed, `globInterval` apart, from each of those valves in turn, each at
 // a spot around where the player is as it is thrown (the first right at them), where it
 // splats into a pool of poison (Glob). Meanwhile it turns after the player at up to
-// `turnRate`, each mouth's next glob re-forms as the others are thrown, and each throw is
-// cued at its mouth. A stun (a glob parried) stops the rest.
+// `turnRate`, each valve's next glob re-forms as the others are thrown, and each throw is
+// cued at its valve. A stun (a glob parried) stops the rest.
 class GlobsAbility extends ThrowAbility {
   constructor(enemy, data) {
     super(enemy, data);
@@ -1568,7 +1569,7 @@ class GlobsAbility extends ThrowAbility {
     this.cued = 0;
     this.cuedGlob = 0;
     this.firstAt = 0;
-    this.spatAt = new Map(); // head index → when it last hurled (for its rig)
+    this.spatAt = new Map(); // valve index → when it last lobbed (for its rig)
   }
 
   execute() {
@@ -1616,13 +1617,13 @@ class GlobsAbility extends ThrowAbility {
     const e = this.enemy, d = this.data, k = this.thrown++, i = d.from[k % d.from.length];
     this.strikeAt = this.world.time;
     if (!this.player) return;
-    const from = bodyToWorld(e, blightMouth(blightHeads()[i]));
+    const from = bodyToWorld(e, blightMuzzle(blightParts()[i]));
     this.world.add(new Glob(this.world, this, from, this.landingSpot(this.offsets[k]), {
       speed: d.projectileSpeed, size: d.projectileSize, damage: e.damage * d.damageMultiplier,
       pool: { radius: d.pool.radius, time: d.pool.time, damage: e.damage * d.pool.damageMultiplier },
     }));
     this.spatAt.set(i, this.world.time);
-    this.sound('retch');
+    this.sound('lob');
   }
 
   // `off` from where the player is now, never past a wall in the way.
@@ -1634,8 +1635,8 @@ class GlobsAbility extends ThrowAbility {
     return { x: p.x + dx * reach, y: p.y + dy * reach };
   }
 
-  // A glob is forming then sitting in each mouth with one still to throw: the first of
-  // each mouth's over the wind-up, each later one from that mouth's last throw until two
+  // A glob is forming then sitting over each valve with one still to throw: the first of
+  // each valve's over the wind-up, each later one from that valve's last throw until two
   // throws before its own.
   charge(now) {
     if (this.phase === 'active' && this.thrown < this.data.globs) return { t: 1, since: Infinity };
@@ -1646,20 +1647,20 @@ class GlobsAbility extends ThrowAbility {
     const d = this.data, n = d.from.length, b = this.enemy.body, p = b.lerpPos(alpha), rot = b.lerpRotation(alpha);
     const c = Math.cos(rot), s = Math.sin(rot), first = this.phase === 'windup' ? 0 : this.thrown, out = [];
     for (let k = first; k < Math.min(first + n, d.globs); k++) {
-      const h = blightHeads()[d.from[k % n]], m = blightMouth(h);
+      const h = blightParts()[d.from[k % n]], m = blightMuzzle(h);
       const t = k < n ? undefined : clamp01((now - this.throwTime(k - n)) / (d.globInterval * (n - 1)));
       out.push({ x: p.x + c * m.x - s * m.y, y: p.y + s * m.x + c * m.y, rot: rot + h.rot, t });
     }
     return out;
   }
 
-  cuePoints() { return [blightMouth(blightHeads()[this.data.from[this.cuedGlob % this.data.from.length]])]; }
+  cuePoints() { return [blightMuzzle(blightParts()[this.data.from[this.cuedGlob % this.data.from.length]])]; }
 }
 
 const TYPES = {
   dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, slashes: SlashesAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
   slam: SlamAbility, hook: HookAbility, flurry: FlurryAbility, throw: ThrowAbility, lob: LobAbility, missiles: MissilesAbility, spin: SpinThrowAbility, volley: VolleyAbility,
-  cannons: CannonsAbility, scimitar: ScimitarAbility, rush: RushAbility, ring: RingAbility, heads: LooseHeadsAbility, spew: SpewAbility,
+  cannons: CannonsAbility, scimitar: ScimitarAbility, rush: RushAbility, ring: RingAbility, canisters: CanistersAbility, spew: SpewAbility,
   globs: GlobsAbility,
 };
 

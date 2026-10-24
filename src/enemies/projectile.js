@@ -13,7 +13,7 @@ export class Projectile extends Entity {
   //         turnRate = 0 (rad/s), homingDelay = 0, homingTime = Infinity (s after launch),
   //         curve = 0 (rad/s, + turning the way rotation grows), curveTime = 0 (s),
   //         look = 'orb' (PROJECTILE_LOOKS), spin = 1 (the way a spinning look turns),
-  //         variant (which one of a look's kinds, e.g. which of the Blight's heads) }
+  //         variant (which one of a look's kinds, e.g. which of the Alembic's canisters) }
   constructor(world, sourceAbility, x, y, opts) {
     super(world);
     this.sourceAbility = sourceAbility;

@@ -19,6 +19,7 @@ import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, WEB as
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { COMET_HEAD, ORB_PAD, PART_ART, RING_RADIUS, blightParts } from '../render/sprites.js';
 
 const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone, C = X.cue;
@@ -143,7 +144,7 @@ export class EnemyAttackFx {
     }
     let glow = 0, tint = 0, tintColor = X.color, sx = 1, sy = 1, turn = 0;
     const g = this.tell;
-    g.clear();
+    clearGraphics(g);
     g.position.set(p.x, p.y);
     g.rotation = rot;
     g.visible = visible;
@@ -434,7 +435,7 @@ export class ZoneView {
 
   render(now) {
     const a = this.ability, g = this.gfx, s = this.shape;
-    g.clear();
+    clearGraphics(g);
     g.visible = true;
     if (a.phase === 'active') {
       if (now < a.zoneAt) return;
@@ -534,7 +535,7 @@ export class BeamView {
   render(now, alpha, dt) {
     const a = this.ability, B = X.beam, shape = a.hitbox.shape, g = this.gfx;
     const p = a.enemy.body.lerpPos(alpha), rot = a.enemy.body.lerpRotation(alpha), c = Math.cos(rot), s = Math.sin(rot);
-    g.clear();
+    clearGraphics(g);
     g.position.set(p.x, p.y);
     g.rotation = rot;
 
@@ -714,7 +715,7 @@ export class CrescentLook {
       if (d > q.d + 1e-4) pts.push({ x: p.x, y: p.y, d });
     }
     path.splice(0, Math.max(0, path.length - pts.length - 1)); // forget what has fallen off its end
-    g.clear();
+    clearGraphics(g);
     if (pts.length < 2 || length <= 0.01) return;
     // Each point's offset across the trail, from the way it runs through there.
     const across = pts.map((p, i) => {

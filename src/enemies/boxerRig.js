@@ -14,6 +14,7 @@ import { Container, Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, DEATH_FX, FISTS as F } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { FIST_ART, RING_RADIUS } from '../render/sprites.js';
 
 const SIDES = [1, -1]; // right fist, left fist
@@ -92,7 +93,7 @@ export class BoxerRig {
     const fists = e.stunned ? [] : this.fists(now), seen = new Set(fists.map((f) => f.key));
     for (const [key, f] of this.live) if (!seen.has(key) && !f.quiet) this.ghosts.push({ ...f, at: now });
     this.live.clear();
-    this.smear.clear();
+    clearGraphics(this.smear);
     this.posed = fists;
     let n = 0;
     for (const f of fists) {

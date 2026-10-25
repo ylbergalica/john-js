@@ -472,7 +472,7 @@ export const ASPECTS = [
   {
     id: 'gravebloom', displayName: 'Gravebloom', tier: AspectTier.Prestige, icon: 'gravebloom_icon', activatable: false, stat: AspectStat.Bursts,
     quote: 'Every grave a garden.',
-    description: 'The pain and fall of foes bloom lotus flowers that burst when shaken.',
+    description: 'The pain of foes bloom lotus flowers that burst when shaken.',
     // Every enemy killed (its own bursts' kills too) leaves a lotus where it fell
     // (src/aspects/gravebloom.js); armTime after, it can be struck by anything of the player's
     // that deals damage, like a prop. Struck, it bursts in a wave out along the blow (along the

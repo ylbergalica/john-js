@@ -141,19 +141,8 @@ export class LemurRig {
       return { x: (c * dx - s * dy) / v.scale.x, y: (s * dx + c * dy) / v.scale.y };
     };
     const local = this.points.map(toLocal);
-    const { left, right } = tailEdges(local, T.width), outline = [...left, ...[...right].reverse()].flat();
-    const t = this.enemy.attackFx.tint, heat = t.visible ? t.alpha * 0.85 : 0;
-    // Flashing it all goes white; winding up only its outline warms, as the body's does.
-    const rim = (base) => (this.flashing ? 0xffffff : lerpColor(base, t.tint, heat));
-    const fill = (base) => (this.flashing ? 0xffffff : base);
-    const g = this.stalk;
-    g.clear();
-    g.poly(outline).stroke({ width: T.glowLine, color: rim(T.color.glow), alpha: T.glowAlpha, join: 'round' });
-    g.poly(outline).stroke({ width: T.line * 2, color: rim(T.color.outline), join: 'round' });
-    g.poly(outline).fill({ color: fill(T.color.fill) });
-    for (let i = 0; i < N; i++) {
-      if (tailBanded(i)) g.poly([...left[i], ...left[i + 1], ...right[i + 1], ...right[i]]).fill({ color: fill(T.color.band) });
-    }
+    const t = this.enemy.attackFx.tint;
+    if (v.visible) this.drawStalk(local, t); // out of sight, it sways on undrawn (its spade's muzzle still found)
     const tip = local[N], neck = local[N - 1], rot = Math.atan2(tip.y - neck.y, tip.x - neck.x), grow = 1 + T.flick.swell * flick;
     for (const sp of [this.spade, this.tint]) {
       sp.position.set(tip.x, tip.y);
@@ -166,6 +155,23 @@ export class LemurRig {
     const reach = SPADE_ART.len * SPADE_ART.muzzle * grow, end = this.points[N], heading = this.angles[N - 1];
     this.muzzle = { x: end.x + Math.cos(heading) * reach, y: end.y + Math.sin(heading) * reach, rot: heading };
     this.muzzleLocal = { x: tip.x + Math.cos(rot) * reach, y: tip.y + Math.sin(rot) * reach };
+  }
+
+  // The stalk through `local` (its spine in the view's frame), warmed by tint `t`.
+  drawStalk(local, t) {
+    const { left, right } = tailEdges(local, T.width), outline = [...left, ...[...right].reverse()].flat();
+    const heat = t.visible ? t.alpha * 0.85 : 0;
+    // Flashing it all goes white; winding up only its outline warms, as the body's does.
+    const rim = (base) => (this.flashing ? 0xffffff : lerpColor(base, t.tint, heat));
+    const fill = (base) => (this.flashing ? 0xffffff : base);
+    const g = this.stalk;
+    g.clear();
+    g.poly(outline).stroke({ width: T.glowLine, color: rim(T.color.glow), alpha: T.glowAlpha, join: 'round' });
+    g.poly(outline).stroke({ width: T.line * 2, color: rim(T.color.outline), join: 'round' });
+    g.poly(outline).fill({ color: fill(T.color.fill) });
+    for (let i = 0; i < N; i++) {
+      if (tailBanded(i)) g.poly([...left[i], ...left[i + 1], ...right[i + 1], ...right[i]]).fill({ color: fill(T.color.band) });
+    }
   }
 
   setFlash(on) {

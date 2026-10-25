@@ -12,6 +12,7 @@ import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, DEATH_FX, SCIMITAR as S } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { SCIMITAR_ART, scimitarAt } from '../render/sprites.js';
 import { Cape } from './cape.js';
 
@@ -188,7 +189,7 @@ export class CorsairRig {
   // A smear over where the blade has just swung, sampled back along its swing.
   drawTrail(now) {
     const g = this.trail, T = S.trail, sw = this.swing(now);
-    g.clear();
+    clearGraphics(g);
     if (!sw) return;
     const t0 = Math.max(sw.t0, now - sw.life), t1 = sw.t1;
     if (t1 <= t0) return;

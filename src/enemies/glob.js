@@ -10,6 +10,7 @@ import { circleVsCircle, circleVsCapsule } from '../engine/physics.js';
 import { clamp01, fromAngle, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { BLOB } from '../data/config.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { Projectile } from './projectile.js';
 import { renderTime } from './attackView.js';
 
@@ -70,7 +71,7 @@ export class Glob extends Projectile {
   drawMarker(now) {
     const g = this.marker, K = BLOB.marker, R = this.pool.radius * U, line = K.lineWidth * U;
     const flight = Math.max(1e-3, this.landAt - this.thrownAt), elapsed = now - this.thrownAt, t = clamp01(elapsed / flight);
-    g.clear();
+    clearGraphics(g);
     if (elapsed < 0 || now >= this.landAt) return;
     g.position.set(this.to.x, this.to.y);
     const [r0, r1] = K.pulse;

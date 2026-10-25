@@ -9,6 +9,7 @@ import { Entity } from '../game/entity.js';
 import { circleVsCircle, circleVsCapsule } from '../engine/physics.js';
 import { clamp01, lerp, lerpColor, TAU } from '../engine/math.js';
 import { ATTACK_FX, MIST_BALL as M } from '../data/config.js';
+import { clearGraphics } from '../render/fx.js';
 import { CueFlash, MistBallLook, renderTime } from './attackView.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 2;
@@ -114,7 +115,7 @@ export class MistShell extends Entity {
   drawMarker(now) {
     const g = this.marker, K = M.marker, R = this.radius * U, line = K.lineWidth * U;
     const flight = this.landAt - this.thrownAt, elapsed = now - this.thrownAt, t = clamp01(elapsed / flight);
-    g.clear();
+    clearGraphics(g);
     if (elapsed < 0 || now >= this.landAt) return;
     g.position.set(this.to.x, this.to.y);
     const [r0, r1] = K.pulse;
@@ -132,7 +133,7 @@ export class MistShell extends Entity {
     const since = now - this.landAt, hold = this.endsAt - this.landAt;
     const on = this.landed && since >= 0 && since < hold + B.fadeTime;
     this.ball.container.visible = on;
-    g.clear();
+    clearGraphics(g);
     if (!on) return;
     const gone = clamp01((since - hold) / B.fadeTime), flash = Math.max(0, 1 - since / B.popTime);
     const grow = 1 + B.pop * flash * flash + B.fadeGrow * easeOut(gone);

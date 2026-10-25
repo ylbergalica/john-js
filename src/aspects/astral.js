@@ -13,6 +13,7 @@ import { Entity } from '../game/entity.js';
 import { FIXED_DT, FX, PLAYER } from '../data/config.js';
 import { clamp, clamp01, deltaAngle, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { ASTRAL_BLADE } from '../render/sprites.js';
 import { hurtBySegment } from '../game/hurtbox.js';
 
@@ -298,7 +299,7 @@ class AstralBlade extends Entity {
     const w = this.world, F = this.data.fx;
     if (this.waiting) {
       for (const s of [this.sprite, this.exalted, this.halo]) s.visible = false;
-      this.trail.clear();
+      clearGraphics(this.trail);
       return;
     }
     const now = w.time - (1 - alpha) * FIXED_DT;
@@ -341,7 +342,7 @@ class AstralBlade extends Entity {
   // and fading with it, with a pale core down its middle.
   drawTrail(now, head) {
     const F = this.data.fx, T = F.trail, g = this.trail;
-    g.clear();
+    clearGraphics(g);
     const pts = this.points.filter((p) => p.t <= now && now - p.t < T.time);
     if (head) pts.push(head);
     if (pts.length < 2) return;

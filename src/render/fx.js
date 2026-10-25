@@ -14,6 +14,12 @@ const SPARK_DRAG = 4; // per second: sparks shoot out and slow down
 // `n` particles thinned to the particles setting, rounded at random so few still average out.
 export const thinned = (n) => (settings.particles >= 1 ? n : Math.floor(n * settings.particles + Math.random()));
 
+// Clears a Graphics unless it's already empty: Pixi rebuilds a cleared one even when there
+// was nothing on it, and most effects stand empty most frames.
+export function clearGraphics(g) {
+  if (g.context.instructions.length > 0) g.clear();
+}
+
 // Steps a sprite through `frames` at `fps`; loops or holds the last frame.
 export class FrameAnim {
   constructor(sprite, frames, { fps = FX.animFps, loop = false } = {}) {

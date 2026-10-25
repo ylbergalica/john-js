@@ -10,11 +10,14 @@
 // ability to reel in; missing, it is drawn back. ReelView draws the line out to it, the ball
 // as it forms or is drawn back, the web wound round the player it caught, shaking as they
 // struggle, and the line snapping or falling slack.
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { segmentPointDistSq } from '../engine/physics.js';
 import { clamp01, lerp, randRange, smoothStep01, TAU } from '../engine/math.js';
 import { ATTACK_FX, WEB as W } from '../data/config.js';
+import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
+import { DEW_TIP } from '../render/sprites.js';
 import { Projectile } from './projectile.js';
 import { SilkLook, renderTime } from './attackView.js';
 
@@ -22,6 +25,12 @@ const easeOut = (t) => 1 - (1 - t) ** 2;
 // Silk is drawn this many times larger and scaled back down, so its fine lines and dots
 // come out smooth.
 const U = 32;
+// A thread's twang this far across or less reads as still (well under a pixel), so a
+// strung thread is drawn once it settles and not again until it's struck or changes.
+const STILL = 0.002;
+// How far past its ends a thread is drawn (its knots, glow and twang), for leaving off
+// threads out of sight.
+const REACH = 0.5;
 
 // The point on segment a–b nearest p, and how far along it (0 → 1).
 function nearestOn(a, b, p) {
@@ -52,7 +61,9 @@ class SilkGfx {
     parent.addChild(this.container);
   }
 
-  clear() { this.glow.clear(); this.core.clear(); }
+  clear() { clearGraphics(this.glow); clearGraphics(this.core); }
+
+  set visible(on) { this.container.visible = on; }
 
   // A strand through `pts` ([{ x, y }], world units), `alpha` as strong.
   strand(pts, alpha, width = W.width) {
@@ -122,9 +133,14 @@ export class Thread extends Entity {
     this.shimmerAt = world.time + Math.random() * W.shimmer.every;
     const angle = Math.atan2(b.y - a.y, b.x - a.x);
     this.knots = [knotAngles(angle + Math.PI), knotAngles(angle)];
+    // The line and its knots; the dew on it, as sprites, so their twinkling redraws nothing;
+    // and a glint running along it, now and then.
+    this.gfx = new SilkGfx(world.layers.telegraphs);
+    this.drops = world.layers.telegraphs.addChild(new Container());
+    this.shine = new SilkGfx(world.layers.telegraphs);
+    this.still = false; // whether gfx holds it strung and settled, as it stays until it twangs again
     this.dew = [];
     if (!spinning) this.wet();
-    this.gfx = new SilkGfx(world.layers.telegraphs);
     this.isProp = this.isThread = true;
     if (this.taut) {
       world.hostileAttacks.add(this);
@@ -144,6 +160,8 @@ export class Thread extends Entity {
     this.dew = Array.from({ length: drops }, (_, i) => ({
       u: (i + 0.5 + randRange(-0.3, 0.3)) / drops, rate: randRange(...W.dew.twinkle), phase: Math.random() * TAU,
     }));
+    for (const s of this.drops.removeChildren()) s.destroy();
+    for (let i = 0; i < drops; i++) this.drops.addChild(new Sprite(tex.silk_dew)).anchor.set(0.5);
   }
 
   // Being spun: its far end where its Weaver's spinnerets are now.
@@ -247,39 +265,66 @@ export class Thread extends Entity {
     this.world.hostileAttacks.delete(this);
   }
 
-  render(alpha) {
-    const now = renderTime(this.world, alpha), g = this.gfx;
-    g.clear();
+  // Out of sight, it isn't drawn (its glint keeps running along it all the same).
+  render(alpha, dt, view) {
+    const now = renderTime(this.world, alpha), a = this.a, b = this.b;
+    const shown = Math.max(a.x, b.x) + REACH >= view.x0 && Math.min(a.x, b.x) - REACH <= view.x1
+      && Math.max(a.y, b.y) + REACH >= view.y0 && Math.min(a.y, b.y) - REACH <= view.y1;
+    this.gfx.visible = this.shine.visible = shown;
+    this.drops.visible = shown && this.taut;
+    if (this.taut) { this.drawTaut(now, shown); return; }
+    if (!shown) return;
+    this.gfx.clear();
+    this.shine.clear();
+    this.still = false;
     if (this.state === 'cut') this.drawCut(now);
-    else if (this.state === 'slack') this.drawSlack(now);
-    else this.drawTaut(now);
+    else this.drawSlack(now);
   }
 
   // Taut: quivering as it twangs, dew glinting and now and then a glint running along it.
-  // Being spun, just the line paying out.
-  drawTaut(now) {
-    const g = this.gfx, a = this.a, b = this.b, quiver = twang(now - this.twangAt);
-    const pts = along(a, b, Math.max(6, Math.round(this.length * 3)), (u) => quiver * Math.sin(Math.PI * u));
-    g.strand(pts, 1);
-    g.knot(a, this.knots[0], 1);
-    if (this.spinning) return;
-    g.knot(b, this.knots[1], 1);
-    for (const d of this.dew) {
-      const tw = 0.5 + 0.5 * Math.sin(now * d.rate * TAU + d.phase);
-      g.glint(this.at(pts, d.u), W.dew.size * lerp(0.4, 1, tw), lerp(0.2, 0.9, tw));
+  // Being spun, just the line paying out. Settled, the line is left as last drawn.
+  drawTaut(now, shown) {
+    const shimmer = this.spinning ? null : this.shimmer(now);
+    if (!shown) return;
+    const g = this.gfx, a = this.a, b = this.b, since = now - this.twangAt, quiver = twang(since);
+    const still = !this.spinning && !(since >= 0 && W.twang.amount * Math.exp(-since / W.twang.decay) > STILL);
+    if (!(still && this.still)) {
+      g.clear();
+      g.strand(along(a, b, Math.max(6, Math.round(this.length * 3)), (u) => quiver * Math.sin(Math.PI * u)), 1);
+      g.knot(a, this.knots[0], 1);
+      if (!this.spinning) g.knot(b, this.knots[1], 1);
+      this.still = still;
     }
-    const S = W.shimmer, run = ((now - this.shimmerAt) * S.speed) / this.length;
-    if (run > 1 + S.length / this.length) this.shimmerAt = now + randRange(0.5, 1.5) * S.every;
-    else if (run > 0) {
-      const u0 = Math.max(0, run - S.length / this.length), u1 = Math.min(1, run);
-      if (u1 > u0) g.strand([this.at(pts, u0), this.at(pts, (u0 + u1) / 2), this.at(pts, u1)], 0.9, W.width * 1.8);
+    const unit = 1 / (DEW_TIP * tex.silk_dew.width); // scale for a drop whose tips are one world unit out
+    this.dew.forEach((d, i) => {
+      const s = this.drops.children[i], tw = 0.5 + 0.5 * Math.sin(now * d.rate * TAU + d.phase), p = this.pointAt(d.u, quiver);
+      s.position.set(p.x, p.y);
+      s.scale.set(W.dew.size * lerp(0.4, 1, tw) * unit);
+      s.alpha = lerp(0.2, 0.9, tw);
+    });
+    this.shine.clear();
+    if (shimmer) {
+      const [u0, u1] = shimmer;
+      this.shine.strand([this.pointAt(u0, quiver), this.pointAt((u0 + u1) / 2, quiver), this.pointAt(u1, quiver)], 0.9, W.width * 1.8);
     }
   }
 
-  // The point `u` of the way along a polyline.
-  at(pts, u) {
-    const f = u * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f)), k = f - i;
-    return { x: lerp(pts[i].x, pts[i + 1].x, k), y: lerp(pts[i].y, pts[i + 1].y, k) };
+  // The span ([from, to] of the way along) of the glint running along it now, or null
+  // between runs, when the next is set going.
+  shimmer(now) {
+    const S = W.shimmer, run = ((now - this.shimmerAt) * S.speed) / this.length;
+    if (run > 1 + S.length / this.length) {
+      this.shimmerAt = now + randRange(0.5, 1.5) * S.every;
+      return null;
+    }
+    const u0 = Math.max(0, run - S.length / this.length), u1 = Math.min(1, run);
+    return run > 0 && u1 > u0 ? [u0, u1] : null;
+  }
+
+  // The point `u` of the way along it, pushed `quiver` across at its middle.
+  pointAt(u, quiver) {
+    const a = this.a, b = this.b, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1e-6, o = quiver * Math.sin(Math.PI * u);
+    return { x: a.x + dx * u - (dy / len) * o, y: a.y + dy * u + (dx / len) * o };
   }
 
   // Cut: each half springing back to its knot, wriggling, fading.
@@ -304,6 +349,8 @@ export class Thread extends Entity {
   dispose() {
     this.world.hostileAttacks.delete(this);
     this.gfx.destroy();
+    this.drops.destroy({ children: true });
+    this.shine.destroy();
   }
 }
 

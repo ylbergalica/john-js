@@ -12,6 +12,7 @@ import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, BLADES, DEATH_FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { BLADE_ART, bladeAt } from '../render/sprites.js';
 
 const P = BLADES.poses;
@@ -203,7 +204,7 @@ export class ShadeRig {
   // A smear over where each striking blade has just been, sampled back along its strike.
   drawTrail(now) {
     const g = this.trail, s = this.strike, T = BLADES.trail;
-    g.clear();
+    clearGraphics(g);
     if (!s) return;
     const since = now - s.ability.strikeAt;
     const t1 = Math.min(since, s.ability.data.swingTime), t0 = Math.max(0, since - T.life);

@@ -14,6 +14,7 @@ import { Entity } from '../game/entity.js';
 import { FIXED_DT, FX } from '../data/config.js';
 import { clamp01, lerp, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { hurtDistance } from '../game/hurtbox.js';
 
 const DEG = Math.PI / 180;
@@ -81,10 +82,10 @@ export class ThunderAspect extends Aspect {
     const relay = now >= this.recrackleAt;
     if (relay) {
       this.recrackleAt = now + S.every;
-      this.crackles.clear();
+      clearGraphics(this.crackles);
     }
-    this.staticGlow.clear();
-    this.staticLines.clear();
+    clearGraphics(this.staticGlow);
+    clearGraphics(this.staticLines);
     for (const { enemy } of this.chain) {
       if (!alive(enemy)) continue;
       if (relay) {
@@ -311,8 +312,8 @@ class Thunder extends Entity {
       shown.push({ line: cut(b.line, grown), sprouts: b.sprouts.filter((s) => s.i <= grown), w: b.width });
     }
     const S = F.sprouts;
-    this.glow.clear();
-    this.lines.clear();
+    clearGraphics(this.glow);
+    clearGraphics(this.lines);
     // The glow, in two soft layers, then the purple, then the white over all of it.
     F.glowWidth.forEach((gw, i) => {
       for (const s of shown) {

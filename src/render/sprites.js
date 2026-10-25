@@ -58,6 +58,7 @@ export function sprites() {
     weaver_idle: weaverOutline(),
     weaver_idle_void: weaverVoid(),
     silk_knot: silkKnot(),
+    silk_dew: silkDew(),
     nova_idle: novaOutline(),
     nova_idle_void: novaVoid(),
     blight_idle: blightOutline(),
@@ -1561,6 +1562,21 @@ function novaVoid(S = 256) {
   nebula(ctx, rand, NOVA.hues.map((h) => [hexOf(h), NOVA_ART.clouds]), NOVA.hues.length * 2, [0.22, 0.78, 0.22, 0.78]);
   ctx.fillStyle = radial(ctx, 0.5, 0.5, NOVA_ART.heart, [rgba('#ffffff', 1), rgba('#fff6dc', 0.6), rgba('#ffffff', 0)]);
   ctx.fillRect(0, 0, 1, 1);
+  return c;
+}
+
+// A drop of dew on a strung thread (Thread): a sharp four-point star, white, its tips DEW_TIP
+// out from its middle (the texture is 1 across).
+export const DEW_TIP = 0.46;
+function silkDew(S = 64) {
+  const { c, ctx } = surface(S);
+  const R = DEW_TIP, k = R * 0.18;
+  ctx.translate(0.5, 0.5);
+  ctx.beginPath();
+  [[R, 0], [k, k], [0, R], [-k, k], [-R, 0], [-k, -k], [0, -R], [k, -k]].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
   return c;
 }
 

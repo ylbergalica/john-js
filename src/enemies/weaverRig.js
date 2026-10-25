@@ -114,7 +114,7 @@ export class WeaverRig {
       }
       leg.knee = weaverKnee(hip, leg.footLocal);
     }
-    this.draw();
+    if (this.enemy.view.visible) this.draw(); // out of sight, its legs walk on undrawn
   }
 
   // Every leg's glow, then every outline, then every fill over them, so where legs cross

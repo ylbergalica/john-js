@@ -9,6 +9,7 @@ import { Graphics, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, DEATH_FX, MAUL } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randRange, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { MAUL_ART } from '../render/sprites.js';
 
 const P = MAUL.poses;
@@ -148,7 +149,7 @@ export class MaulerRig {
   // haft for a swing, across the head for a slam.
   drawTrail(now) {
     const g = this.trail, s = this.strike, T = MAUL.trail;
-    g.clear();
+    clearGraphics(g);
     if (!s) return;
     const since = now - s.ability.strikeAt;
     const t1 = Math.min(since, strikeTime(s.ability)), t0 = Math.max(0, since - T.life);

@@ -132,7 +132,7 @@ export class Cape {
       this.simulate({ x: lerp(f0.x, f1.x, k), y: lerp(f0.y, f1.y, k), rot: f0.rot + turn * k }, pace, stunned);
     }
     this.carry -= steps * STEP;
-    this.draw(tint, flashing);
+    if (this.enemy.view.visible) this.draw(tint, flashing); // out of sight, it flutters on undrawn
   }
 
   // One step: the pins follow the body, the free points carry on, pulled toward rest and

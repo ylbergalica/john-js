@@ -139,7 +139,7 @@ export const ENEMY_TYPES = {
   // anything near, enemies too. Light, it barely resists knockback: a hit sends it flying,
   // still swelling, and a parry launches it to burst on whatever it hits.
   nova: {
-    name: 'Nova', maxHealth: 5, damage: 1.5, radius: 0.4, mass: 1, linearDamping: 1.5,
+    name: 'Nova', maxHealth: 5, damage: 4, radius: 0.4, mass: 1, linearDamping: 1.5,
     knockbackResistance: 0.15, knockbackMovementPause: 0.45, alongBlow: true,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffd27a, sfxPitch: 1.15,
     visual: { kind: 'sprite', outline: 'nova_idle', void: 'nova_idle_void', size: 1.36, sparkleCount: 8, rig: 'nova' },

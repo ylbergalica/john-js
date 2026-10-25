@@ -222,8 +222,11 @@ export const ABILITIES = {
   // The Weaver's silk, spat from its mouth `spawnDistance` / `muzzle` ahead of its centre
   // (both attacks rear up its front legs as they wind up; `legs` says how, WEAVER_LEGS,
   // weaverRig.js).
-  // Weave: it strings a thread from wall to wall, through where it stands (WeaveAbility).
-  // Picking a line (`line`: of `tries` through it at random, one `length` [min, max] long
+  // Weave: it strings a thread from wall to wall, through where it stands (WeaveAbility). A
+  // passive (its type's `passives`), not an attack: its AI never picks it; it goes off on
+  // its own whenever the Weaver is free, every `cooldown` seconds while the player is about
+  // (its AI is after them), `absent` times as long while they aren't, trying again `retry`
+  // later (likewise) if there's no line to string from where it stands. Picking a line (`line`: of `tries` through it at random, one `length` [min, max] long
   // from wall to wall, clear of the player by `clear`, not lying along one of its threads
   // within `apart`, the nearer the player the better, out to `near`, and the shorter the
   // better), it spits an anchor of silk (`look: 'silk'`) into its far end, then turns and
@@ -240,7 +243,7 @@ export const ABILITIES = {
   // any parry would (`damageMultiplier`), but doesn't stun it. Each Weaver keeps at most
   // `max` strung and stops weaving while it has that many.
   WeaverWeave: {
-    type: 'weave', tell: 'spit', cooldown: 2.5, range: 16, windUpTime: 0.55, lockTime: 0, duration: 0, recoveryTime: 0.5,
+    type: 'weave', tell: 'spit', cooldown: 3, absent: 3, retry: 1, windUpTime: 0.55, lockTime: 0, duration: 0, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 0.7, requireClearAttackPath: false,
     look: 'silk', projectileSpeed: 18, projectileSize: 0.28, spawnDistance: 0.36,
     line: { length: [2.5, 22], tries: 16, clear: 1.3, apart: 1, near: 5 },
@@ -255,9 +258,11 @@ export const ABILITIES = {
   // threads in the way) until they are `biteRange` from it, then held there through the
   // bite's wind-up (`biteWindup`, cued at its mouth), and it bites: a circle `biteRadius`
   // round a point `biteForward` ahead, lunging `biteStep` over `duration`, then lets go.
-  // Caught, the player can't attack or dash, only shake the web; a thread's hurt and the
-  // bite land however recently they were hurt. The line breaks only if they get out of
-  // reach (`snapRange` past the ball's reach) or out of the fight; it gives up reeling after
+  // Caught, the player can't attack or dash: each try is a struggle instead, shaking the
+  // web and tearing a strand off, and the `struggles`th tears them free. A thread's hurt
+  // and the bite land on them caught however recently they were hurt. The line breaks too
+  // if they get out of reach (`snapRange` past the ball's reach) or out of the fight; it
+  // gives up reeling after
   // `reelTime` and bites anyway. Missing (a wall, or out of line), the ball is drawn back
   // over `retractTime`. Parried,
   // the pull flips: the line drags the Weaver to the player at `yankSpeed` until it is
@@ -268,7 +273,7 @@ export const ABILITIES = {
     damageMultiplier: 1.5, parryStunTime: 1.3, ...clearPath({ x: 0.5, y: 0.5 }, 0.3),
     look: 'silk', projectileSize: 0.42, muzzle: 0.36,
     ballSpeed: 17, ballReach: 8.5, snapRange: 2.5, retractTime: 0.22,
-    pullSpeed: 4.5, reelTime: 3, biteRange: 0.95, biteWindup: 0.45,
+    pullSpeed: 4.5, reelTime: 3, biteRange: 0.95, biteWindup: 0.45, struggles: 3,
     biteRadius: 0.5, biteForward: 0.38, biteStep: 0.35,
     yankSpeed: 13, yankStop: 1.1, yankTime: 1, parryKnockback: 6,
     legs: 'rear',
@@ -287,7 +292,7 @@ export const ABILITIES = {
   // bursts `chainDelay` later (going critical first, unless the burst was a launched one's).
   NovaFlare: {
     type: 'flare', tell: 'swell', cooldown: 1.5, range: 7, windUpTime: 0.95, duration: 0.08, recoveryTime: 0,
-    damageMultiplier: 2, parryStunTime: 0, cueAt: 0,
+    damageMultiplier: 1, parryStunTime: 0, cueAt: 0,
     rushSpeed: 5.5, rushTime: 2.5, rushResponsiveness: 0.25, swellRange: 1.4, swellSkid: 0.35,
     blastRadius: 2.3, blastDamage: 8, blastKnockback: 25,
     launchSpeed: 17, launchTime: 0.7, contactMargin: 0.08, chainDelay: 0.12,

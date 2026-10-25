@@ -1,6 +1,8 @@
 // Enemy behaviour: Idle → Reposition (orbit) → Chase → WindUp → Attack → Recover.
-// Chasers (bosses) are always aggressive and path with a wider footprint.
-import { randRange, randSign, clamp, norm, dist, dirTo, clampLength, smoothDampAngle, pickWeighted } from '../engine/math.js';
+// Chasers (bosses) are always aggressive and path with a wider footprint. Given `wander`,
+// an enemy out of the fight ambles about instead of standing still. While a passive
+// ability of its own is under way (enemy.passive, the Weaver's weave), the AI stands back.
+import { randRange, randSign, clamp, norm, dist, dirTo, clampLength, smoothDampAngle, pickWeighted, TAU } from '../engine/math.js';
 
 export const AIState = { Idle: 'Idle', Reposition: 'Reposition', Chase: 'Chase', WindUp: 'WindUp', Attack: 'Attack', Recover: 'Recover', Dead: 'Dead' };
 
@@ -20,6 +22,9 @@ export class EnemyAI {
     this.movementSuppressedUntil = 0;
     this.activeAbility = null;
     this.availableCache = null; // per-step memo of hasAvailableAttack()
+    this.wanderTo = null; // where it is ambling to, out of the fight (cfg.wander)
+    this.wanderUntil = 0; // when it gives up getting there
+    this.wanderAt = 0; // when it sets off again
   }
 
   get body() { return this.enemy.body; }
@@ -38,6 +43,7 @@ export class EnemyAI {
       if (!suppressed) this.setVelocity(clampLength(this.body.vel, this.cfg.preservedExternalVelocityLimit));
       return;
     }
+    if (this.enemy.passive) { this.wanderTo = null; return; }
 
     this.stateTimer -= dt;
     switch (this.state) {
@@ -55,7 +61,7 @@ export class EnemyAI {
     switch (this.state) {
       case AIState.Chase: this.moveChase(dt); break;
       case AIState.Reposition: this.moveOrbit(dt, this.cfg.repositionSpeed, false); break;
-      case AIState.Idle: this.moveOrbit(dt, this.cfg.orbitSpeed, true); break;
+      case AIState.Idle: if (this.cfg.wander) this.wander(dt); else this.moveOrbit(dt, this.cfg.orbitSpeed, true); break;
       case AIState.WindUp: if (this.activeAbility?.tracking() ?? true) this.turnToward(this.dirToPlayer(), dt); break;
       // Attack/Recover: no steering; abilities and momentum drive the body.
     }
@@ -192,6 +198,30 @@ export class EnemyAI {
     }
     speed *= this.pace;
     this.steer(move.x * speed, move.y * speed);
+  }
+
+  // Out of the fight (cfg.wander): to a spot it can see up to `reach` away at `speed`,
+  // pausing `pause` [min, max] seconds between, giving up on one it can't get to.
+  wander(dt) {
+    const W = this.cfg.wander, b = this.body, now = this.now;
+    if (!this.wanderTo) {
+      this.steer(0, 0);
+      if (now < this.wanderAt) return;
+      const a = Math.random() * TAU, dx = Math.cos(a), dy = Math.sin(a);
+      const free = this.enemy.world.physics.rayLength(b.pos.x, b.pos.y, dx, dy, W.reach) - b.radius - 0.3;
+      if (free < 1) { this.wanderAt = now + 0.3; return; }
+      const d = randRange(1, free);
+      this.wanderTo = { x: b.pos.x + dx * d, y: b.pos.y + dy * d };
+      this.wanderUntil = now + d / W.speed + 1;
+    }
+    if (dist(b.pos, this.wanderTo) < 0.3 || now > this.wanderUntil) {
+      this.wanderTo = null;
+      this.wanderAt = now + randRange(...W.pause);
+      return;
+    }
+    const dir = dirTo(b.pos, this.wanderTo);
+    this.turnToward(dir, dt);
+    this.steer(dir.x * W.speed, dir.y * W.speed);
   }
 
   // Direction toward the player along the flow field, or null inside `stopping` range.

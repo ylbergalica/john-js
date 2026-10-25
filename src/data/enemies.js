@@ -119,16 +119,20 @@ export const ENEMY_TYPES = {
   },
   // A small spider of starlight, all but black, with a dim silver edge, a pale hourglass on
   // its abdomen and a cluster of glowing eyes, scuttling on eight legs that plant and step
-  // (`rig`, see weaverRig.js). It keeps its distance and strings the room with threads
-  // from wall to wall that hurt whoever touches them, left there for good (web.js); or casts
-  // a hook on a line that, catching the player, reels them in for a bite.
+  // (`rig`, see weaverRig.js). Its one attack is a ball of web thrown on a line that,
+  // catching the player, reels them in for a bite. Whatever else is going on, it strings
+  // the room with threads from wall to wall that hurt whoever touches them, left there for
+  // good (its passive weave, web.js), and out of the fight it wanders the room (`wander`:
+  // to a spot up to `reach` away at `speed`, pausing `pause` s between), weaving more slowly.
+  // It sees far, so weaving out to the walls doesn't take it out of the fight.
   weaver: {
     name: 'Weaver', maxHealth: 18, damage: 1.5, radius: 0.36, mass: 3.5, linearDamping: 1,
     knockbackResistance: 0.05, knockbackMovementPause: 0.12,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xa99be8, sfxPitch: 1.05,
     visual: { kind: 'sprite', outline: 'weaver_idle', void: 'weaver_idle_void', size: 1.15, sparkleCount: 10, rig: 'legs' },
-    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5.5, moveSpeed: 3.6, orbitSpeed: 3, repositionSpeed: 3.2, maxTurnSpeed: 6,
-      attacks: [{ ability: 'WeaverWeave', weight: 0.6 }, { ability: 'WeaverReel', weight: 0.4 }] },
+    ai: { ...AI_DEFAULTS, aggroRange: 20, orbitRadius: 5.5, moveSpeed: 3.6, orbitSpeed: 3, repositionSpeed: 3.2, maxTurnSpeed: 6,
+      wander: { speed: 1.6, reach: 6, pause: [0.8, 2.2] },
+      attacks: [{ ability: 'WeaverReel', weight: 1 }], passives: [{ ability: 'WeaverWeave' }] },
   },
   // A ball of light in every colour, flickering faster and faster as it closes in (`rig`,
   // see novaRig.js). It rushes the player, swells up and bursts in a supernova that hurts

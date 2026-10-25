@@ -47,11 +47,13 @@ export class Enemy extends Entity {
     this.dyingWhite = false; // blinking white while dying
     this.pace = 1; // × its speed: a guardian losing patience (GuardianRage)
     this.rageGlow = null; // the red haze it smoulders in meanwhile, made when first needed
+    this.passive = null; // a passive ability of its own under way (the Weaver's weave): its AI stands back meanwhile
     this.detonated = false; // a Nova bursting: its supernova is its death's look (FlareAbility)
 
     this.buildView();
     this.abilities = new Map();
-    for (const { ability } of this.type.ai.attacks) {
+    // Its attacks, which its AI picks from, and its passives, which go off on their own.
+    for (const { ability } of [...this.type.ai.attacks, ...(this.type.ai.passives ?? [])]) {
       if (!this.abilities.has(ability)) this.abilities.set(ability, createAbility(this, ABILITIES[ability]));
     }
     this.ai = new EnemyAI(this, this.type.ai);

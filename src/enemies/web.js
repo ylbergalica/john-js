@@ -378,7 +378,7 @@ export class WebBall extends Projectile {
 // A few strands of web wound round the player it caught (WEB.snare.cocoon), each a loop
 // `span` radians of an ellipse round them, turned its own way and slowly turning: winding
 // on over `wrap` seconds, shaken (`shake`, × their radius, dying away over `settle`) each
-// time the player struggles, and falling away once let go.
+// time the player struggles, a strand torn off each time, and falling away once let go.
 function cocoonLoops() {
   const C = W.snare.cocoon;
   return Array.from({ length: C.loops }, () => ({
@@ -389,9 +389,9 @@ function cocoonLoops() {
 // WeaverReel's line, from the Weaver's mouth out to its ball of web: the ball forming at its
 // mouth through the wind-up, the line paid out to it in flight, the player wound in web at
 // its end as it reels them in (or as the line drags the Weaver to them, parried), the line
-// and the web jerking each time they struggle, the ball drawn back to its mouth when it
-// misses; let go after the bite, the web falls away and the line slack, and broken, it
-// springs back to the Weaver.
+// and the web jerking and a strand tearing off each time they struggle, the ball drawn back
+// to its mouth when it misses; let go after the bite, the web falls away and the line
+// slack, and broken (torn free), it springs back to the Weaver.
 export class ReelView {
   constructor(ability) {
     this.ability = ability;
@@ -437,12 +437,13 @@ export class ReelView {
     if (ballAt) this.ball.render(now, ballAt.x, ballAt.y, rot, size, { glow });
   }
 
-  // The web wound round the player at `p` (radius `r`), `alpha` as strong.
+  // The web wound round the player at `p` (radius `r`), `alpha` as strong: the strands
+  // they haven't yet torn off.
   drawCocoon(now, p, r, alpha) {
     const C = W.snare.cocoon, a = this.ability, since = now - a.struggledAt;
     const wound = easeOut(clamp01((now - a.caughtAt) / C.wrap));
     const shake = since >= 0 && since < C.settle ? C.shake * r * (1 - since / C.settle) : 0;
-    for (const L of this.loops) {
+    for (const L of this.loops.slice(a.struggles)) {
       const j = shake ? { x: randRange(-shake, shake), y: randRange(-shake, shake) } : { x: 0, y: 0 };
       const turn = L.turn + now * L.spin, c = Math.cos(turn), s = Math.sin(turn), R = r * C.reach, pts = [];
       for (let i = 0; i <= 12; i++) {

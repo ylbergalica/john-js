@@ -22,6 +22,7 @@ import { fistSweep, hookFist, punchFist } from './boxerRig.js';
 import { onScimitar, scimitarSwingPose } from './corsairRig.js';
 import { Glob } from './glob.js';
 import { ReelView, Silk, Thread, WebBall, segmentsDist } from './web.js';
+import { AIState } from './ai.js';
 import { blightMuzzle, blightParts } from '../render/sprites.js';
 
 const DEG = Math.PI / 180;
@@ -1406,14 +1407,17 @@ function alongside(t, a, b, apart) {
   return sin < 0.35 && segmentsDist(a, b, t.a, t.b) < apart;
 }
 
-// Projectile, then a walk: the Weaver strings a thread from wall to wall through where it
-// stands (the Weaver's weave). It picks its line (chooseLine), turns to its far end over the
-// wind-up and spits an anchor of silk into it (Silk, web.js); stuck, it spins a Thread from
-// there out of its spinnerets as it walks across to the near end, and fastens it there, or
-// wherever it is if it gets stuck, is stunned or slain, takes too long or the player comes
-// too close. Its threads stay strung until cut, through its death too; it stops weaving
-// once it has `max` of them. A parried thread hurts it, without a stun.
+// Passive: a projectile, then a walk. The Weaver strings a thread from wall to wall through
+// where it stands (the Weaver's weave), not as an attack but of its own accord, in the fight
+// or out of it, whatever else is attacking (consider). It picks its line (chooseLine),
+// turns to its far end over the wind-up and spits an anchor of silk into it (Silk,
+// web.js); stuck, it spins a Thread from there out of its spinnerets as it walks across to
+// the near end, and fastens it there, or wherever it is if it gets stuck, is stunned or
+// slain, takes too long or the player comes too close. Its threads stay strung until cut,
+// through its death too; it stops weaving once it has `max` of them. A parried thread hurts
+// it, without a stun. Its AI stands back meanwhile (enemy.passive).
 // Phases: windup → cast → walk → recovery.
+const WEAVE_FROM = new Set([AIState.Idle, AIState.Reposition, AIState.Chase]); // AI states it can leave off to weave
 class WeaveAbility extends ThrowAbility {
   constructor(enemy, data) {
     super(enemy, data);
@@ -1422,38 +1426,51 @@ class WeaveAbility extends ThrowAbility {
     this.silk = null; // its anchor in flight
     this.thread = null; // the thread it is spinning
     this.walkCheck = null; // { at, pos }: where it was when it last checked it was getting anywhere
+    this.lastUseTime = this.world.time - Math.random() * data.cooldown; // so Weavers don't all start at once
   }
 
   // Its threads still strung (or being spun).
   get strung() { return (this.threads = this.threads.filter((t) => !t.dead && t.taut)); }
 
-  shouldExecute() {
-    const p = this.player, d = this.data;
-    if (!p) return false;
-    const far = dist(this.enemy.body.pos, p.body.pos);
-    return far <= d.range && far >= d.minPlayerDist && this.strung.length < d.max;
-  }
+  // Whether the player is about: its AI is after them.
+  get present() { return !!this.player && this.enemy.ai.state !== AIState.Idle; }
+
+  // Never picked by its AI: it goes off on its own (consider).
+  shouldExecute() { return false; }
 
   // It aims at its line, not the player.
   tracking() { return false; }
 
-  // Nowhere to string one from here, it does nothing, and tries again once its cooldown is up.
-  execute() {
+  // Free to (not acting, stunned or dying, its AI not mid-attack), every `cooldown` seconds,
+  // `absent` times as long while the player isn't about, it starts on another thread, unless
+  // it has `max` or the player is within `minPlayerDist`. With no line to string from
+  // where it is, it tries again `retry` later (`absent` times as long, likewise).
+  consider() {
+    const e = this.enemy, d = this.data, now = this.world.time;
+    if (e.isActing || e.stunned || e.dying || !WEAVE_FROM.has(e.ai.state)) return;
+    const slow = this.present ? 1 : d.absent;
+    if (now < this.lastUseTime + d.cooldown * slow || this.strung.length >= d.max) return;
+    const p = this.player;
+    if (p && dist(e.body.pos, p.body.pos) < d.minPlayerDist) return;
     this.line = this.chooseLine();
-    if (this.line) super.execute();
+    if (!this.line) { this.lastUseTime = now - (d.cooldown - d.retry) * slow; return; }
+    this.lastUseTime = now;
+    e.passive = this;
+    this.execute();
   }
 
   // Of `line.tries` lines through it at random, wall to wall, the best to string (see
-  // WeaverWeave.line), its far end first; null if none will do.
+  // WeaverWeave.line), its far end first; null if none will do. With the player about, it
+  // keeps clear of them and favours lines near them.
   chooseLine() {
-    const o = this.enemy.body.pos, L = this.data.line, physics = this.world.physics, p = this.player.body.pos, [min, max] = L.length;
+    const o = this.enemy.body.pos, L = this.data.line, physics = this.world.physics, p = this.present ? this.player.body.pos : null, [min, max] = L.length;
     let best = null, bestScore = -Infinity;
     for (let i = 0; i < L.tries; i++) {
       const angle = Math.random() * Math.PI, dx = Math.cos(angle), dy = Math.sin(angle);
       const ra = physics.rayLength(o.x, o.y, dx, dy, max), rb = physics.rayLength(o.x, o.y, -dx, -dy, max);
       if (ra >= max || rb >= max || ra + rb < min || ra + rb > max) continue;
       const a = { x: o.x + dx * (ra - 0.05), y: o.y + dy * (ra - 0.05) }, b = { x: o.x - dx * (rb - 0.05), y: o.y - dy * (rb - 0.05) };
-      const off = Math.sqrt(segmentPointDistSq(a.x, a.y, b.x, b.y, p.x, p.y));
+      const off = p ? Math.sqrt(segmentPointDistSq(a.x, a.y, b.x, b.y, p.x, p.y)) : L.near;
       if (off < L.clear || this.strung.some((t) => alongside(t, a, b, L.apart))) continue;
       const score = -Math.max(0, off - L.near) - (ra + rb) * 0.15 + Math.random();
       if (score > bestScore) { bestScore = score; best = ra >= rb ? { a, b } : { a: b, b: a }; }
@@ -1464,6 +1481,7 @@ class WeaveAbility extends ThrowAbility {
   step(dt) {
     super.step(dt);
     const e = this.enemy;
+    if (this.phase === 'ready') this.consider();
     if (this.phase === 'windup' && this.line) e.ai.turnToward(dirTo(e.body.pos, this.line.a), dt);
     if (this.phase === 'cast' && (!this.silk || this.silk.dead)) { // its anchor hit the player, or was parried
       this.silk = null;
@@ -1475,7 +1493,6 @@ class WeaveAbility extends ThrowAbility {
   advance() {
     switch (this.phase) {
       case 'windup':
-        this.notifyAttackStarted();
         this.strikeAt = this.world.time;
         this.spit();
         this.setPhase('cast', Infinity);
@@ -1485,6 +1502,14 @@ class WeaveAbility extends ThrowAbility {
         return;
     }
     super.advance();
+    if (this.phase === 'ready') this.done();
+  }
+
+  // Done weaving: its AI takes over again.
+  done() {
+    const e = this.enemy;
+    e.isActing = false;
+    if (e.passive === this) e.passive = null;
   }
 
   // An anchor of silk spat from its mouth into the line's far end.
@@ -1507,7 +1532,6 @@ class WeaveAbility extends ThrowAbility {
     }, { spinning: true }));
     this.threads.push(this.thread);
     this.world.sound('threadStrung', at);
-    e.ai.releaseSlot(); // no attack from here on, so it holds back no other enemy's
     this.walkCheck = { at: this.world.time, pos: { ...e.body.pos } };
     this.setPhase('walk', d.walkTime);
   }
@@ -1560,6 +1584,7 @@ class WeaveAbility extends ThrowAbility {
     if (this.phase === 'walk') this.fasten();
     if (this.phase === 'cast') this.phase = 'ready';
     super.interrupt();
+    if (this.phase === 'ready') this.done();
   }
 
   legPose() { return this.phase === 'windup' || this.phase === 'cast' ? this.data.legs : null; }
@@ -1575,8 +1600,9 @@ class WeaveAbility extends ThrowAbility {
 // them in web and reels them in (Player is dragged along at its pullOn) at a steady pace,
 // braced and turning after them, until they are close, holds them there through a second
 // wind-up, the bite's, then bites: a hitbox lunging along its facing (a charge, parried like
-// one), and lets go. Caught, the player can't attack or dash: trying only shakes the web
-// (struggle); the line breaks only if they get out of reach or out of the fight. Its
+// one), and lets go. Caught, the player can't attack or dash: trying struggles against the
+// web instead, tearing a strand off, and the `struggles`th tears them free; the line breaks
+// too if they get out of reach or out of the fight. Its
 // threads and its bite land on them caught however recently they were hurt
 // (ignoresInvincibility). Missing, the ball is drawn back in its recovery. Parried, the line
 // drags the Weaver to the player (`yank`), where it lies stunned.
@@ -1592,7 +1618,8 @@ class ReelAbility extends Ability {
     this.caughtAt = -Infinity; // when it last caught them
     this.retract = null; // { from, at }: the ball drawn back from where it missed
     this.loose = null; // { from, at, snap, player }: the line let go (falling slack, its web falling off `player`) or broken (springing back)
-    this.struggledAt = -Infinity; // when the player caught last tried to break free
+    this.struggles = 0; // how many times the player caught has struggled
+    this.struggledAt = -Infinity; // when they last did
     this.dir = { x: 1, y: 0 }; // the bite's lunge
   }
 
@@ -1686,6 +1713,7 @@ class ReelAbility extends Ability {
     this.ball = null;
     this.held = player;
     this.caughtAt = this.world.time;
+    this.struggles = 0;
     player.reeledBy = this;
     this.sound('webCatch');
     this.sound('reel');
@@ -1708,13 +1736,16 @@ class ReelAbility extends Ability {
     return { x: (dx / l) * v, y: (dy / l) * v };
   }
 
-  // The player caught trying to attack or dash: they can't, they only shake the web.
+  // The player caught trying to attack or dash: instead they struggle, shaking the web and
+  // tearing a strand off, and at the last tear free.
   struggle(player) {
     if (this.held !== player || !this.snared) return;
+    this.struggles++;
     this.struggledAt = this.world.time;
     const p = player.body.pos;
     this.world.effects.burst(p.x, p.y, 0, { ...WEB.snare.strain, color: WEB.color });
-    this.world.sound('strain', p);
+    if (this.struggles >= this.data.struggles) this.letGo(true);
+    else this.world.sound('strain', p);
   }
 
   // Its threads and its bite land on the player it has caught however recently they were hurt.

@@ -30,21 +30,14 @@ export class GravebloomAspect extends Aspect {
     this.motes = new Plume(fx, tex.glint, { drag: 1.2 });
     // Its own kills too (the controller never sends an aspect those): lotuses chain.
     this.offOwnKills = player.world.events.enemyKilled.on((enemy, cause) => { if (cause === data.id) this.onEnemyKilled(enemy, cause); });
-    this.streakOn = null; // the enemy hit last
-    this.streak = 0; // hits in a row on it
-    this.lastHitAt = -Infinity;
+    this.pain = 0; // hits on enemies since the last lotus they grew
   }
 
-  // Every streak.hits hits in a row on one enemy (any damage but its own bursts'; streak.time
-  // without a hit loses the count) grow a lotus beside it, so it blooms in a long fight too
-  // (a guardian's), with nothing dying.
+  // Every pain.hits-th hit on any enemy (any damage but its own bursts') grows a lotus beside
+  // the one hit, so it blooms in a long fight too (a guardian's, or tanky foes'), with nothing dying.
   onEnemyDamaged(enemy) {
-    const S = this.data.streak;
-    this.streak = enemy === this.streakOn && this.now - this.lastHitAt <= S.time ? this.streak + 1 : 1;
-    this.streakOn = enemy;
-    this.lastHitAt = this.now;
-    if (this.streak < S.hits) return;
-    this.streak = 0;
+    if (++this.pain < this.data.pain.hits) return;
+    this.pain = 0;
     const at = this.besideOf(enemy);
     if (!at) return;
     this.blooms = this.blooms.filter((b) => !b.dead);
@@ -52,9 +45,9 @@ export class GravebloomAspect extends Aspect {
     this.world.sound('bloom', at);
   }
 
-  // A spot clear of walls somewhere up to streak.reach out from the enemy's edge, or null.
+  // A spot clear of walls somewhere up to pain.reach out from the enemy's edge, or null.
   besideOf(enemy) {
-    const S = this.data.streak, c = enemy.body.pos, r = enemy.body.radius, physics = this.world.physics;
+    const S = this.data.pain, c = enemy.body.pos, r = enemy.body.radius, physics = this.world.physics;
     for (let i = 0; i < 12; i++) {
       const a = Math.random() * TAU, d = r + Math.random() * S.reach;
       const at = { x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d };

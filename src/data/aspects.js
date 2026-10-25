@@ -472,7 +472,7 @@ export const ASPECTS = [
   {
     id: 'gravebloom', displayName: 'Gravebloom', tier: AspectTier.Prestige, icon: 'gravebloom_icon', activatable: false, stat: AspectStat.Bursts,
     quote: 'Every grave a garden.',
-    description: 'Fallen enemies leave lotus flowers behind that burst when shaken.',
+    description: 'The pain and fall of foes bloom lotus flowers that burst when shaken.',
     // Every enemy killed (its own bursts' kills too) leaves a lotus where it fell
     // (src/aspects/gravebloom.js); armTime after, it can be struck by anything of the player's
     // that deals damage, like a prop. Struck, it bursts in a wave out along the blow (along the
@@ -482,13 +482,13 @@ export const ASPECTS = [
     // other way, it bursts all round instead, in a `ring`: struck by another's burst, `delay`
     // after an enemy is killed within `nearby` of it while it's ready, or grown from a burst's
     // kill, which sets itself off once it's bloomed (doom.at after it appears, bursting
-    // doom.delay later, swelling meanwhile). And every streak.hits hits in a row on one enemy
-    // (any damage but its bursts'; streak.time without one loses the count) grow a lotus
-    // somewhere up to streak.reach out from its edge, clear of walls. There's
+    // doom.delay later, swelling meanwhile). And every pain.hits-th hit on any enemy (any
+    // damage but its bursts', the count kept however long between) grows a lotus somewhere up
+    // to pain.reach out from the edge of the one hit, clear of walls. There's
     // no limit to how many there are; each wilts after `lifetime`, over wiltTime. radius: how far
     // out from its centre it can be struck (a little past its petals).
     doom: { at: 0.75, delay: 0.12 },
-    streak: { hits: 7, time: 6, reach: 2 },
+    pain: { hits: 5, reach: 2 },
     lifetime: 20, wiltTime: 0.8, armTime: 0.4, radius: 0.3, nearby: 2.5, delay: 0.12,
     cone: { damage: 5, enemyKnockbackForce: 8, halfDeg: 50, from: 0.4, range: 5.5, time: 0.4 },
     ring: { damage: 4, enemyKnockbackForce: 6, from: 0.3, range: 4.2, time: 0.4 },

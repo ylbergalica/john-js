@@ -1973,7 +1973,7 @@ class FlareAbility extends HitboxAbility {
   touchesAnything() {
     const e = this.enemy, b = e.body, reach = b.radius + this.data.contactMargin;
     for (const t of [...this.world.enemies, ...this.world.props]) {
-      if (t !== e && !t.dead && hurtDistance(t, b.pos.x, b.pos.y) <= reach) return true;
+      if (t !== e && !t.dead && !t.isThread && hurtDistance(t, b.pos.x, b.pos.y) <= reach) return true;
     }
     return false;
   }
@@ -2009,7 +2009,7 @@ class FlareAbility extends HitboxAbility {
     b.ignores = null;
     const amount = d.blastDamage * (this.friendly ? w.adrenaline.damageMultiplier : 1);
     for (const t of [...w.enemies, ...w.props]) {
-      if (t === e || t.dead || hurtDistance(t, x, y) >= d.blastRadius) continue;
+      if (t === e || t.dead || (t.isThread && !this.friendly) || hurtDistance(t, x, y) >= d.blastRadius) continue; // only the player's cuts silk
       const fuse = t.abilities && [...t.abilities.values()].find((a) => a.ignite);
       if (fuse) { fuse.ignite(this.friendly); continue; }
       t.takeDamage(amount, t.closestPoint(src), src, DamageCause.Nova);

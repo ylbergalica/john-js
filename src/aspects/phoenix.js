@@ -234,7 +234,7 @@ export class PhoenixAspect extends Aspect {
     const from = { ...this.player.body.pos };
     this.wing.caught.add(target);
     if (!this.burns || this.burns.dead) this.burns = w.add(new Burns(w, d));
-    this.burns.light(target, (d.burn * mult) / d.burnTime, from);
+    if (!target.isThread) this.burns.light(target, (d.burn * mult) / d.burnTime, from);
     target.takeDamage(d.catchDamage * mult, target.closestPoint(from), from, d.id);
     w.deathFx.flare(tex.mist, p.x, p.y, 0, { time: C.flash.time, w0: C.flash.size, h0: C.flash.size, w1: C.flash.size * 0.4, h1: C.flash.size * 0.4, alpha: C.flash.alpha, color0: 0xffe8a0, color1: C.flash.color });
     w.effects.burst(p.x, p.y, Math.random() * TAU, { ...C.sparks, coneDeg: 180 });

@@ -12,7 +12,7 @@ import { FIXED_DT, FX } from '../data/config.js';
 import { clamp01, deltaAngle, lerp, lerpColor, randSign, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { ORACLE_DISC } from '../render/sprites.js';
-import { hurtByCircle } from '../game/hurtbox.js';
+import { hurtByCircle, hurtBySegment } from '../game/hurtbox.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const alive = (e) => !!e && !e.dead && !e.dying;
@@ -119,6 +119,9 @@ class OracleDisc extends Entity {
       this.roll(dt);
       if (w.time >= this.modeUntil) this.turnBack();
     } else this.roam(dt);
+    // Any thread it passes over is cut.
+    const r = d.fx.size / 2, from = this.prev, to = this.pos;
+    for (const t of w.props.filter((t) => t.isThread && !t.dying && hurtBySegment(t, from.x, from.y, to.x, to.y, r))) t.takeDamage(d.damage, t.closestPoint(to), to);
   }
 
   // Where to go next, with strikes left (`from`: the enemy it's just struck, and sits on): the

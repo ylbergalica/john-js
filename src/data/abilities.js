@@ -239,9 +239,9 @@ export const ABILITIES = {
   // it stuns the Weaver.
   // A thread (web.js) stays strung until cut, through its Weaver's death too: touching it
   // hurts (× `thread.damage`, again every `thread.rehit` they stay in it), the thread being
-  // spun too. A sword stroke across it cuts it; a parry breaks it and hurts the Weaver as
-  // any parry would (`damageMultiplier`), but doesn't stun it. Each Weaver keeps at most
-  // `max` strung and stops weaving while it has that many.
+  // spun too. Anything of the player's that deals damage cuts it; a parry breaks it and
+  // hurts the Weaver as any parry would (`damageMultiplier`), but doesn't stun it. Each
+  // Weaver keeps at most `max` strung and stops weaving while it has that many.
   WeaverWeave: {
     type: 'weave', tell: 'spit', cooldown: 3, absent: 3, retry: 1, windUpTime: 0.55, lockTime: 0, duration: 0, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 0.7, requireClearAttackPath: false,

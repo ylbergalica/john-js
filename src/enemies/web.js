@@ -3,9 +3,9 @@
 // falls slack; reaching the wall, it sticks, and its Weaver spins a Thread from there as it
 // walks across to the far wall, the thread paying out of its spinnerets until it fastens
 // it. A Thread stays strung until cut, hurting whoever touches it (once as they touch it,
-// and again every while they stay in it), the one being spun too; a sword stroke across it
-// cuts it, and a parry breaks it and hurts its Weaver. Its halves spring back to their
-// knots.
+// and again every while they stay in it), the one being spun too; anything of the player's
+// that deals damage cuts it (it sits in world.props, struck like a prop), and a parry breaks
+// it and hurts its Weaver. Its halves spring back to their knots.
 // A WebBall is thrown on a line (WeaverReel): catching the player, it hands them to its
 // ability to reel in; missing, it is drawn back. ReelView draws the line out to it, the ball
 // as it forms or is drawn back, the web wound round the player it caught, shaking as they
@@ -125,10 +125,16 @@ export class Thread extends Entity {
     this.dew = [];
     if (!spinning) this.wet();
     this.gfx = new SilkGfx(world.layers.telegraphs);
-    if (this.taut) world.hostileAttacks.add(this);
+    this.isProp = this.isThread = true;
+    if (this.taut) {
+      world.hostileAttacks.add(this);
+      world.props.push(this);
+    }
   }
 
   get taut() { return this.state === 'taut'; }
+  // Cut or fallen slack, it's past striking (it leaves world.props on its next step).
+  get dying() { return !this.taut; }
   // Who to blame for it (the parry's listeners look for the enemy behind an attack).
   get sourceAbility() { return this.owner; }
 
@@ -157,6 +163,7 @@ export class Thread extends Entity {
   }
 
   step() {
+    if (!this.taut) this.leave();
     if (!this.taut && this.world.time >= this.changedAt + (this.state === 'cut' ? W.snap.time : W.slack)) this.destroy();
   }
 
@@ -168,7 +175,7 @@ export class Thread extends Entity {
     if (!p) { this.touching = false; return; }
     if (p.attacking) {
       const cap = p.attackCapsule();
-      if (this.overlapsCapsule(cap)) { this.cut(this.closestPoint(cap).t); return; }
+      if (this.overlapsCapsule(cap)) { this.cut(nearestOn(this.a, this.b, { x: cap.cx, y: cap.cy }).t); return; }
     }
     const b = p.body, touching = this.overlapsCircle(b.pos.x, b.pos.y, b.radius);
     if (touching && (!this.touching || this.world.time - this.hitAt >= this.rehit)) this.hurt(p);
@@ -186,11 +193,32 @@ export class Thread extends Entity {
   worldShape() { return { type: 'capsule', ax: this.a.x, ay: this.a.y, bx: this.b.x, by: this.b.y, r: this.width / 2 }; }
   overlapsCircle(x, y, r) { return segmentPointDistSq(this.a.x, this.a.y, this.b.x, this.b.y, x, y) < (r + this.width / 2) ** 2; }
   overlapsCapsule(cap) { return segmentsDist(this.a, this.b, { x: cap.ax, y: cap.ay }, { x: cap.bx, y: cap.by }) < cap.r + this.width / 2; }
-  closestPoint(cap) { return nearestOn(this.a, this.b, { x: cap.cx, y: cap.cy }); }
   // Dragged through it on the Weaver's line, its hurt lands however recently they were hurt.
   ignoresInvincibility(player) { return !!player.reeledBy; }
   // It stays strung after it hurts someone (see Player.hurtBy).
   get lingers() { return true; }
+
+  // As a prop the player's damage strikes (see hurtShape): a body round it, a thin box along
+  // it, and cut wherever it's struck. A burn doesn't cut it (the blow lighting it does).
+  get body() {
+    return { pos: { x: (this.a.x + this.b.x) / 2, y: (this.a.y + this.b.y) / 2 }, radius: this.length / 2 + this.width / 2, rotation: Math.atan2(this.b.y - this.a.y, this.b.x - this.a.x) };
+  }
+  hurtOutline() {
+    const dx = this.b.x - this.a.x, dy = this.b.y - this.a.y, l = Math.hypot(dx, dy) || 1e-6, h = this.width / 2;
+    const nx = (-dy / l) * h, ny = (dx / l) * h;
+    return [{ x: this.a.x + nx, y: this.a.y + ny }, { x: this.b.x + nx, y: this.b.y + ny }, { x: this.b.x - nx, y: this.b.y - ny }, { x: this.a.x - nx, y: this.a.y - ny }];
+  }
+  closestPoint(p) { return nearestOn(this.a, this.b, p); }
+  takeDamage(damage, hitPoint, source) {
+    if (damage > 0) this.cut(nearestOn(this.a, this.b, hitPoint ?? source).t);
+  }
+  sap() {}
+
+  // Out of world.props: nothing strikes it again.
+  leave() {
+    const props = this.world.props, i = props.indexOf(this);
+    if (i >= 0) props.splice(i, 1);
+  }
 
   // Parried: it breaks where the player met it, and its Weaver is hurt.
   parry() {

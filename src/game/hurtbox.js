@@ -1,10 +1,12 @@
 // Where an enemy or prop can be struck: its round body, unless its type gives its own
 // outline (`hurtbox`: a convex polygon of [x, y] points in its frame, +x forward), which
-// turns with it. Everything the player strikes with tests these.
+// turns with it, or it gives one in the world (`hurtOutline()`: [{ x, y }], a Weaver's
+// thread). Everything the player strikes with tests these.
 import { circleVsBox, segmentPointDistSq } from '../engine/physics.js';
 
 // The hurtbox in the world: { type: 'circle', x, y, r } or { type: 'poly', points: [{ x, y }] }.
 export function hurtShape(t) {
+  if (t.hurtOutline) return { type: 'poly', points: t.hurtOutline() };
   const b = t.body, outline = t.type?.hurtbox;
   if (!outline) return { type: 'circle', x: b.pos.x, y: b.pos.y, r: b.radius };
   const c = Math.cos(b.rotation), s = Math.sin(b.rotation);

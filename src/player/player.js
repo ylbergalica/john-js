@@ -139,7 +139,7 @@ export class Player extends Entity {
     if (this.attacking) {
       const cap = this.attackCapsule();
       const struck = (e) => !e.dead && hurtBySegment(e, cap.ax, cap.ay, cap.bx, cap.by, cap.r);
-      const hits = [...this.world.enemies.filter(struck), ...this.world.props.filter(struck)];
+      const hits = [...this.world.enemies.filter(struck), ...this.world.props.filter((e) => !e.isThread && struck(e))]; // a thread cuts itself on it
       this.attackContacts.update(hits, (e) => (e.isProp ? this.onAttackProp(e) : this.onAttackHit(e)));
     }
     if (this.parrying) this.parryOverlapping();

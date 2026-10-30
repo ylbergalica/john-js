@@ -598,6 +598,45 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 3000, to: 5000, q: 0.8, dur: 0.1, vol: 0.16, attack: 0.002 });
     tone(v, { type: 'square', freq: 900, to: 2200, dur: 0.1, vol: 0.03 });
   },
+  // the Bulwark
+  glance(v) { // a blow turned by its shield: a bright metallic ping off a hard tick, a dull knock under it
+    noise(v, { filter: 'highpass', freq: 4500, dur: 0.03, vol: 0.2, attack: 0.001 });
+    tone(v, { type: 'triangle', freq: 2650, to: 2600, dur: 0.38, vol: 0.09, attack: 0.002 });
+    tone(v, { freq: 3980, to: 3940, dur: 0.22, vol: 0.04, attack: 0.002 });
+    tone(v, { type: 'square', freq: 420, to: 220, dur: 0.06, vol: 0.05 });
+  },
+  bash(v) { // lunging shield-first: a heavy shove of air and a grunt of metal
+    noise(v, { freq: 180, to: 760, q: 0.9, dur: 0.24, vol: 0.32, attack: 0.04 });
+    tone(v, { type: 'triangle', freq: 110, to: 52, dur: 0.22, vol: 0.16 });
+    tone(v, { type: 'triangle', freq: 980, to: 940, at: 0.02, dur: 0.18, vol: 0.025 });
+  },
+  plant(v) { // the shield slammed edge-first into the floor: a deep boom, metal ringing, the ground rumbling off
+    tone(v, { freq: 88, to: 30, dur: 0.5, vol: 0.55 });
+    noise(v, { filter: 'lowpass', freq: 900, to: 70, dur: 0.45, vol: 0.5 });
+    noise(v, { filter: 'highpass', freq: 2600, to: 1600, q: 0.7, dur: 0.05, vol: 0.25, attack: 0.002 });
+    tone(v, { type: 'triangle', freq: 1240, to: 1200, at: 0.01, dur: 0.4, vol: 0.045 });
+    noise(v, { filter: 'lowpass', freq: 320, to: 120, at: 0.04, dur: 0.6, vol: 0.22, attack: 0.05 });
+  },
+  guardBreak(v) { // parried, its shield ripped off its arm: a great clang ringing, a lurch of air
+    noise(v, { filter: 'highpass', freq: 3200, to: 2000, q: 0.7, dur: 0.06, vol: 0.35, attack: 0.001 });
+    tone(v, { freq: 140, to: 55, dur: 0.3, vol: 0.32 });
+    tone(v, { type: 'triangle', freq: 1520, to: 1400, at: 0.005, dur: 0.6, vol: 0.09 });
+    tone(v, { freq: 2290, to: 2210, at: 0.005, dur: 0.42, vol: 0.05 });
+    noise(v, { freq: 300, to: 1400, q: 0.8, at: 0.03, dur: 0.3, vol: 0.14, attack: 0.05 });
+  },
+  shieldLand(v) { // coming down: a clatter of metal on stone, bouncing once
+    tone(v, { freq: 320, to: 120, dur: 0.12, vol: 0.16 });
+    noise(v, { filter: 'lowpass', freq: 1600, to: 220, dur: 0.18, vol: 0.28 });
+    tone(v, { type: 'triangle', freq: 1150, to: 1110, dur: 0.26, vol: 0.04 });
+    noise(v, { filter: 'lowpass', freq: 1200, to: 200, at: 0.1, dur: 0.12, vol: 0.14 });
+    tone(v, { type: 'triangle', freq: 1150, to: 1110, at: 0.1, dur: 0.18, vol: 0.02 });
+  },
+  shieldReturn(v) { // flying back to its arm: a rising whoosh, caught with a clack
+    noise(v, { freq: 400, to: 2400, q: 0.9, dur: 0.28, vol: 0.16, attack: 0.18 });
+    tone(v, { type: 'triangle', freq: 520, to: 1300, dur: 0.28, vol: 0.035, attack: 0.15 });
+    noise(v, { filter: 'highpass', freq: 3000, at: 0.28, dur: 0.03, vol: 0.18, attack: 0.001 });
+    tone(v, { type: 'triangle', freq: 1700, at: 0.28, dur: 0.16, vol: 0.05 });
+  },
   // the Alembic (its own attacks are played at its sfxPitch, a good deal lower)
   ventVolley(v) { // every valve firing at once: a hard pneumatic chuff over a thump, a hiss and a clack of metal
     tone(v, { freq: 140, to: 45, dur: 0.26, vol: 0.4 });

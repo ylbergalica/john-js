@@ -3,8 +3,8 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges, weaverKnee, weaverLegsRest } from './sprites.js';
-import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR, WEAVER_LEGS } from '../data/config.js';
+import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, SHIELD_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges, weaverKnee, weaverLegsRest } from './sprites.js';
+import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR, SHIELD, WEAVER_LEGS } from '../data/config.js';
 import { capeRest } from '../enemies/cape.js';
 
 export const tex = {};
@@ -31,7 +31,7 @@ export async function loadAssets() {
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack. A prop's cracks never change its
   // outline, so one serves all its stages.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'weaver_idle', 'weaver_idle_void', 'nova_idle', 'nova_idle_void', 'blight_idle', 'blight_idle_void', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'weaver_idle', 'weaver_idle_void', 'nova_idle', 'nova_idle_void', 'bulwark_idle', 'bulwark_idle_void', 'bulwark_shield', 'blight_idle', 'blight_idle_void', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
   blightParts().forEach((_, i) => { tex[`blight_part_${i}_white`] = toTexture(whiteSilhouette(tex[`blight_part_${i}`].source.resource)); });
@@ -79,6 +79,7 @@ function enemyPortrait(visual, S = 128) {
   if (visual.rig === 'scimitar') return corsairPortrait(c, ctx, visual, S);
   if (visual.rig === 'alembic') return blightPortrait(c, ctx, visual, S);
   if (visual.rig === 'legs') return weaverPortrait(c, ctx, visual, S);
+  if (visual.rig === 'shield') return bulwarkPortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -98,6 +99,14 @@ function maulerPortrait(c, ctx, visual, S) {
   ctx.translate(cx + Math.cos(phi) * r * u, cy + Math.sin(phi) * r * u);
   ctx.rotate(rot);
   ctx.drawImage(tex.star_maul.source.resource, -MAUL_ART.grip * u, (-MAUL_ART.h / 2) * u, MAUL_ART.w * u, MAUL_ART.h * u);
+  return c;
+}
+
+// The Bulwark behind its shield, which stands out ahead of its body: shifted back to fit.
+function bulwarkPortrait(c, ctx, visual, S) {
+  const u = S / 1.55, cx = S / 2 - 0.12 * u, cy = S / 2, half = (visual.size / 2) * u;
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
+  ctx.drawImage(tex.bulwark_shield.source.resource, cx + SHIELD.poses.idle.ahead * u, cy - (SHIELD_ART.h / 2) * u, SHIELD_ART.w * u, SHIELD_ART.h * u);
   return c;
 }
 

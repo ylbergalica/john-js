@@ -139,13 +139,41 @@ export const ENEMY_TYPES = {
   // anything near, enemies too. Light, it barely resists knockback: a hit sends it flying,
   // still swelling, and a parry launches it to burst on whatever it hits.
   nova: {
-    name: 'Nova', maxHealth: 5, damage: 4, radius: 0.4, mass: 1, linearDamping: 1.5,
+    name: 'Nova', maxHealth: 8, damage: 4, radius: 0.4, mass: 1, linearDamping: 1.5,
     knockbackResistance: 0.15, knockbackMovementPause: 0.45, alongBlow: true,
     minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0xffd27a, sfxPitch: 1.15,
     visual: { kind: 'sprite', outline: 'nova_idle', void: 'nova_idle_void', size: 1.36, sparkleCount: 8, rig: 'nova' },
-    ai: { ...AI_DEFAULTS, aggroRange: 13, orbitRadius: 5, moveSpeed: 2, orbitSpeed: 1.6, repositionSpeed: 1.7, maxTurnSpeed: 8,
+    ai: { ...AI_DEFAULTS, aggroRange: 13, orbitRadius: 5, moveSpeed: 3, orbitSpeed: 2.4, repositionSpeed: 2.55, maxTurnSpeed: 8,
       preservedExternalVelocityLimit: 20, decisionDelayRange: { x: 0.4, y: 1 },
       attacks: [{ ability: 'NovaFlare', weight: 1 }] },
+  },
+  // A squat slate-grey brute, broad and shallow, crouched behind a great curved shield it
+  // always turns to face the player, slowly (`rig`, see bulwarkRig.js). A blow coming from
+  // within `guard.arcDeg` of its facing glances off the shield with a spark and a ping (only
+  // a parry's counter gets through), so it can only be hurt from the sides and back. Its
+  // hurtbox takes in the shield, so a blow on it lands there to glance; with the shield
+  // gone it's the body alone (`guard.hurtbox`). It bashes shield-first, and parried there
+  // its guard breaks: the shield flies off its arm and it's open all round for
+  // `guard.brokenTime`, until the shield flies back. Or it plants the shield, sending a
+  // shockwave along the floor in a cone ahead. Squat, it doesn't block the others' line of
+  // attack (`shootOver`): they shoot past it.
+  bulwark: {
+    name: 'Bulwark', maxHealth: 27, damage: 1.6, radius: 0.58, mass: 6, linearDamping: 1,
+    knockbackResistance: 0.35, knockbackMovementPause: 0.12, shootOver: true,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x8e9db3, sfxPitch: 0.8,
+    visual: { kind: 'sprite', outline: 'bulwark_idle', void: 'bulwark_idle_void', size: 1.5, sparkleCount: 22, rig: 'shield' },
+    // The shield's outer edge (SHIELD_ART: r + thick / 2 out from SHIELD.poses.idle.ahead,
+    // ±span / 2) round the body's back.
+    hurtbox: [[0.57, 0], [0.52, 0.26], [0.37, 0.48], [0.13, 0.63], [-0.12, 0.57], [-0.33, 0.47], [-0.42, 0.26],
+      [-0.42, -0.26], [-0.33, -0.47], [-0.12, -0.57], [0.13, -0.63], [0.37, -0.48], [0.52, -0.26]],
+    guard: {
+      arcDeg: 140, brokenTime: 2.6,
+      hurtbox: [[0.34, 0.44], [0.22, 0.56], [-0.12, 0.56], [-0.33, 0.47], [-0.42, 0.26],
+        [-0.42, -0.26], [-0.33, -0.47], [-0.12, -0.56], [0.22, -0.56], [0.34, -0.44]],
+    },
+    ai: { ...AI_DEFAULTS, aggroRange: 12, orbitRadius: 3.2, moveSpeed: 2.3, orbitSpeed: 1.7, repositionSpeed: 1.9, maxTurnSpeed: 4.6,
+      turnSmoothTime: 0.22,
+      attacks: [{ ability: 'BulwarkBash', weight: 0.55 }, { ability: 'BulwarkPlant', weight: 0.45 }] },
   },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,

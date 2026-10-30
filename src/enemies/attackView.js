@@ -392,6 +392,9 @@ export class CueFlash {
 //   { type: 'box', near, far, hh }         from `near` to `far` ahead, `hh` to each side
 //   { type: 'circle', r, from, growTime }  all around, spreading from radius `from` to `r`
 //                                          over `growTime` if given
+//   { type: 'cone', r, from, growTime, arcDeg, band }
+//                                          a band `band` deep across `arcDeg` ahead, its
+//                                          front running out from `from` to `r` over `growTime`
 // The area stays where it was struck, or where the ability pins it. It burns from the
 // ability's `zoneAt`.
 export class ZoneView {
@@ -421,6 +424,14 @@ export class ZoneView {
       for (let i = 0; i < n; i++) {
         const a = (TAU * i) / n;
         fx.burst(x + Math.cos(a) * r, y + Math.sin(a) * r, a, opts);
+      }
+      return;
+    }
+    if (s.type === 'cone') { // along its first front, flying out
+      const half = (s.arcDeg * Math.PI) / 360, n = Math.max(3, Math.round((2 * half * s.from) / (Z.sparkSpacing * 0.5)));
+      for (let i = 0; i < n; i++) {
+        const a = rot + lerp(-half, half, (i + 0.5) / n);
+        fx.burst(x + Math.cos(a) * s.from, y + Math.sin(a) * s.from, a, { ...Z.sparks, color: X.color });
       }
       return;
     }
@@ -463,6 +474,10 @@ export class ZoneView {
   path() {
     const g = this.gfx, s = this.shape;
     if (s.type === 'circle') return g.circle(0, 0, this.r);
+    if (s.type === 'cone') {
+      const half = (s.arcDeg * Math.PI) / 360, inner = Math.max(0, this.r - s.band);
+      return g.moveTo(Math.cos(-half) * inner, Math.sin(-half) * inner).arc(0, 0, this.r, -half, half).arc(0, 0, inner, half, -half, true).closePath();
+    }
     return g.rect(s.near, -s.hh, s.far - s.near, s.hh * 2);
   }
 
@@ -473,12 +488,17 @@ export class ZoneView {
   }
 
   // A bright band at fraction t of the way across the area: a ring for circles (at the rim
-  // of a spreading one), a bar for boxes.
+  // of a spreading one), an arc along a cone's front, a bar for boxes.
   sweep(t, color, alpha) {
     const g = this.gfx, s = this.shape, width = Z.sweepWidth;
     if (s.type === 'circle') {
       const r = s.growTime ? this.r : s.r * t;
       if (r > width) g.circle(0, 0, r).stroke({ width, color, alpha });
+      return;
+    }
+    if (s.type === 'cone') {
+      const half = (s.arcDeg * Math.PI) / 360;
+      g.moveTo(Math.cos(-half) * this.r, Math.sin(-half) * this.r).arc(0, 0, this.r, -half, half).stroke({ width, color, alpha });
       return;
     }
     g.rect(lerp(s.near, s.far, t) - width / 2, -s.hh, width, s.hh * 2).fill({ color, alpha: clamp01(alpha) });

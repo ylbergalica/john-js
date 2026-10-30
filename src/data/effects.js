@@ -155,6 +155,8 @@ export const ATTACK_FX = {
     spit: { shape: 'none', lean: 0.12, squash: 0.08, swell: 0.03 }, // drawing back to spit, its silk showing at its mouth
     rear: { shape: 'none', lean: 0.08, squash: 0, swell: 0.07 }, // rearing up, front legs raised wide
     swell: { shape: 'ring', reach: 2.2, to: 1.8, lean: 0, squash: 0, swell: 0 }, // about to burst all round (its rig swells it)
+    bash: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.34, lean: 0.28, squash: 0.12, swell: 0.05 }, // braced behind its shield
+    plant: { shape: 'arc', arcDeg: 70, lines: 3, reach: 1.1, to: 1.25, lean: 0.12, squash: 0.06, swell: 0.08 }, // the cone the wave runs down
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -269,6 +271,58 @@ export const MAUL = {
     sparks: { count: 8, speed: 6, lifetime: 0.3, size: 0.3, coneDeg: 70 },
     dust: { count: 18, speed: [2, 3.2], size: [0.6, 1], life: [0.8, 1.3], alpha: 0.75, grow: 2, color: 0xd29a68, fade: 0x4a2a16 },
     haze: { count: 5, speed: [0.2, 0.6], size: [1.1, 1.6], life: [1.1, 1.6], alpha: 0.4, grow: 1.6, color: 0xa86e44, fade: 0x2a1a10 },
+  },
+};
+
+// The Bulwark's shield (src/enemies/bulwarkRig.js). Poses place it in the Bulwark's frame
+// (+x forward, world units): the centre of its curve `ahead` of the Bulwark's centre (its
+// plate stands SHIELD_ART.r out from there, hugging the front of the body), turned `rot`, `pitch`
+// tilting it up off the floor toward the camera, and `grow` making it bigger. Angles in
+// radians. How long a strike takes comes from the ability (swingTime, landTime).
+export const SHIELD = {
+  lift: 0.2, // raised toward the camera it looks up to this much bigger
+  poses: {
+    idle: { ahead: -0.1, rot: 0, pitch: 0, grow: 0 },
+    bashReady: { ahead: -0.2, rot: 0, pitch: 0, grow: 0.06 }, // drawn in tight, braced behind it
+    bashThrough: { ahead: 0.16, rot: 0, pitch: 0, grow: 0.14 }, // rammed out ahead
+    plantReady: { ahead: -0.16, rot: 0, pitch: 1.15, grow: 0.12 }, // heaved up off the floor
+    plantDown: { ahead: 0.06, rot: 0, pitch: 0, grow: 0 }, // slammed edge-first into the floor
+    stunned: { ahead: -0.14, rot: 0.4, pitch: 0, grow: 0 }, // sagging off to one side
+  },
+  readyIn: 0.6, // fraction of the wind-up spent getting into the ready pose; then it strains
+  strain: { bash: { ahead: -0.03, pitch: 0, shake: 0.03 }, plant: { ahead: 0, pitch: 0.2, shake: 0.05 }, freq: 7 }, // freq: tremble Hz
+  settleTime: 0.4, // back to idle, or into a stunned sag
+  gait: { stride: 2.2, bob: 0.025, waddle: 0.05 }, // stride: gait radians per unit walked; bob: the shield, waddle: the body
+  // The star in its boss brightens through a wind-up and flashes on the strike.
+  glint: { size: 0.5, grow: 0.7, flashTime: 0.18, color: 0xdfe8ff },
+  // A blow turned by the shield: it flashes white for `flashTime`, sparks fly back off it
+  // toward the blow with a flare of light, and a sword that struck it is thrown back
+  // `recoil` × as hard as a landed hit's recoil.
+  glance: {
+    flashTime: 0.08, recoil: 1.8,
+    sparks: { count: 16, speed: 11, lifetime: 0.3, size: 0.34, coneDeg: 55, color: 0xfff0c8 },
+    glints: { count: 6, speed: 5, lifetime: 0.22, size: 0.2, coneDeg: 90, color: 0xc8d8ff },
+    flare: { size: 0.5, grow: 2.2, time: 0.12, alpha: 0.9, color: 0xdfe8ff },
+  },
+  // The guard broken: the shield flies off its arm, `spreadDeg` either side of straight away
+  // from the player, `distance` [min, max] (short of walls) over `time`, up off the floor and
+  // down again (`height`: how much bigger it looms at the top) as it spins `spin` [min, max]
+  // turns, and lands in a puff of dust with a clatter, where it lies at `lieAlpha`. It flies
+  // back to the Bulwark's arm over the last `returnTime` of the break.
+  fling: {
+    spreadDeg: 55, distance: [2.2, 3.2], time: 0.5, height: 0.5, spin: [1.2, 2], lieAlpha: 0.85, returnTime: 0.3,
+    dust: { count: 8, speed: [1.2, 2.2], size: [0.4, 0.7], life: [0.5, 0.9], alpha: 0.6, grow: 1.8, color: 0x9aa6b8, fade: 0x2a2f38 },
+    sparks: { count: 10, speed: 6, lifetime: 0.3, size: 0.3, coneDeg: 180, color: 0xfff0c8 },
+  },
+  // The plant landing: a flash and sparks where the shield bites the floor, dust thrown up
+  // along the shockwave's front as it runs out (`dust.rate` puffs a second across it) with
+  // sparks flying ahead of it, and a haze hanging where it landed. Sizes in world units.
+  impact: {
+    flash: { size: 1, grow: 1.6, time: 0.15, alpha: 0.6 },
+    sparks: { count: 10, speed: 7, lifetime: 0.3, size: 0.3, coneDeg: 40 },
+    dust: { rate: 90, speed: [0.4, 1.2], size: [0.5, 0.9], life: [0.6, 1], alpha: 0.65, grow: 1.8, color: 0x9aa6b8, fade: 0x2a2f38 },
+    frontSparks: { rate: 40, count: 1, speed: 9, lifetime: 0.25, size: 0.3, coneDeg: 15 },
+    haze: { count: 4, speed: [0.2, 0.5], size: [1, 1.4], life: [1, 1.4], alpha: 0.35, grow: 1.6, color: 0x7d8899, fade: 0x1e2229 },
   },
 };
 
@@ -545,8 +599,9 @@ export const WEB = {
 // `hueSpeed` times a second. Swelling it grows `swell` larger, `critical` more as it goes
 // critical, and `lit` once launched. Rushing and launched it sheds sparks of its colour
 // (`rushTrail`, `trail`: `rate` a second).
-// Its supernova (FlareAbility) is drawn as an enemy's death (`burst`, see DEATH_FX: sizes in
-// body radii, its rings reaching about as far as the blast), with sparks in every hue.
+// Its supernova (FlareAbility) is drawn as an enemy's death (`burst`, see DEATH_FX), with
+// sparks in every hue, sized to the blast: its sizes are in 1/`reach` of its blastRadius, so
+// the white ring reaches just the blast's edge.
 const NOVA_HUES = [0xff4d5e, 0xff9a3c, 0xffe94a, 0x6dff7a, 0x48e6ff, 0x5a78ff, 0xb35cff, 0xff5cd8];
 export const NOVA = {
   hues: NOVA_HUES,
@@ -556,6 +611,7 @@ export const NOVA = {
   rushTrail: { rate: 30, count: 1, speed: 2, lifetime: 0.3, size: 0.3, coneDeg: 40 },
   trail: { rate: 70, count: 1, speed: 3, lifetime: 0.4, size: 0.4, coneDeg: 30 },
   burst: {
+    reach: 6,
     flash: { size: 9, grow: 1.6, time: 0.3, alpha: 1 },
     rings: [
       { delay: 0, time: 0.3, from: 1, to: 6, alpha: 1, color: 0xffffff },

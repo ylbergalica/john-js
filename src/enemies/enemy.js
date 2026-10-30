@@ -4,7 +4,7 @@ import { Container, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { Body, swapRemove } from '../engine/physics.js';
 import { clamp01, lerp, lerpColor, randInt, randInsideUnitCircle, norm, fromAngle, TAU } from '../engine/math.js';
-import { ENEMY_TYPES, ABILITIES, DEATH_FX, ENEMY_HIT, GUARDIAN_RAGE, PARTICLES, PICKUPS } from '../data/config.js';
+import { ENEMY_TYPES, ABILITIES, DEATH_FX, ENEMY_HIT, GUARDIAN_RAGE, PARTICLES, PICKUPS, SHIELD } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
@@ -19,12 +19,14 @@ import { CorsairRig } from './corsairRig.js';
 import { BlightRig } from './blightRig.js';
 import { WeaverRig } from './weaverRig.js';
 import { NovaRig } from './novaRig.js';
+import { BulwarkRig } from './bulwarkRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
+import { DamageCause } from '../game/damage.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {
@@ -49,6 +51,10 @@ export class Enemy extends Entity {
     this.rageGlow = null; // the red haze it smoulders in meanwhile, made when first needed
     this.passive = null; // a passive ability of its own under way (the Weaver's weave): its AI stands back meanwhile
     this.detonated = false; // a Nova bursting: its supernova is its death's look (FlareAbility)
+    // A shield it holds up ahead (its type's `guard`, the Bulwark's): blows from within its
+    // arc glance off, unless it's broken off its arm (until `brokenUntil`).
+    const G = this.type.guard;
+    this.guard = G ? { cos: Math.cos((G.arcDeg * Math.PI) / 360), brokenUntil: -Infinity } : null;
 
     this.buildView();
     this.abilities = new Map();
@@ -121,18 +127,58 @@ export class Enemy extends Entity {
   // Where a blow from `p` lands: the nearest point of its hurtbox.
   closestPoint(p) { return closestOnHurtbox(this, p); }
 
-  // `cause`: what dealt the hit (a DamageCause or an aspect id).
+  // Its outline (game/hurtbox.js): its type's, or with its shield broken off, its guard's.
+  get hurtbox() { return this.guard && !this.guardUp ? this.type.guard.hurtbox : this.type.hurtbox; }
+
+  // Whether its shield is up: it has one, on its arm.
+  get guardUp() { return !!this.guard && this.world.time >= this.guard.brokenUntil; }
+
+  // Whether its shield turns a blow from `from`: it's up, and `from` lies within its arc ahead.
+  guards(from) {
+    if (!this.guardUp) return false;
+    const b = this.body, dx = from.x - b.pos.x, dy = from.y - b.pos.y, l = Math.hypot(dx, dy);
+    return l > 1e-6 && (dx * Math.cos(b.rotation) + dy * Math.sin(b.rotation)) / l >= this.guard.cos;
+  }
+
+  // Its guard broken: the shield flies off its arm, about `away`, and it's open all round
+  // for its guard's `brokenTime`.
+  breakGuard(away) {
+    if (!this.guardUp) return;
+    this.guard.brokenUntil = this.world.time + this.type.guard.brokenTime;
+    this.rig?.fling(away);
+    this.world.sound('guardBreak', this.body.pos, { pitch: this.type.sfxPitch });
+  }
+
+  // A blow from `source` turned by its shield at `hitPoint`: sparks fly back off it toward
+  // the blow, with a flare of light and a ping (SHIELD.glance).
+  glance(hitPoint, source) {
+    const G = SHIELD.glance, w = this.world, { x, y } = hitPoint, back = Math.atan2(source.y - y, source.x - x);
+    w.effects.burst(x, y, back, G.sparks);
+    w.effects.burst(x, y, back, G.glints);
+    const F = G.flare;
+    w.deathFx.flare(tex.glint, x, y, Math.random() * TAU, { time: F.time, w0: F.size, h0: F.size, w1: F.size * F.grow, h1: F.size * F.grow, alpha: F.alpha, color0: 0xffffff, color1: F.color });
+    w.sound('glance', hitPoint);
+    this.rig?.glanced();
+  }
+
+  // `cause`: what dealt the hit (a DamageCause or an aspect id). Whether it landed: not if
+  // it's already dead, or its shield turned it (a parry's counter always gets through).
   takeDamage(damage, hitPoint = null, source = null, cause = null) {
-    if (this.dead || this.dying) return;
+    if (this.dead || this.dying) return false;
     const p = this.world.livePlayer;
     source ??= p ? { ...p.body.pos } : { ...this.body.pos };
     hitPoint ??= { ...this.body.pos };
+    if (damage > 0 && cause !== DamageCause.Parry && this.guards(source)) {
+      this.glance(hitPoint, source);
+      return false;
+    }
     if (damage > 0) this.onHurt(hitPoint, source);
-    if (devFlags.noDamage) return; // hits still land, they just don't hurt
+    if (devFlags.noDamage) return true; // hits still land, they just don't hurt
     damage *= this.world.damageDealtMultiplier;
     this.health -= damage;
     if (damage > 0) this.world.events.enemyDamaged.emit(this, damage, cause);
     if (this.health <= 0) this.die(cause);
+    return true;
   }
 
   // Damage that isn't a hit (a burn eating away at it): no flinch, flash or sound, and no

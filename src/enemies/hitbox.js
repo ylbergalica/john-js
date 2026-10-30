@@ -13,14 +13,15 @@ function nearestOnSpine(s, px, py) {
 
 // Circle (x, y, r) vs a world shape. Against a circle cut to an arc, the circle's centre
 // must be inside the arc (as seen from the shape's centre): brushing it from the side
-// doesn't count.
+// doesn't count. A circle with a hole `inner` across doesn't reach one wholly inside that.
 function circleVsShape(x, y, r, s) {
   if (s.type === 'group') return s.parts.some((p) => circleVsShape(x, y, r, p));
   if (s.type === 'capsule') return circleVsCapsule(x, y, r, s);
   if (s.type === 'box') return circleVsBox(x, y, r, s);
   if (!circleVsCircle(x, y, r, s.x, s.y, s.r)) return false;
-  if (s.minCos === undefined) return true;
   const dx = x - s.x, dy = y - s.y, l = Math.hypot(dx, dy);
+  if (s.inner && l + r < s.inner) return false;
+  if (s.minCos === undefined) return true;
   return l < 1e-6 || (dx * s.fx + dy * s.fy) / l >= s.minCos;
 }
 
@@ -33,7 +34,7 @@ function toWorld(s, x, y, rotation) {
     return { type: 'capsule', ax: x + c * s.ax - sn * s.ay, ay: y + sn * s.ax + c * s.ay, bx: x + c * s.bx - sn * s.by, by: y + sn * s.bx + c * s.by, r: s.r };
   }
   if (s.type === 'circle') {
-    const f = s.forward ?? 0, circle = { type: 'circle', x: x + c * f, y: y + sn * f, r: s.r };
+    const f = s.forward ?? 0, circle = { type: 'circle', x: x + c * f, y: y + sn * f, r: s.r, inner: s.inner ?? 0 };
     return s.arcDeg ? { ...circle, fx: c, fy: sn, minCos: Math.cos((s.arcDeg * Math.PI) / 360) } : circle;
   }
   if (s.type === 'beam') {
@@ -59,8 +60,10 @@ function closestOnShape(s, cap) {
 
 export class EnemyHitbox {
   // shape (in enemy-local units, +x forward):
-  //   { type: 'circle', r, forward, arcDeg }  centred `forward` ahead (default 0); given
-  //                                           `arcDeg`, only that much of it across the front
+  //   { type: 'circle', r, forward, arcDeg, inner }
+  //                                           centred `forward` ahead (default 0); given
+  //                                           `arcDeg`, only that much of it across the front;
+  //                                           given `inner`, only the band outside that radius
   //   { type: 'box', forward, hw, hh }
   //   { type: 'beam', from, length, r }       a capsule from `from` to `from + length` ahead
   //   { type: 'segment', ax, ay, bx, by, r }  a capsule from (ax, ay) to (bx, by)

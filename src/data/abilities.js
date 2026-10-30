@@ -293,10 +293,34 @@ export const ABILITIES = {
   NovaFlare: {
     type: 'flare', tell: 'swell', cooldown: 1.5, range: 7, windUpTime: 0.95, duration: 0.08, recoveryTime: 0,
     damageMultiplier: 1, parryStunTime: 0, cueAt: 0,
-    rushSpeed: 5.5, rushTime: 2.5, rushResponsiveness: 0.25, swellRange: 1.4, swellSkid: 0.35,
-    blastRadius: 2.3, blastDamage: 8, blastKnockback: 25,
+    rushSpeed: 8.25, rushTime: 2.5, rushResponsiveness: 0.25, swellRange: 1.4, swellSkid: 0.8,
+    blastRadius: 3, blastDamage: 8, blastKnockback: 25,
     launchSpeed: 17, launchTime: 0.7, contactMargin: 0.08, chainDelay: 0.12,
     rushSound: 'novaRush', swellSound: 'novaSwell', burstSound: 'supernova', launchSound: 'novaLaunch', fuseSound: 'novaFuse',
+  },
+  // The Bulwark's shield; `shield` says how it moves (SHIELD, bulwarkRig.js). Neither is
+  // tried with the shield off its arm.
+  // Bash: it lunges shield-first, `stepDistance` along its locked aim over `stepTime`, the
+  // shield rammed out ahead in `swingTime`; a charge, its hitbox a circle `hitboxRadius`
+  // round a point `hitboxForward` ahead (the shield). Parried, its guard breaks
+  // (enemies.js, `guard.brokenTime`).
+  BulwarkBash: {
+    type: 'bash', tell: 'bash', cooldown: 2.8, range: 3.6, windUpTime: 0.7, lockTime: 0.22, duration: 0.24, recoveryTime: 0.38,
+    damageMultiplier: 1.1, parryStunTime: 1.1, ...clearPath({ x: 1.1, y: 1.1 }, 0.3),
+    hitboxRadius: 0.6, hitboxForward: 0.6, swingTime: 0.08, stepDistance: 2.8, stepTime: 0.2, parryKnockback: 12,
+    strikeSound: 'bash', shield: 'bash',
+  },
+  // Plant: the shield, heaved up through the wind-up, comes down edge-first `landTime`
+  // after the strike, as it steps `stepDistance` in, and a shockwave runs out along the
+  // floor from it, across `arcDeg` ahead: a band `band` deep, its front spreading from
+  // `radius[0]` to `radius[1]` out from where the Bulwark stood over `spreadTime`. Only the
+  // band hurts, so it can be dashed through or outrun.
+  BulwarkPlant: {
+    type: 'plant', tell: 'plant', cooldown: 4.5, range: 4.5, windUpTime: 0.95, lockTime: 0.3, duration: 0.5, recoveryTime: 0.42,
+    damageMultiplier: 1.4, parryStunTime: 1.1, ...clearPath({ x: 1, y: 1 }, 0.3),
+    landTime: 0.08, stepDistance: 0.4, stepTime: 0.08, radius: [0.7, 5.2], arcDeg: 70, band: 1.1, spreadTime: 0.42,
+    strikeSound: 'heave', landSound: 'plant', shield: 'plant',
+    shake: { duration: 0.22, strength: 0.3, frequency: 18 },
   },
   // The Alembic's parts (BLIGHT, blightRig.js): ten iris valves ring its rim, the first
   // straight ahead, and canisters of toxin sit in its body. Its orbs of toxin (`look:

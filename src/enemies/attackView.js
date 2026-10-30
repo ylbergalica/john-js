@@ -190,7 +190,9 @@ export class EnemyAttackFx {
       glow = W.glowAlpha;
       tint = Math.max(tint, W.tintAlpha);
       tintColor = lerpColor(X.hot, X.color, k);
-      ({ x: sx, y: sy } = CHARGE_STRETCH);
+      const { stretchIn } = tellOf(burning), s = stretchIn ? smoothStep01(clamp01((now - burning.strikeAt) / stretchIn)) : 1;
+      sx = lerp(1, CHARGE_STRETCH.x, s);
+      sy = lerp(1, CHARGE_STRETCH.y, s);
       if (now - this.lastAfterimageAt >= X.body.afterimageInterval) this.dropAfterimage(now, p, rot);
     }
 

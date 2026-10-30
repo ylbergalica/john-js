@@ -20,13 +20,14 @@ import { BlightRig } from './blightRig.js';
 import { WeaverRig } from './weaverRig.js';
 import { NovaRig } from './novaRig.js';
 import { BulwarkRig } from './bulwarkRig.js';
+import { JetRig } from './jetRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 import { DamageCause } from '../game/damage.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig };
 
 export class Enemy extends Entity {
   constructor(world, typeKey, x, y) {

@@ -124,7 +124,8 @@ export const ATTACK_FX = {
   //   none      nothing (a throw shows its orb instead)
   // Pose: `lean` draws the body back, `squash` flattens it along its facing (a spring
   // loading), `swell` grows it (fractions of body radius / size), `twist` turns it back
-  // (degrees) and on the strike it whips through past its facing (a swing).
+  // (degrees) and on the strike it whips through past its facing (a swing). A charge with
+  // `stretchIn` eases into its stretch over that many seconds (a launch gathering speed).
   tells: {
     charge: { shape: 'chevrons', count: 3, spacing: 0.4, size: 0.32, lean: 0.25, squash: 0.14, swell: 0 },
     punch: { shape: 'arc', arcDeg: 70, lines: 1, reach: 0.5, to: 1.15, lean: 0.14, squash: 0, swell: 0 },
@@ -157,6 +158,8 @@ export const ATTACK_FX = {
     swell: { shape: 'ring', reach: 2.2, to: 1.8, lean: 0, squash: 0, swell: 0 }, // about to burst all round (its rig swells it)
     bash: { shape: 'chevrons', count: 3, spacing: 0.35, size: 0.34, lean: 0.28, squash: 0.12, swell: 0.05 }, // braced behind its shield
     plant: { shape: 'arc', arcDeg: 70, lines: 3, reach: 1.1, to: 1.25, lean: 0.12, squash: 0.06, swell: 0.08 }, // the cone the wave runs down
+    jet: { shape: 'chevrons', count: 4, spacing: 0.45, size: 0.34, lean: 0, squash: 0, swell: 0, stretchIn: 0.16 }, // its engines spooling up
+    bank: { shape: 'none', lean: 0, squash: 0, swell: 0, stretchIn: 0.14 }, // banking away shows which way it comes round
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -625,6 +628,25 @@ export const NOVA = {
     shake: { duration: 0.3, strength: 0.35, frequency: 18 },
     ripple: { duration: 0.7, strength: 0.025, width: 0.07, glow: 0.5, grade: [0.92, 0.92, 0.96] },
   },
+};
+
+// The Jet's engines (src/enemies/jetRig.js): a flame out of each nozzle, `length` long
+// and `height` across (its tongue about 0.4 of that) idling, wound up and flying (world
+// units): a small pilot flame cruising, roaring up as it winds up. Round a core `core` of
+// its length, flickering by ±`jitter` at `flicker` Hz (two mixed); over each nozzle a glow
+// `glow.size` across. Its throttle eases between them over `ease` seconds. Wound up and
+// flying, it sheds `sparks` off its nozzles (`windup` of the rate wound up). Over the last
+// `roll.time` of each dash's wind-up (chained ones too) it barrel-rolls once, its wings
+// turning edge-on (no thinner than `roll.edge` of their span) and over.
+export const JET = {
+  ease: 0.1,
+  roll: { time: 0.57, edge: 0.1 }, // within JetDash's chainWindUpTime, or a chained roll starts part-way over
+  flame: {
+    length: [0.15, 1.05, 1.45], height: [0.14, 0.31, 0.36], core: 0.55, jitter: 0.14, flicker: [11, 17], alpha: 0.95,
+    color: 0xff3a1e, hotColor: 0xff7a24, coreColor: 0xffa860, hotCore: 0xfff0dc,
+  },
+  glow: { size: [0.34, 0.83, 1], alpha: [0.3, 0.7, 0.85], color: 0xff4a20 },
+  sparks: { rate: 40, windup: 0.4, count: 1, speed: 3, lifetime: 0.25, size: 0.22, coneDeg: 14, color: 0xff7a2a },
 };
 
 // The Alembic (type blight, src/enemies/blightRig.js), a still for poison made a guardian:

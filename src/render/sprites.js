@@ -64,6 +64,8 @@ export function sprites() {
     bulwark_idle: bulwarkOutline(),
     bulwark_idle_void: bulwarkVoid(),
     bulwark_shield: bulwarkShield(),
+    jet_idle: jetOutline(),
+    jet_idle_void: voidFill(jetPath(), VOIDS.jet),
     blight_idle: blightOutline(),
     blight_idle_void: blightVoid(),
     ...blightPartSprites(),
@@ -877,6 +879,7 @@ const VOIDS = {
   corsair: { core: '#33270a', edge: '#090602', clouds: [['#c8961e', 0.22], ['#7a5a12', 0.24]], seed: 71 },
   weaver: { core: '#16151d', edge: '#030304', clouds: [['#5e587e', 0.2], ['#2c2a3c', 0.24]], seed: 79 },
   bulwark: { core: '#1c212a', edge: '#050608', clouds: [['#5f6d82', 0.22], ['#2e3746', 0.26]], seed: 83 },
+  jet: { core: '#3a1508', edge: '#080302', clouds: [['#e8702a', 0.22], ['#b0261c', 0.22]], seed: 97 },
   blight: { core: '#12300c', edge: '#030802', clouds: [['#6cc832', 0.26], ['#c8d82a', 0.12], ['#2a9a5a', 0.18]], seed: 73 },
 };
 // The Mauler's body: a square with heavily rounded corners ([x, y, size, corner radius]).
@@ -1642,6 +1645,33 @@ function bulwarkShield() {
     ctx.stroke();
   });
   sparkle(ctx, bx, 0, boss * 0.9, '#e8f0ff', 0.9);
+  return c;
+}
+
+// The Jet, kin to the Seraph and a little bigger than the player: an arrowhead whose straight
+// leading edges run back from its nose to clipped wingtips, its trailing edges sweeping
+// forward into twin engine pods, a notch between them. The hull runs from the nose round its
+// right half to the notch, mirrored; the engines' nozzles are at JET_ENGINES (its rig
+// lights them).
+const JET_HULL = [[0.87, 0.5], [0.2, 0.16], [0.15, 0.195], [0.29, 0.345], [0.13, 0.375], [0.13, 0.445], [0.21, 0.5]];
+export const JET_ENGINES = [[0.13, 0.41], [0.13, 0.59]];
+
+function jetPath() {
+  const bottom = JET_HULL.slice(1, -1).reverse().map(([x, y]) => [x, 1 - y]);
+  const p = new Path2D();
+  [...JET_HULL, ...bottom].forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
+  p.closePath();
+  return p;
+}
+
+// Its rim, orange from the nose and reddening toward the engines.
+function jetOutline(S = 256) {
+  const { c, ctx, px } = surface(S);
+  ctx.strokeStyle = linear(ctx, 0.87, 0, 0.12, 0, ['#ffe6c4', '#ffa040', '#f2602a', '#d0202e']);
+  glow(ctx, rgba('#ff6a24', 0.75), px * 0.035, () => {
+    ctx.lineWidth = 0.04;
+    ctx.stroke(jetPath());
+  });
   return c;
 }
 

@@ -637,6 +637,15 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 3000, at: 0.28, dur: 0.03, vol: 0.18, attack: 0.001 });
     tone(v, { type: 'triangle', freq: 1700, at: 0.28, dur: 0.16, vol: 0.05 });
   },
+  // the Jet
+  jetDash(v) { // afterburners lit: a sharp roar of air tearing past, a growl dropping under it
+    noise(v, { freq: 600, to: 2400, q: 0.8, dur: 0.3, vol: 0.26, attack: 0.02 });
+    tone(v, { type: 'sawtooth', freq: 180, to: 90, dur: 0.28, vol: 0.06, attack: 0.01 });
+  },
+  jetSwoop(v) { // peeling off into a dive: a whistle falling over a long rush of air
+    tone(v, { type: 'triangle', freq: 1500, to: 520, dur: 0.6, vol: 0.06, attack: 0.05 });
+    noise(v, { freq: 300, to: 1400, q: 0.9, dur: 0.65, vol: 0.2, attack: 0.08 });
+  },
   // the Alembic (its own attacks are played at its sfxPitch, a good deal lower)
   ventVolley(v) { // every valve firing at once: a hard pneumatic chuff over a thump, a hiss and a clack of metal
     tone(v, { freq: 140, to: 45, dur: 0.26, vol: 0.4 });

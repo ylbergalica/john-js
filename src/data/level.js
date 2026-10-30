@@ -39,6 +39,7 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'weaver', weight: { min: 0.5, max: 1 }, fromFloor: 15, peakFloor: 17, toFloor: 22 },
       { type: 'nova', weight: { min: 0.4, max: 0.9 }, fromFloor: 15, peakFloor: 20, toFloor: 22 },
       { type: 'bulwark', weight: { min: 0.5, max: 1 }, fromFloor: 16, peakFloor: 18, toFloor: 22 },
+      { type: 'jet', weight: { min: 0.5, max: 1 }, fromFloor: 18, peakFloor: 21, toFloor: 22 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
     // in a room) until killing them all fills `meterShare` of a meter even if each drops

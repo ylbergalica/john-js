@@ -188,8 +188,14 @@ export class EnemyAI {
   moveOrbit(dt, speed, isIdle) {
     const d = this.distToPlayer();
     if (isIdle && this.shouldLoseAggro(d)) return;
-    const dir = this.dirToPlayer();
-    this.turnToward(dir, dt);
+    this.turnToward(this.dirToPlayer(), dt);
+    this.strafe(speed);
+  }
+
+  // Steers round the player at `speed`, drifting in or out toward orbitRadius, without
+  // turning (an ability circling them as it winds up, the Jet's).
+  strafe(speed) {
+    const d = this.distToPlayer(), dir = this.dirToPlayer();
     const radial = clamp((d - this.cfg.orbitRadius) / this.cfg.orbitRadius, -1, 1);
     const move = norm({ x: dir.x * radial - dir.y * this.orbitDirection, y: dir.y * radial + dir.x * this.orbitDirection });
     if (move.x === 0 && move.y === 0) {

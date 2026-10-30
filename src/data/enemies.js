@@ -175,6 +175,21 @@ export const ENEMY_TYPES = {
       turnSmoothTime: 0.22,
       attacks: [{ ability: 'BulwarkBash', weight: 0.55 }, { ability: 'BulwarkPlant', weight: 0.45 }] },
   },
+  // A jet rimmed orange running to red, kin to the Seraph and a little bigger than the player:
+  // an arrowhead with straight wings and clipped tips, twin engines burning at its back (`rig`,
+  // see jetRig.js). It keeps far off, circling, and never stops to wind up: it dashes straight
+  // through where the player stood and on as far again past, over walls and all, up to three
+  // times in a row; or swoops out to one side and comes round onto them.
+  jet: {
+    name: 'Jet', maxHealth: 20, damage: 1.6, radius: 0.44, mass: 3.2, linearDamping: 1,
+    knockbackResistance: 0.05, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xff7a2a, sfxPitch: 1.05,
+    visual: { kind: 'sprite', outline: 'jet_idle', void: 'jet_idle_void', size: 1.33, sparkleCount: 12, rig: 'jet' },
+    hurtbox: [[0.48, 0], [-0.4, 0.45], [-0.47, 0.39], [-0.48, 0.17], [-0.48, -0.17], [-0.47, -0.39], [-0.4, -0.45]], // nose, wingtips and engines
+    ai: { ...AI_DEFAULTS, aggroRange: 16, orbitRadius: 6.5, moveSpeed: 6.1, orbitSpeed: 5.4, repositionSpeed: 5.8, maxTurnSpeed: 6,
+      turnSmoothTime: 0.12,
+      attacks: [{ ability: 'JetDash', weight: 0.6 }, { ability: 'JetSwoop', weight: 0.4 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

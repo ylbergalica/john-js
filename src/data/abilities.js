@@ -322,6 +322,40 @@ export const ABILITIES = {
     strikeSound: 'heave', landSound: 'plant', shield: 'plant',
     shake: { duration: 0.22, strength: 0.3, frequency: 18 },
   },
+  // The Jet's flights. Neither is tried nearer the player than `minRange`. Through each
+  // wind-up it keeps circling them at `strafeSpeed` (it never stops to wind up), and flies
+  // over enemies and the player. Its front is the hitbox, as for any charge. Each flight
+  // gathers speed from however fast it already went that way up to `speed` over `launchTime`.
+  // Dash: it turns to follow the player until its aim locks on where they stand, then flies
+  // straight there and as far again past, over walls too, ending back out about as far off
+  // as it began (cut short to the last clear spot if that would be over a wall). It swings
+  // round onto its line as it goes (`turnEase`) and brakes over its last `brakeTime`.
+  // It may go again at once, with no recovery, after a `chainWindUpTime` wind-up: `chain`
+  // picks how many dashes in all. Cut short over a wall (parried, stunned), it glides on to
+  // the nearest clear spot along its line at `landSpeed`. It skids to a halt over the
+  // recovery (`skidEase`), keeping `carry` of its speed as it arrives.
+  JetDash: {
+    type: 'jetDash', tell: 'jet', cooldown: 4, range: 8.5, minRange: 3, windUpTime: 0.7, lockTime: 0.18, duration: 0, recoveryTime: 0.45,
+    damageMultiplier: 1, parryStunTime: 1, requireClearAttackPath: false,
+    chainWindUpTime: 0.6, chain: [{ dashes: 1, weight: 0.45 }, { dashes: 2, weight: 0.35 }, { dashes: 3, weight: 0.2 }],
+    speed: 19, launchTime: 0.16, turnEase: 0.04, brakeTime: 0.12, strafeSpeed: 4.4, landSpeed: 6, carry: 0.25, skidEase: 0.15,
+    hitboxRadius: 0.55, hitboxArcDeg: 150, parryKnockback: 8, strikeSound: 'jetDash',
+  },
+  // Swoop: its aim locked, it banks away toward the way it circles, up to `outDeg` (less
+  // close in: no further than it could come round from onto the player, as they stand, at
+  // `turnFit` of its turn rate), then flies at `speed`, homing in on them along the circle
+  // from its heading through them, turning at up to `turnRate` (rad/s): an arc onto them.
+  // Within `commitRange` of them (or gone past) it stops turning, so a late dodge leaves it
+  // flying straight on; `followTime` later it pulls out, or after `duration` all the same.
+  // Walls stop it: a crash, bouncing back off (`bounceForce`), for `crashRecoveryTime`.
+  // Never chained.
+  JetSwoop: {
+    type: 'swoop', tell: 'bank', cooldown: 5, range: 8, minRange: 3.5, windUpTime: 0.8, lockTime: 0.3, duration: 1.6, recoveryTime: 0.5,
+    damageMultiplier: 1.2, parryStunTime: 1.1, ...clearPath({ x: 1, y: 1 }, 0.3),
+    speed: 11, launchTime: 0.14, outDeg: 60, turnRate: 3, turnFit: 0.8, commitRange: 1.8, followTime: 0.45, strafeSpeed: 4.4, skidEase: 0.15,
+    bounceForce: 12, crashRecoveryTime: 0.8,
+    hitboxRadius: 0.55, hitboxArcDeg: 150, parryKnockback: 8, strikeSound: 'jetSwoop',
+  },
   // The Alembic's parts (BLIGHT, blightRig.js): ten iris valves ring its rim, the first
   // straight ahead, and canisters of toxin sit in its body. Its orbs of toxin (`look:
   // 'blob'`, see BLOB) form over its valves and fly straight out; `parts` says how its parts

@@ -190,6 +190,26 @@ export const ENEMY_TYPES = {
       turnSmoothTime: 0.12,
       attacks: [{ ability: 'JetDash', weight: 0.6 }, { ability: 'JetSwoop', weight: 0.4 }] },
   },
+  // A binary star: two small suns, one blue-white, one gold (its `twin` look), each a ring of
+  // eight rays round a disc that turns slowly (`rig`, see binaryRig.js), always spawned
+  // together and bound by a faint thread of light between them (Tether, tether.js; `pair`:
+  // how far `apart` they keep, circling each other at `spin` rad/s, steered there at `pull`
+  // /s). In a fight the thread flares into a beam that hurts: they draw in close together,
+  // then fly apart round either side of the player and back together beyond them, the beam
+  // sweeping over them. Parried, the beam breaks for `relight` seconds and both are stunned.
+  // With one gone, the other is `widowed`: its thread snaps loose, it goes `pace` times as
+  // fast and whips the broken beam round itself.
+  binary: {
+    name: 'Binary', maxHealth: 18, damage: 1.7, radius: 0.4, mass: 2.6, linearDamping: 1,
+    knockbackResistance: 0.05, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 1, maxAdrenalineDrops: 2, isChaser: false, flashDuration: 0.14, particleOffset: 0.08, hitColor: 0x8ab8ff, sfxPitch: 1.1,
+    visual: { kind: 'sprite', outline: 'binary_idle', void: 'binary_idle_void', size: 1.2, sparkleCount: 10, rig: 'binary',
+      twin: { outline: 'binary_twin_idle', void: 'binary_twin_idle_void', hitColor: 0xffb84a } },
+    pair: { apart: 2.8, spin: 1.3, pull: 2.4, relight: 3 },
+    widowed: { pace: 1.3 },
+    ai: { ...AI_DEFAULTS, aggroRange: 14, orbitRadius: 5, moveSpeed: 3.4, orbitSpeed: 2.8, repositionSpeed: 3, maxTurnSpeed: 5,
+      attacks: [{ ability: 'BinaryOrbit', weight: 1 }, { ability: 'BinaryLash', weight: 1 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

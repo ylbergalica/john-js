@@ -66,6 +66,10 @@ export function sprites() {
     bulwark_shield: bulwarkShield(),
     jet_idle: jetOutline(),
     jet_idle_void: voidFill(jetPath(), VOIDS.jet),
+    binary_idle: binaryOutline(BINARY_ART.rims[0]),
+    binary_idle_void: voidFill(binaryPath(), VOIDS.binary),
+    binary_twin_idle: binaryOutline(BINARY_ART.rims[1]),
+    binary_twin_idle_void: voidFill(binaryPath(), VOIDS.binaryTwin),
     blight_idle: blightOutline(),
     blight_idle_void: blightVoid(),
     ...blightPartSprites(),
@@ -879,6 +883,8 @@ const VOIDS = {
   corsair: { core: '#33270a', edge: '#090602', clouds: [['#c8961e', 0.22], ['#7a5a12', 0.24]], seed: 71 },
   weaver: { core: '#16151d', edge: '#030304', clouds: [['#5e587e', 0.2], ['#2c2a3c', 0.24]], seed: 79 },
   bulwark: { core: '#1c212a', edge: '#050608', clouds: [['#5f6d82', 0.22], ['#2e3746', 0.26]], seed: 83 },
+  binary: { core: '#16264a', edge: '#03060e', clouds: [['#7ab4ff', 0.26], ['#e8f4ff', 0.12], ['#3a5cff', 0.2]], seed: 101 },
+  binaryTwin: { core: '#3a2408', edge: '#0a0602', clouds: [['#ffbc48', 0.26], ['#fff2d0', 0.12], ['#e0661c', 0.2]], seed: 103 },
   jet: { core: '#3a1508', edge: '#080302', clouds: [['#e8702a', 0.22], ['#b0261c', 0.22]], seed: 97 },
   blight: { core: '#12300c', edge: '#030802', clouds: [['#6cc832', 0.26], ['#c8d82a', 0.12], ['#2a9a5a', 0.18]], seed: 73 },
 };
@@ -1671,6 +1677,39 @@ function jetOutline(S = 256) {
   glow(ctx, rgba('#ff6a24', 0.75), px * 0.035, () => {
     ctx.lineWidth = 0.04;
     ctx.stroke(jetPath());
+  });
+  return c;
+}
+
+// One of the Binary's stars: a small sun, a disc ringed by `rays` points, long and short in
+// turn (`long`, `short` out from its middle, the notches between them `inner`), its rim
+// lit from a white-hot middle out to its colour (`rims`: the first star's, then its twin's).
+const BINARY_ART = {
+  rays: 8, long: 0.44, short: 0.37, inner: 0.3, line: 0.035,
+  rims: [
+    { stops: ['#ffffff', '#bcdcff', '#6aa2ff', '#3a5cff'], glow: '#6aa8ff' },
+    { stops: ['#ffffff', '#ffe6b0', '#ffb440', '#ff7a18'], glow: '#ffaa38' },
+  ],
+};
+
+function binaryPath() {
+  const { rays, long, short, inner } = BINARY_ART, p = new Path2D();
+  for (let i = 0; i < rays * 2; i++) {
+    const r = i % 2 ? inner : i % 4 ? short : long, a = (i * Math.PI) / rays;
+    const x = 0.5 + Math.cos(a) * r, y = 0.5 + Math.sin(a) * r;
+    if (i) p.lineTo(x, y);
+    else p.moveTo(x, y);
+  }
+  p.closePath();
+  return p;
+}
+
+function binaryOutline({ stops, glow: halo }, S = 256) {
+  const { c, ctx, px } = surface(S);
+  ctx.strokeStyle = radial(ctx, 0.5, 0.5, BINARY_ART.long, stops);
+  glow(ctx, rgba(halo, 0.8), px * 0.05, () => {
+    ctx.lineWidth = BINARY_ART.line;
+    ctx.stroke(binaryPath());
   });
   return c;
 }

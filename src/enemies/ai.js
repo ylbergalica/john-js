@@ -145,6 +145,12 @@ export class EnemyAI {
     ability.forceExecute();
   }
 
+  // Drawn into an attack its twin started (a pair's, see PairAbility): winding up with it.
+  draft(ability) {
+    this.activeAbility = ability;
+    this.changeState(AIState.WindUp);
+  }
+
   onAbilityAttackStarted(ability) {
     if (ability === this.activeAbility && this.state === AIState.WindUp) this.changeState(AIState.Attack);
   }
@@ -244,7 +250,10 @@ export class EnemyAI {
     return dir.x || dir.y ? dir : null;
   }
 
+  // Toward velocity (vx, vy), plus whatever keeps it beside its twin (a pair's Tether).
   steer(vx, vy) {
+    const t = this.enemy.tether;
+    if (t) ({ x: vx, y: vy } = t.steer(this.enemy, vx, vy));
     const v = this.body.vel, k = this.cfg.movementResponsiveness;
     v.x += (vx - v.x) * k;
     v.y += (vy - v.y) * k;

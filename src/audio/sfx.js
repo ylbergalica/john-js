@@ -646,6 +646,30 @@ const SOUNDS = {
     tone(v, { type: 'triangle', freq: 1500, to: 520, dur: 0.6, vol: 0.06, attack: 0.05 });
     noise(v, { freq: 300, to: 1400, q: 0.9, dur: 0.65, vol: 0.2, attack: 0.08 });
   },
+  // the Binary
+  binaryCharge(v) { // the light between them flaring up: two glassy tones rising a fifth apart over a thin crackle
+    tone(v, { type: 'sine', freq: 440, to: 880, dur: 0.8, vol: 0.05, attack: 0.3 });
+    tone(v, { type: 'sine', freq: 660, to: 1320, dur: 0.8, vol: 0.04, attack: 0.3 });
+    noise(v, { filter: 'highpass', freq: 4000, dur: 0.7, vol: 0.05, attack: 0.3 });
+  },
+  binaryOrbit(v) { // the beam lit as they fly apart and round: a bright zap, two tones parting and closing in again over a rush
+    tone(v, { type: 'sawtooth', freq: 1400, to: 600, dur: 0.25, vol: 0.05, attack: 0.005 });
+    tone(v, { type: 'triangle', freq: 900, to: 600, dur: 0.4, vol: 0.05 });
+    tone(v, { type: 'triangle', freq: 900, to: 1350, dur: 0.4, vol: 0.05 });
+    tone(v, { type: 'triangle', freq: 600, to: 880, at: 0.4, dur: 0.35, vol: 0.04 });
+    tone(v, { type: 'triangle', freq: 1350, to: 900, at: 0.4, dur: 0.35, vol: 0.04 });
+    noise(v, { freq: 900, to: 2600, q: 1, dur: 0.75, vol: 0.14, attack: 0.05 });
+  },
+  binarySnap(v) { // the beam breaking: a glassy crack and a tone falling away
+    noise(v, { filter: 'highpass', freq: 3500, dur: 0.06, vol: 0.28, attack: 0.001 });
+    tone(v, { type: 'triangle', freq: 1800, to: 300, dur: 0.4, vol: 0.07 });
+    tone(v, { type: 'sine', freq: 1200, to: 200, at: 0.02, dur: 0.35, vol: 0.04 });
+  },
+  binaryLash(v) { // the broken beam whipped round: a whoosh rising and a crack at its end
+    noise(v, { freq: 400, to: 2600, q: 0.9, dur: 0.45, vol: 0.2, attack: 0.1 });
+    tone(v, { type: 'sawtooth', freq: 300, to: 900, dur: 0.4, vol: 0.04, attack: 0.08 });
+    noise(v, { filter: 'highpass', freq: 3000, at: 0.4, dur: 0.05, vol: 0.2, attack: 0.001 });
+  },
   // the Alembic (its own attacks are played at its sfxPitch, a good deal lower)
   ventVolley(v) { // every valve firing at once: a hard pneumatic chuff over a thump, a hiss and a clack of metal
     tone(v, { freq: 140, to: 45, dur: 0.26, vol: 0.4 });

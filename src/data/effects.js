@@ -160,6 +160,8 @@ export const ATTACK_FX = {
     plant: { shape: 'arc', arcDeg: 70, lines: 3, reach: 1.1, to: 1.25, lean: 0.12, squash: 0.06, swell: 0.08 }, // the cone the wave runs down
     jet: { shape: 'chevrons', count: 4, spacing: 0.45, size: 0.34, lean: 0, squash: 0, swell: 0, stretchIn: 0.16 }, // its engines spooling up
     bank: { shape: 'none', lean: 0, squash: 0, swell: 0, stretchIn: 0.14 }, // banking away shows which way it comes round
+    binary: { shape: 'ring', reach: 1.1, to: 1.2, lean: 0, squash: 0, swell: 0.12 }, // the beam between the pair flaring up shows the rest
+    lash: { shape: 'ring', reach: 1.6, to: 1.15, lean: 0, squash: 0, swell: 0.1 }, // all round it
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -647,6 +649,31 @@ export const JET = {
   },
   glow: { size: [0.34, 0.83, 1], alpha: [0.3, 0.7, 0.85], color: 0xff4a20 },
   sparks: { rate: 40, windup: 0.4, count: 1, speed: 3, lifetime: 0.25, size: 0.22, coneDeg: 14, color: 0xff7a2a },
+};
+
+// The Binary's two stars and the light between them (src/enemies/binaryRig.js, tether.js).
+// Each star turns at `turn` rad/s (its own way), glowing `glow.size` across in its own
+// colour (`colors`, the first star's then its twin's), pulsing at `glow.pulse` Hz.
+// The beam is drawn `segments` pieces long (a widowed star's lash alike, though bent),
+// shading from one star's colour to the other's: a `glowWidth` × wide band, a coloured
+// `width` × band and a white core `coreWidth` × as wide, × its attack's beamWidth. Calm, it
+// is only a faint thread, `calm.width` wide and `calm.alpha` strong, a mote of light running
+// along it every `calm.moteEvery` s at `calm.moteSpeed` units/s. Through a wind-up it flares up to
+// `charge.alpha` and `charge.width` of its full width, flickering by `flicker`; lit, it
+// burns full, its first `flashTime` white-hot, sparks flying off it every `sparkEvery` s.
+// Broken, its halves fall away over `snap.time`, and it fades back in over `relight` once
+// it can burn again.
+export const BINARY = {
+  turn: 0.7,
+  colors: [0x8ab8ff, 0xffb84a],
+  glow: { size: 1.7, alpha: 0.32, pulse: 0.9 },
+  segments: 10, glowWidth: 2.4, width: 1, coreWidth: 0.4, flicker: 0.15, flashTime: 0.12,
+  calm: { width: 0.06, alpha: 0.4, moteEvery: 1.6, moteSpeed: 5, moteSize: 0.22 },
+  charge: { alpha: 0.75, width: 0.45 },
+  sparkEvery: 0.05,
+  sparks: { count: 2, speed: 3, lifetime: 0.3, size: 0.24, coneDeg: 180, color: 0xffffff },
+  snap: { time: 0.4, sparks: { count: 10, speed: 4, lifetime: 0.4, size: 0.28, coneDeg: 180 } },
+  relight: 0.4,
 };
 
 // The Alembic (type blight, src/enemies/blightRig.js), a still for poison made a guardian:

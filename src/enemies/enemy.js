@@ -21,19 +21,22 @@ import { WeaverRig } from './weaverRig.js';
 import { NovaRig } from './novaRig.js';
 import { BulwarkRig } from './bulwarkRig.js';
 import { JetRig } from './jetRig.js';
+import { BinaryRig } from './binaryRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 import { DamageCause } from '../game/damage.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig };
 
 export class Enemy extends Entity {
-  constructor(world, typeKey, x, y) {
+  // twin: the second of a pair (a type with a `pair`), wearing its type's `twin` look.
+  constructor(world, typeKey, x, y, { twin = false } = {}) {
     super(world);
     this.typeKey = typeKey;
     this.type = ENEMY_TYPES[typeKey];
+    this.visual = twin ? { ...this.type.visual, ...this.type.visual.twin } : this.type.visual;
     this.body = world.physics.add(new Body({ x, y, radius: this.type.radius, mass: this.type.mass, damping: this.type.linearDamping }));
     this.body.rotation = this.body.prevRotation = Math.random() * TAU; // spawn facing anywhere
     this.health = this.type.maxHealth;
@@ -52,6 +55,8 @@ export class Enemy extends Entity {
     this.rageGlow = null; // the red haze it smoulders in meanwhile, made when first needed
     this.passive = null; // a passive ability of its own under way (the Weaver's weave): its AI stands back meanwhile
     this.detonated = false; // a Nova bursting: its supernova is its death's look (FlareAbility)
+    this.tether = null; // the light binding it to its twin (the Binary's, tether.js), while there is one
+    this.widowed = false; // its twin gone (a pair's, see Tether.widow)
     // A shield it holds up ahead (its type's `guard`, the Bulwark's): blows from within its
     // arc glance off, unless it's broken off its arm (until `brokenUntil`).
     const G = this.type.guard;
@@ -65,14 +70,14 @@ export class Enemy extends Entity {
     }
     this.ai = new EnemyAI(this, this.type.ai);
     this.attackFx = new EnemyAttackFx(this, this.silhouette);
-    const Rig = RIGS[this.type.visual.rig];
+    const Rig = RIGS[this.visual.rig];
     this.rig = Rig ? new Rig(this) : null; // held weapons, posed by the attacks
     this.stunMark = new StunMark(this);
   }
 
   get damage() { return this.type.damage; }
   // What its hits and death spray: its type's colour, or the colour its rig shows just now.
-  get hitColor() { return this.rig?.hue ?? this.type.hitColor; }
+  get hitColor() { return this.rig?.hue ?? this.visual.hitColor ?? this.type.hitColor; }
   // Who it hunts: the player, or a decoy standing in for them (World.quarry). Blows it takes
   // still come from the player itself.
   get player() { return this.world.quarry; }
@@ -92,7 +97,7 @@ export class Enemy extends Entity {
   }
 
   buildView() {
-    const v = this.type.visual;
+    const v = this.visual;
     this.view = new Container();
     if (v.kind === 'sprite') {
       this.voidSprite = new Sprite(tex[v.void]);
@@ -356,7 +361,7 @@ export class Enemy extends Entity {
   setFlash(on) {
     if (on === this.flashing) return;
     this.flashing = on;
-    const v = this.type.visual;
+    const v = this.visual;
     if (this.hex) {
       this.hex.texture = on ? tex.hexFlat_white : tex.hexFlat;
       this.hex.tint = on ? 0xffffff : v.color;

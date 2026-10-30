@@ -356,6 +356,41 @@ export const ABILITIES = {
     bounceForce: 12, crashRecoveryTime: 0.8,
     hitboxRadius: 0.55, hitboxArcDeg: 150, parryKnockback: 8, strikeSound: 'jetSwoop',
   },
+  // The Binary's beam attack, made by the two stars together: either one starts it and draws
+  // the other in, when that one is free, no more than `pairRange` from the player, and their
+  // beam isn't broken. Through the wind-up they spiral in close together: their middle is
+  // pulled (`draw.pull`, damped by `draw.damp`, at up to `glide`) to a spot `stand` from the
+  // player (as far as it is, within min–max), following them until the aim locks, while they
+  // draw in to `close` apart by `draw.settle` of the wind-up, still circling each other as
+  // they were but slowing, turning to lie side by side across the way to the player by its
+  // end (the last `draw.settleTime` s of turning at most as fast); the beam between them
+  // flares up. On the strike it burns `beamWidth` wide, hurting whoever it touches (once per
+  // strike), and they fly apart round either side of a point `past` where the player stood
+  // when the aim locked, as if orbiting it, out `wide` × as far as they are from it (on
+  // average), and back in `beyond` it, `endApart` apart, at `speed` on average, setting off
+  // at `launch` × that (0 → 2) and slowing to a stop, the beam sweeping over the player on
+  // the way. Each star only ever eases toward the speed it wants, by `accel` units/s², so
+  // they move with weight, drifting a little off their ways and catching up, and over the
+  // recovery they drift to a stop where their ways end (`settle` /s toward them, braking
+  // `brake` × as hard). Only the beam hurts, not the stars, which pass over the player and
+  // the other enemies meanwhile. Parried, the beam breaks and both stars are stunned for
+  // `parryStunTime` and hurt as if parried.
+  BinaryOrbit: {
+    type: 'binaryOrbit', tell: 'binary', cooldown: 4.5, range: 7.5, pairRange: 8.5, windUpTime: 0.9, lockTime: 0.3, duration: 0, recoveryTime: 0.6,
+    damageMultiplier: 1, parryStunTime: 1.3, requireClearAttackPath: false,
+    glide: 6, draw: { pull: 14, damp: 7, settle: 0.8, settleTime: 0.15 }, accel: 42, settle: 4, brake: 2.5,
+    stand: { min: 3.5, max: 5.5 }, close: 0.9, past: 1.2, beyond: 2.4, wide: 0.85, endApart: 1.7, speed: 9.75, launch: 1,
+    beamWidth: 0.36, parryKnockback: 6, strikeSound: 'binaryOrbit',
+  },
+  // Lash: a widowed star's one attack. The broken beam grows out of it over the wind-up,
+  // `length` long, swung back `backDeg` from the player to the side it will come from, its
+  // tip curled back `curl` radians further, then whips once round the star over `duration`,
+  // `width` wide, hurting once; its tip trails its root by up to `lag` seconds, bending it.
+  BinaryLash: {
+    type: 'binaryLash', tell: 'lash', cooldown: 3.2, range: 3.2, windUpTime: 0.75, lockTime: 0.25, duration: 0.6, recoveryTime: 0.55,
+    damageMultiplier: 1, parryStunTime: 1.1, requireClearAttackPath: false,
+    length: 3.4, width: 0.32, backDeg: 140, curl: 0.6, turns: 1, lag: 0.09, parryKnockback: 5, strikeSound: 'binaryLash',
+  },
   // The Alembic's parts (BLIGHT, blightRig.js): ten iris valves ring its rim, the first
   // straight ahead, and canisters of toxin sit in its body. Its orbs of toxin (`look:
   // 'blob'`, see BLOB) form over its valves and fly straight out; `parts` says how its parts

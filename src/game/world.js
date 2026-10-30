@@ -19,6 +19,7 @@ import { attackersOn, scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
+import { Tether } from '../enemies/tether.js';
 import { AIState } from '../enemies/ai.js';
 import { Exit } from './pickups.js';
 import { Prop, scatterProps } from './props.js';
@@ -167,7 +168,8 @@ export class World {
       if (!pos) return 0; // too near the start
       const key = pickWeighted(es.enemies).type;
       this.spawnEnemy(key, pos);
-      return ENEMY_TYPES[key].minAdrenalineDrops * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
+      const type = ENEMY_TYPES[key];
+      return type.minAdrenalineDrops * (type.pair ? 2 : 1) * PICKUPS.adrenalineOrb.adrenalineValue * ADRENALINE.basePointValue;
     };
     // Every room gets its minimum, then enemies go into random rooms (up to each room's cap)
     // until killing them all fills es.meterShare of a meter even if each drops only its
@@ -428,10 +430,29 @@ export class World {
     return entity;
   }
 
+  // One of a pair (a type with a `pair`, the Binary) brings its twin, bound to it (Tether).
   spawnEnemy(type, pos) {
     const enemy = this.add(new Enemy(this, type, pos.x, pos.y));
     this.enemies.push(enemy);
+    if (enemy.type.pair) this.spawnTwin(enemy);
     return enemy;
+  }
+
+  // `enemy`'s twin, its pair's `apart` off to a side with room for it (right beside it if
+  // none has), and the light between them.
+  spawnTwin(enemy) {
+    const { pos, radius } = enemy.body, apart = enemy.type.pair.apart;
+    let at = null;
+    for (let i = 0; i < 12 && !at; i++) {
+      const a = Math.random() * TAU, d = apart * (1 - i / 16), x = pos.x + Math.cos(a) * d, y = pos.y + Math.sin(a) * d;
+      if (this.physics.isCircleFree(x, y, radius * 1.2) && this.physics.rayLength(pos.x, pos.y, Math.cos(a), Math.sin(a), d) >= d) at = { x, y };
+    }
+    at ??= { x: pos.x + 0.05, y: pos.y };
+    const twin = this.add(new Enemy(this, enemy.typeKey, at.x, at.y, { twin: true }));
+    twin.body.rotation = twin.body.prevRotation = enemy.body.rotation;
+    this.enemies.push(twin);
+    this.add(new Tether(this, enemy, twin));
+    return twin;
   }
 
   // Spawn menu: drops an enemy on a free spot a few units from the player. Summoned
@@ -444,7 +465,7 @@ export class World {
       const x = p.body.pos.x + Math.cos(a) * d, y = p.body.pos.y + Math.sin(a) * d;
       if (!this.physics.isCircleFree(x, y, r * 1.2)) continue;
       const enemy = this.spawnEnemy(type, { x, y });
-      enemy.summoned = true;
+      for (const e of enemy.tether?.stars ?? [enemy]) e.summoned = true;
       return enemy;
     }
     return null;

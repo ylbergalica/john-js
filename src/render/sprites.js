@@ -319,12 +319,13 @@ function paintSlash(ctx, px, path, from, to, intensity = 1) {
 
 // ---------------------------------------------------------------- swings
 
-// Shapes measured from the original art. Swings 1-2 are the upper half of the arc,
-// 3-4 the lower half; each grows from its tip while turning into place.
+// Shapes measured from the original art, played in this order. Swings 1 and 3 are the upper
+// half of the arc, 2 and 4 the lower half, so each comes back the other way; each grows
+// from its tip while turning into place.
 const SWINGS = {
   first: { tip: [0.48, 0.03], ctrl: [0.635, 0.515], base: [0.61, 0.95], width: 0.21, skew: -0.15, spin: -0.22, seed: 11 },
-  second: { tip: [0.40, 0.06], ctrl: [0.57, 0.51], base: [0.64, 0.915], width: 0.2, skew: 0.45, spin: -0.22, seed: 12 },
-  third: { tip: [0.45, 0.965], ctrl: [0.75, 0.48], base: [0.40, 0.08], width: 0.18, spin: 0.22, seed: 13 },
+  second: { tip: [0.45, 0.965], ctrl: [0.75, 0.48], base: [0.40, 0.08], width: 0.18, spin: 0.22, seed: 13 },
+  third: { tip: [0.40, 0.06], ctrl: [0.57, 0.51], base: [0.64, 0.915], width: 0.2, skew: 0.45, spin: -0.22, seed: 12 },
   fourth: { tip: [0.40, 0.94], ctrl: [0.57, 0.49], base: [0.64, 0.085], width: 0.2, skew: -0.45, spin: 0.22, seed: 14 },
 };
 const SWING_REVEAL = [0.4, 0.8, 1, 1, 1, 1];

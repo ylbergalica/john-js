@@ -7,7 +7,7 @@ import { TIERS, MAX_EQUIPPED_ASPECTS, DEMO } from '../data/config.js';
 import { iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
-import { coinIcon, easeOut, replay, mistFx, assistBadge, backCorner, logo } from './common.js';
+import { coinIcon, easeOut, replay, mistFx, assistBadge, cardFoot, logo } from './common.js';
 import { sky } from './sky.js';
 import { BoxBreak } from './boxBreak.js';
 import { SettingsPanel } from './settings.js';
@@ -95,7 +95,7 @@ export class MenuScene {
           h('section', { class: 'loadout-side' }, h('div', { class: 'rule panel-heading', text: 'Loadout' }), h('div', { class: 'slots' }, this.slotButtons)),
           this.collectionSide,
         ),
-        h('div', { class: 'panel-actions' }, word('Request Aspect', () => this.openShop(), true)),
+        cardFoot('panel-actions', () => this.closeAspects(), word('Request Aspect', () => this.openShop(), true)),
       ),
     );
 
@@ -121,12 +121,9 @@ export class MenuScene {
         h('h2', { class: 'panel-title title-in', text: 'Request' }),
         h('div', { class: 'rule panel-heading', text: 'Unlock a random aspect' }),
         h('div', { class: 'boxes' }, this.boxes.map((b) => b.button)),
-        coinPill(),
+        cardFoot('shop-foot', () => this.closeShop(), coinPill()),
       ),
     );
-    // Back out of the request panel, or else the aspects one. Kept outside both, which scroll.
-    this.back = backCorner(() => (this.shopPanel.classList.contains('hidden') ? this.closeAspects() : this.closeShop()));
-    this.back.classList.add('menu-back', 'hidden');
 
     // Asked before a box is bought; a click outside the card cancels.
     this.confirmPanel = h('div', { class: 'confirm interactive hidden', onclick: (e) => e.target === this.confirmPanel && this.closeConfirm() });
@@ -148,7 +145,7 @@ export class MenuScene {
     this.offSettings = onSettingsChange(showAssist);
 
     this.el = h('div', { class: 'menu-screen' },
-      sky(), main, hint, this.aspectsPanel, this.shopPanel, this.confirmPanel, this.back, this.revealPanel, this.toast, this.tips.el, assistMark,
+      sky(), main, hint, this.aspectsPanel, this.shopPanel, this.confirmPanel, this.revealPanel, this.toast, this.tips.el, assistMark,
     );
     this.settings = new SettingsPanel(this.el);
     this.credits = new CreditsPanel(this.el);
@@ -206,7 +203,6 @@ export class MenuScene {
     this.aspectsPanel.classList.remove('hidden', 'covered');
     replay(this.aspectsPanel.querySelector('.panel-title'), 'title-in');
     this.el.classList.add('panel-open');
-    this.back.classList.remove('hidden');
     this.refresh();
   }
 
@@ -214,7 +210,6 @@ export class MenuScene {
     this.dragEnd(null);
     this.aspectsPanel.classList.add('hidden');
     this.el.classList.remove('panel-open');
-    this.back.classList.add('hidden');
     this.closeShop();
     this.hideTooltip();
   }

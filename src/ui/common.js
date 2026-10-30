@@ -37,14 +37,18 @@ export function logo(cls) {
   );
 }
 
-// Back out of a panel: a U-turn arrow in a ring, fixed at the screen's bottom left, beside
-// the Esc key that does the same.
+// Back out of a panel: a U-turn arrow in a ring, beside the Esc key that does the same.
 const BACK_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 13.5 4.5 9 9 4.5"/><path d="M4.5 9h9.5a5.25 5.25 0 0 1 0 10.5H10"/></svg>';
 
 export function backCorner(onBack) {
   const b = h('button', { class: 'back-button', 'aria-label': 'Back', title: 'Back', onclick: onBack });
   b.innerHTML = BACK_ARROW;
   return h('div', { class: 'back-corner' }, b, keycap('Esc'));
+}
+
+// A panel card's last row: the back corner at its bottom left, anything else centred.
+export function cardFoot(cls, onBack, ...middle) {
+  return h('div', { class: `card-foot ${cls}` }, backCorner(onBack), h('div', { class: 'card-foot-mid' }, middle));
 }
 
 // The mark with a word beside it (or alone, for a tooltip only).

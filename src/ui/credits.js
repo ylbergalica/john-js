@@ -1,7 +1,7 @@
 // Credits: who made the game and with what, rising in line by line over the sky while the
 // main menu steps aside (settings-open, as for the settings). Esc or the back corner closes it.
 import { h } from './dom.js';
-import { backCorner, replay, logo } from './common.js';
+import { cardFoot, replay, logo } from './common.js';
 import { sfx } from '../audio/sfx.js';
 
 const LINE_STAGGER = 0.18; // seconds between lines rising in
@@ -23,8 +23,8 @@ export class CreditsPanel {
     this.lines.forEach((el, i) => el.style.setProperty('--d', `${0.5 + i * LINE_STAGGER}s`));
     this.title = logo('credits-title title-in');
     this.el = h('div', { class: 'credits interactive hidden' },
-      h('div', { class: 'credits-card' }, this.title, h('div', { class: 'rule credits-rule' }, '✦'), this.lines),
-      backCorner(() => this.close()),
+      h('div', { class: 'credits-card' }, this.title, h('div', { class: 'rule credits-rule' }, '✦'), this.lines,
+        cardFoot('credits-foot', () => this.close())),
     );
     root.append(this.el);
   }

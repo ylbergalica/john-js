@@ -4,7 +4,7 @@
 // sky or the paused game shows through; every change applies and saves at once. Esc backs
 // out, or cancels a key being bound.
 import { h } from './dom.js';
-import { replay, mouseIcon, assistIcon, backCorner } from './common.js';
+import { replay, mouseIcon, assistIcon, cardFoot } from './common.js';
 import { sfx } from '../audio/sfx.js';
 import { iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
@@ -117,11 +117,10 @@ export class SettingsPanel {
         h('h2', { class: 'set-title title-in', text: 'Settings' }),
         h('nav', { class: 'set-tabs' }, this.tabButtons, this.tabStar),
         this.body,
-        h('div', { class: 'set-actions' },
+        cardFoot('set-actions', () => this.close(),
           h('button', { class: 'set-reset', text: 'Defaults', onclick: () => this.resetTab() }),
         ),
       ),
-      backCorner(() => this.close()), // stays put however far the tab has scrolled
     );
     // Keys pressed on the panel's own controls (a slider's arrows) stay here, out of the game's input.
     this.el.addEventListener('keydown', (e) => { if (e.code !== 'Escape') e.stopPropagation(); });

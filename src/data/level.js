@@ -37,10 +37,10 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'gunner', weight: { min: 0.5, max: 1 }, fromFloor: 10, peakFloor: 13, toFloor: 15 },
       { type: 'corsair', weight: { min: 0.5, max: 1 }, fromFloor: 12, peakFloor: 15, toFloor: 17 },
       { type: 'weaver', weight: { min: 0.5, max: 1 }, fromFloor: 15, peakFloor: 17, toFloor: 22 },
-      { type: 'nova', weight: { min: 0.4, max: 0.9 }, fromFloor: 15, peakFloor: 20, toFloor: 22 },
-      { type: 'bulwark', weight: { min: 0.5, max: 1 }, fromFloor: 16, peakFloor: 18, toFloor: 22 },
-      { type: 'jet', weight: { min: 0.5, max: 1 }, fromFloor: 18, peakFloor: 21, toFloor: 22 },
-      { type: 'binary', weight: { min: 0.4, max: 0.8 }, fromFloor: 20, peakFloor: 22, toFloor: 22 }, // a pair each
+      { type: 'nova', weight: { min: 0.4, max: 0.9 }, fromFloor: 15, peakFloor: 19, toFloor: 22 },
+      { type: 'bulwark', weight: { min: 0.5, max: 1 }, fromFloor: 17, peakFloor: 18, toFloor: 23 },
+      { type: 'jet', weight: { min: 0.5, max: 1 }, fromFloor: 19, peakFloor: 21, toFloor: 26 },
+      { type: 'binary', weight: { min: 0.4, max: 0.8 }, fromFloor: 23, peakFloor: 25, toFloor: 29 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
     // in a room) until killing them all fills `meterShare` of a meter even if each drops

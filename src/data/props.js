@@ -200,43 +200,55 @@ export const PROPS = {
   },
   // A spawner (src/game/spawner.js, SPAWNERS): a festering wound in the void, rooted to the
   // floor, a slit of an eye in a crown of thorns, red veins throbbing out to them. It births
-  // the floor's foes now and then. It takes a beating, and cracks open first with a gasp,
-  // then caves in on itself (`collapse`) before it bursts, a dark, wrong-sounding blast.
+  // the floor's foes now and then. It takes a beating, bleeding light from all round it and
+  // cracking wide open, and struck down it blows apart at once, a dark, wrong-sounding blast.
   // Never empty: an armful of adrenaline or a few mends, and always a boon on top (`always`).
   spawner: {
     health: 14, radius: 0.82, size: 2.3, mass: 1e6, damping: 30,
     color: 0xff2a1a,
-    glow: { size: 4.6, alpha: [0.16, 0.36], pulse: 0.75, crackGlow: 0.3 },
+    glow: { size: 4.6, alpha: [0.16, 0.36], pulse: 0.75, crackGlow: 0.55 },
     mote: null,
     sounds: { hit: 'spawnerHit', break: 'spawnerBreak' },
     hit: {
-      push: 0, jolt: 0.07, wobble: 0.13, wobbleTime: 0.35, wobbleHz: 7,
-      chips: { count: 7, speed: [2.5, 5], size: [0.1, 0.22], life: [0.8, 1.3] },
-      sparks: { count: 18, speed: 9, lifetime: 0.4, size: 0.4, coneDeg: 40 },
-      shake: { duration: 0.12, strength: 0.1, frequency: 26 },
+      push: 0, jolt: 0.1, wobble: 0.16, wobbleTime: 0.35, wobbleHz: 7,
+      chips: { count: 12, speed: [3, 7], size: [0.14, 0.32], life: [0.9, 1.5], cone: 1.4 },
+      sparks: { count: 30, speed: 12, lifetime: 0.5, size: 0.7, coneDeg: 70 },
+      shake: { duration: 0.14, strength: 0.15, frequency: 26 },
+      // Its own (Spawner.spill): light fanning out wide across its back from `points` spots
+      // over `arcDeg` either side; and all round its rim, from more spots and with more of
+      // its shell (`shards`) the more it's cracked ([whole, about to burst]). Cracking open a
+      // stage further, it gasps out a flash and a ring (`crackOpen`, × its radius).
+      back: { points: 7, arcDeg: 70, count: 5, speed: 11, lifetime: 0.45, size: 0.6, coneDeg: 22 },
+      around: { points: [8, 20], count: 3, speed: 7, lifetime: 0.4, size: 0.45, coneDeg: 30 },
+      shards: { count: [5, 16], speed: [2, 6], size: [0.12, 0.3], spin: 12, life: [0.8, 1.5] },
+      crackOpen: { flash: 3.5, ring: 2.8, time: 0.3 },
     },
+    // Cracked, it leaks embers from its rim, up to `rate` a second once about to burst.
+    leak: { rate: 10, speed: [1, 3.5], size: [0.12, 0.26], life: [0.5, 1.1] },
     break: {
-      pop: { time: 0.45, scale: 2.3 },
-      flash: { size: 7, grow: 2.4, time: 0.45, alpha: 1 },
+      pop: { time: 0.2, scale: 1.7 },
+      flash: { size: 9, grow: 2.6, time: 0.4, alpha: 1 },
       rings: [
-        { delay: 0, time: 0.45, from: 1, to: 6, alpha: 1, color: 0xffffff },
-        { delay: 0.07, time: 0.8, from: 1, to: 10, alpha: 0.7 },
-        { delay: 0.16, time: 1.1, from: 2, to: 14, alpha: 0.4, color: 0x5a0008 },
+        { delay: 0, time: 0.3, from: 1, to: 7, alpha: 1, color: 0xffffff },
+        { delay: 0.04, time: 0.7, from: 1, to: 12, alpha: 0.75 },
+        { delay: 0.12, time: 1, from: 2, to: 16, alpha: 0.45, color: 0x5a0008 },
       ],
-      rays: { count: 10, length: [4, 8], width: [0.3, 0.55], time: [0.45, 0.7] },
-      sparks: [{ count: 60, speed: 17, lifetime: 0.7, size: 0.55, coneDeg: 180 }, { count: 24, speed: 10, lifetime: 0.5, size: 0.32, coneDeg: 180, color: 0xffffff }],
-      blow: { count: 26, speed: 20, lifetime: 0.5, size: 0.65, coneDeg: 26, color: 0xffffff },
-      stars: { count: 18, speed: [3, 9], size: [0.22, 0.42], life: [0.9, 1.6], color: 0xff9a8a },
-      mist: { count: 16, speed: [2, 5], size: [1.6, 2.4], grow: 2.6, life: [0.9, 1.4], alpha: 0.45 },
-      embers: { count: 30, speed: [2, 8], size: [0.14, 0.3], life: [1, 2] },
-      shards: { count: 30, speed: [3, 8.5], size: [0.16, 0.36], spin: 12, life: [1.8, 2.8], along: 0.35, colors: [0x14030a, 0x2e0610, 0x6a0c14, 0xff4a3a] },
-      shake: { duration: 0.45, strength: 0.35, frequency: 18 },
+      rays: { count: 16, length: [5, 10], width: [0.3, 0.6], time: [0.35, 0.6] },
+      sparks: [{ count: 90, speed: 22, lifetime: 0.7, size: 0.65, coneDeg: 180 }, { count: 36, speed: 13, lifetime: 0.5, size: 0.38, coneDeg: 180, color: 0xffffff }],
+      blow: { count: 36, speed: 26, lifetime: 0.5, size: 0.75, coneDeg: 30, color: 0xffffff },
+      stars: { count: 24, speed: [4, 11], size: [0.22, 0.42], life: [0.9, 1.6], color: 0xff9a8a },
+      mist: { count: 18, speed: [3, 7], size: [1.6, 2.4], grow: 2.6, life: [0.9, 1.4], alpha: 0.5 },
+      embers: { count: 44, speed: [3, 11], size: [0.14, 0.32], life: [1, 2] },
+      shards: { count: 64, speed: [5, 15], size: [0.18, 0.5], spin: 18, life: [2, 3.2], along: 0.35, colors: [0x14030a, 0x2e0610, 0x6a0c14, 0xff4a3a] },
+      shake: { duration: 0.6, strength: 0.55, frequency: 20 },
       // As DEATH_FX.guardian.ripple; graded dark and red, so the world looks wrong a moment.
-      ripple: { duration: 1.2, strength: 0.045, width: 0.09, glow: 0.5, grade: [0.8, 0.45, 0.5] },
+      ripple: { duration: 1.2, strength: 0.06, width: 0.09, glow: 0.5, grade: [0.8, 0.45, 0.5] },
+      // Its own (Spawner.shatter): the world holds still on the blow for `hold` seconds, and
+      // it keeps bursting on, `count` more flashes and rings going off round it (within
+      // `reach` × its radius) over `over` seconds.
+      hold: 0.1,
+      aftershocks: { count: 5, over: [0.04, 0.32], reach: 1.6, flash: 4, ring: 5 },
     },
-    // Struck down, it caves in for `time` (shrinking by `shrink`, trembling by `tremble` ×
-    // its radius, its darkness drawing in) before it bursts.
-    collapse: { time: 0.32, shrink: 0.3, tremble: 0.08 },
     loot: { rolls: 1, chance: 1, table: 'spawner', always: ['boon'] },
   },
 };

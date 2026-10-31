@@ -2455,17 +2455,18 @@ function propSprite(name, stage, S = 256, A = PROP_ART[name]) {
   ctx.clip(shape);
   nebula(ctx, seededRandom(A.seed), A.clouds, 5, A.cloudBox);
   A.detail(ctx, px);
-  // Cracks: a soft glow under a thin white-hot line, both brighter each stage.
-  const heat = A.cracks.length > 1 ? stage / (A.cracks.length - 1) : 0;
+  // Cracks: a soft glow under a thin white-hot line, both brighter each stage (and
+  // `crackWidth` times as wide, if it has one).
+  const heat = A.cracks.length > 1 ? stage / (A.cracks.length - 1) : 0, cw = A.crackWidth ?? 1;
   for (let i = 0; i < A.cracks[stage]; i++) {
     const p = crackPath(seededRandom(A.seed * 31 + i * 97), 0.42);
-    glow(ctx, A.crackGlow, px * lerp(0.03, 0.06, heat), () => {
+    glow(ctx, A.crackGlow, px * lerp(0.03, 0.06, heat) * cw, () => {
       ctx.strokeStyle = A.crackGlow;
-      ctx.lineWidth = lerp(0.02, 0.03, heat);
+      ctx.lineWidth = lerp(0.02, 0.03, heat) * cw;
       ctx.stroke(p);
     });
     ctx.strokeStyle = A.crack;
-    ctx.lineWidth = lerp(0.008, 0.014, heat);
+    ctx.lineWidth = lerp(0.008, 0.014, heat) * cw;
     ctx.stroke(p);
   }
   ctx.restore();
@@ -2852,7 +2853,7 @@ function spawnerArt(seed) {
   let crown = null;
   const get = () => (crown ??= spawnerCrown(seed)); // only once it's drawn: SPAWNER isn't set yet while PROP_ART is
   return {
-    path: () => spawnerPath(get()), line: 0.03, cracks: [0, 2, 3, 5, 7, 9],
+    path: () => spawnerPath(get()), line: 0.03, cracks: [0, 3, 6, 9, 12, 16], crackWidth: 1.7,
     palette: { stroke: ['#ff9a8a', '#c0141c', '#3a0208'], glow: rgba('#ff1a10', 0.75) },
     fill: (ctx) => radial(ctx, 0.5, 0.5, 0.44, ['#30040a', '#0a0004', '#020001'], 0.5, 0.5),
     clouds: [['#c0101a', 0.22], ['#5a0a3a', 0.18], ['#ff3a24', 0.08]], seed, cloudBox: [0.2, 0.8, 0.2, 0.8],

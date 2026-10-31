@@ -80,7 +80,7 @@ export class Prop extends Entity {
     b.vel.x += dir.x * H.push; b.vel.y += dir.y * H.push;
     // Chips fly back off the struck face; light sprays out through the far side.
     const angle = Math.atan2(dir.y, dir.x), r = b.radius;
-    w.debris.burst(hitPoint.x, hitPoint.y, angle + Math.PI, 1.1, { ...H.chips, spin: 12, colors: T.break.shards.colors });
+    w.debris.burst(hitPoint.x, hitPoint.y, angle + Math.PI, H.chips.cone ?? 1.1, { ...H.chips, spin: 12, colors: T.break.shards.colors });
     w.effects.burst(hitPoint.x, hitPoint.y, angle + Math.PI, { count: 6, speed: 6, lifetime: 0.2, size: 0.25, coneDeg: 50, color: 0xffffff });
     w.effects.burst(b.pos.x + dir.x * r, b.pos.y + dir.y * r, angle, { ...H.sparks, color: T.color });
     w.camera.shakeAtLeast(H.shake);

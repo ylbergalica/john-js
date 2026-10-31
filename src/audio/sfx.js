@@ -4,7 +4,7 @@
 // first key or mouse press (`sfx.unlock`). Looping beds (`sfx.loop`) run until stopped.
 // Levels come from settings: the master bus feeds effects (and loops) and music.
 
-import { PLAYER_DEATH, PROPS, SPAWNERS } from '../data/config.js';
+import { PLAYER_DEATH, SPAWNERS } from '../data/config.js';
 import { settings, onSettingsChange } from '../meta/settings.js';
 
 const MASTER_VOLUME = 0.5;
@@ -907,18 +907,13 @@ const SOUNDS = {
     noise(v, { filter: 'lowpass', freq: 900, to: 120, at: dur - 0.02, dur: 0.3, vol: 0.3 });
     tone(v, { freq: 90, to: 40, at: dur - 0.02, dur: 0.25, vol: 0.3 });
   },
-  // Struck down, caving in (PROPS.spawner.collapse.time): a sharp gasp sucked inward, rising
-  // too fast, cut off by spawnerBreak.
-  spawnerCollapse(v) {
-    const dur = PROPS.spawner.collapse.time + 0.02;
-    noise(v, { freq: 400, to: 4200, q: 1.8, dur, vol: 0.32, attack: dur * 0.9, hold: dur - 0.02 });
-    tone(v, { type: 'sawtooth', freq: 110, to: 330, dur, vol: 0.08, attack: dur * 0.8, hold: dur - 0.02 });
-    tone(v, { type: 'triangle', freq: 156, to: 466, dur, vol: 0.07, attack: dur * 0.8, hold: dur - 0.02 });
-    tone(v, { freq: 40, to: 70, dur, vol: 0.3, attack: dur * 0.7, hold: dur - 0.02 });
-  },
-  // ...and bursting: a deep, wet blast, glass and gristle flying, and a dissonant cluster
-  // sliding down out of tune as a long moan dies away.
+  // Struck down, blowing apart at once: a hard crack and punch, a shriek of pain a semitone
+  // out of tune tearing downward, then a deep, wet blast, glass and gristle flying, and a
+  // dissonant cluster sliding down out of tune as a long moan dies away.
   spawnerBreak(v) {
+    noise(v, { filter: 'highpass', freq: 2400, to: 900, dur: 0.07, vol: 0.5 });
+    tone(v, { freq: 160, to: 34, dur: 0.22, vol: 0.55 });
+    for (const freq of [1180, 1250]) tone(v, { type: 'sawtooth', freq, to: freq * 0.28, dur: 0.55, vol: 0.045, attack: 0.004 });
     tone(v, { freq: 66, to: 22, dur: 1.6, vol: 0.6 });
     noise(v, { filter: 'lowpass', freq: 3600, to: 70, dur: 1.2, vol: 0.6 });
     noise(v, { freq: 1200, to: 220, q: 2, dur: 0.5, vol: 0.25, attack: 0.005 });

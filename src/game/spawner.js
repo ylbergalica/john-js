@@ -1,13 +1,13 @@
 // Spawners (PROPS.spawner, SPAWNERS): wounds in the void set into the corners of a few
 // rooms, rooted to the spot, that birth the floor's foes now and then, so a floor never runs
 // dry of adrenaline. A prop like any other to the player's attacks, only tougher: it
-// throbs like a heart, quickening as it births, and struck down it caves in on itself
-// before it bursts, spilling adrenaline or mends and always a boon, and angering the
-// floor's guardians (GuardianRage.spawnerBroken).
+// throbs like a heart, quickening as it births, bleeds light from all round it as it's
+// struck, and struck down it blows apart at once, spilling adrenaline or mends and always
+// a boon, and angering the floor's guardians (GuardianRage.spawnerBroken).
 import { Sprite } from 'pixi.js';
 import { Prop, shuffle } from './props.js';
 import { ENEMY_TYPES, FIXED_DT, PROPS, SPAWNERS } from '../data/config.js';
-import { clamp01, dist, lerp, pickWeighted, randInsideUnitCircle, randInt, randRange, TAU } from '../engine/math.js';
+import { clamp01, dist, lerp, pickWeighted, randInt, randRange, TAU } from '../engine/math.js';
 import { spawnerTextures, tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
 
@@ -29,7 +29,6 @@ export class Spawner extends Prop {
     this.nextBirthAt = world.time + randRange(...SPAWNERS.firstAfter);
     this.birth = null; // { at, pos, key, angle } while a foe is being born
     this.bornAt = -Infinity; // when the last one tore free
-    this.collapse = null; // { at, dir } while it caves in, struck down
     this.beatPhase = Math.random();
     this.home = { x, y }; // rooted here: whatever pushes on it, it stays put
   }
@@ -42,14 +41,6 @@ export class Spawner extends Prop {
 
   step() {
     const w = this.world;
-    if (this.collapse) {
-      if (w.time < this.collapse.at + this.type.collapse.time) return;
-      super.shatter(this.collapse.dir);
-      w.session.spawnerBroken(); // counted, and worth coins (COINS.spawnerBroken)
-      // The guardians take it badly: angry at the first broken, furious at the last.
-      w.rage.spawnerBroken(!w.props.some((p) => p.isSpawner && !p.dead));
-      return;
-    }
     if (this.birth) {
       if (w.time >= this.birth.at + SPAWNERS.telegraph) this.deliver();
       return;
@@ -108,21 +99,51 @@ export class Spawner extends Prop {
   }
 
   takeDamage(damage, hitPoint, source) {
-    if (this.collapse) return;
+    const { stage, hit } = this;
     super.takeDamage(damage, hitPoint, source);
+    if (!this.dead && this.hit !== hit) this.spill(this.stage > stage);
   }
 
-  sap(damage, source) {
-    if (this.collapse) return;
-    super.sap(damage, source);
+  // Struck and holding (PROPS.spawner.hit): light fans out wide across its back and sprays
+  // from all round its rim with chips of its shell, more the more it's cracked; cracking
+  // open a stage further (`opened`), it gasps out a flash and a ring.
+  spill(opened) {
+    const w = this.world, T = this.type, H = T.hit, { x, y } = this.body.pos, r = this.body.radius;
+    const k = this.stage / (this.stages - 1), back = Math.atan2(this.hit.dir.y, this.hit.dir.x);
+    const B = H.back, arc = (B.arcDeg * Math.PI) / 180;
+    for (let i = 0; i < B.points; i++) {
+      const a = back + randRange(-arc, arc);
+      w.effects.burst(x + Math.cos(a) * r, y + Math.sin(a) * r, a, { ...B, color: T.color });
+    }
+    const A = H.around, n = Math.round(lerp(...A.points, k)), offset = Math.random() * TAU;
+    for (let i = 0; i < n; i++) {
+      const a = offset + ((i + Math.random()) / n) * TAU;
+      w.effects.burst(x + Math.cos(a) * r, y + Math.sin(a) * r, a, { ...A, color: i % 3 ? T.color : 0xffffff });
+    }
+    const S = H.shards;
+    w.debris.burst(x, y, 0, Math.PI, { ...S, count: Math.round(lerp(...S.count, k)), spread: r, colors: T.break.shards.colors });
+    if (!opened) return;
+    const C = H.crackOpen, f = C.flash * r, d = (C.ring * r) / RING_RADIUS;
+    w.deathFx.flare(tex.mist, x, y, 0, { time: C.time, w0: f * 0.5, h0: f * 0.5, w1: f, h1: f, alpha: 0.8, color0: 0xffffff, color1: T.color });
+    w.deathFx.flare(tex.ring, x, y, 0, { time: C.time, w0: d * 0.3, h0: d * 0.3, w1: d, h1: d, alpha: 0.8, color0: 0xffffff, color1: T.color });
   }
 
-  // Struck down: it caves in first (step bursts it once that's done).
+  // Struck down, it blows apart at once (Prop.shatter), the world holding still on the
+  // blow, and keeps bursting on round where it was a moment after.
   shatter(dir) {
-    if (this.collapse) return;
-    this.collapse = { at: this.world.time, dir };
+    const w = this.world, B = this.type.break, A = B.aftershocks, { x, y } = this.body.pos, r = this.body.radius, color = this.type.color;
     this.birth = null;
-    this.world.sound('spawnerCollapse', this.body.pos);
+    w.holdStill(B.hold);
+    super.shatter(dir);
+    for (let i = 0; i < A.count; i++) {
+      const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * A.reach * r, delay = randRange(...A.over);
+      const ax = x + Math.cos(a) * d, ay = y + Math.sin(a) * d, f = A.flash * r * randRange(0.7, 1.2), g = (A.ring * r * randRange(0.7, 1.2)) / RING_RADIUS;
+      w.deathFx.flare(tex.mist, ax, ay, 0, { delay, time: 0.3, w0: f * 0.4, h0: f * 0.4, w1: f, h1: f, alpha: 0.9, color0: 0xffffff, color1: color });
+      w.deathFx.flare(tex.ring, ax, ay, 0, { delay, time: 0.4, w0: g * 0.2, h0: g * 0.2, w1: g, h1: g, alpha: 0.7, color0: 0xffffff, color1: color });
+    }
+    w.session.spawnerBroken(); // counted, and worth coins (COINS.spawnerBroken)
+    // The guardians take it badly: angry at the first broken, furious at the last.
+    w.rage.spawnerBroken(!w.props.some((p) => p.isSpawner && !p.dead));
   }
 
   render(alpha, dt, view) {
@@ -139,22 +160,23 @@ export class Spawner extends Prop {
     const ph = this.beatPhase % 1, thump = (x) => (x >= 0 && x < 0.16 ? (1 - x / 0.16) ** 2 : 0);
     const beat = thump(ph) + 0.6 * thump(ph - 0.22);
     const release = Math.max(0, 1 - (now - this.bornAt) / BEAT.releaseTime);
-    let scale = 1 + BEAT.swell * beat - 0.1 * birthing * birthing + BEAT.release * release * release;
-
-    // Caving in: shrinking and shaking harder and harder, its darkness closing in.
-    let dark = 1;
-    if (this.collapse) {
-      const C = T.collapse, k = clamp01((now - this.collapse.at) / C.time), j = randInsideUnitCircle(), shake = C.tremble * T.radius * k;
-      scale *= 1 - C.shrink * k * k;
-      dark = 1 + 0.8 * k;
-      this.view.position.x += j.x * shake;
-      this.view.position.y += j.y * shake;
-      this.glow.alpha += 0.5 * k;
-    }
+    const scale = 1 + BEAT.swell * beat - 0.1 * birthing * birthing + BEAT.release * release * release;
     this.inner.scale.set(scale);
     this.glow.alpha *= 0.85 + 0.3 * beat;
-    this.dark.width = this.dark.height = T.size * (2.5 - 0.6 * (dark - 1)) * (1 + 0.05 * beat);
-    this.dark.alpha = Math.min(1, 0.7 * dark);
+    this.dark.width = this.dark.height = T.size * 2.5 * (1 + 0.05 * beat);
+    this.dark.alpha = 0.7;
+    if (this.stage > 0 && dt > 0) this.leak(dt, this.stage / (this.stages - 1));
+  }
+
+  // Cracked (`k`: 0 whole … 1 about to burst), embers seep out of its rim and drift off.
+  leak(dt, k) {
+    const L = this.type.leak, { x, y } = this.body.pos, r = this.body.radius;
+    if (Math.random() >= L.rate * k * dt) return;
+    const a = Math.random() * TAU, c = Math.cos(a), s = Math.sin(a), speed = randRange(...L.speed);
+    this.world.deathFx.embers.spawn({
+      x: x + c * r * 0.9, y: y + s * r * 0.9, vx: c * speed, vy: s * speed, size: randRange(...L.size), life: randRange(...L.life),
+      color: this.type.color, fade: 0x3a0004, orient: true, sway: 3,
+    });
   }
 
   stream(dt, k) {

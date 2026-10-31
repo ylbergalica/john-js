@@ -7,7 +7,7 @@ import { Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
 import { clamp, deltaAngle, lerp, randRange, randSign } from '../engine/math.js';
-import { FX } from '../data/config.js';
+import { FX, WALL_IMPACT } from '../data/config.js';
 import { anims, tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
 import { hurtBySegment } from '../game/hurtbox.js';
@@ -106,7 +106,12 @@ class Needle extends Entity {
     this.pos.y += Math.sin(this.angle) * d.speed * dt;
     const half = d.fx.length / 2;
     const tip = { x: this.pos.x + Math.cos(this.angle) * half, y: this.pos.y + Math.sin(this.angle) * half };
-    if (w.physics.circleHitsWall(tip.x, tip.y, d.hitRadius)) { this.end(tip, d.fx.hit); return; }
+    if (w.physics.circleHitsWall(tip.x, tip.y, d.hitRadius)) {
+      const at = w.physics.wallPoint(tip.x, tip.y, d.hitRadius) ?? tip;
+      w.stirWall(at.x, at.y, WALL_IMPACT.attack);
+      this.end(tip, d.fx.hit);
+      return;
+    }
     const ax = this.prev.x + Math.cos(this.prevAngle) * half, ay = this.prev.y + Math.sin(this.prevAngle) * half;
     for (const t of w.props.filter((t) => t.isThread && !t.dying && hurtBySegment(t, ax, ay, tip.x, tip.y, d.hitRadius))) t.takeDamage(d.damage, t.closestPoint(tip), tip); // cut in passing
     const e = w.enemies.find((e) => alive(e) && hurtBySegment(e, ax, ay, tip.x, tip.y, d.hitRadius));

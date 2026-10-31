@@ -51,6 +51,7 @@ export class Physics {
     this.grid = grid;
     this.bodies = [];
     this.solids = []; // kept sorted by min x between steps
+    this.onWallHit = null; // (body, x, y, speed): a body ran into a wall at (x, y), `speed` into it
   }
 
   add(body) {
@@ -154,7 +155,10 @@ export class Physics {
         }
         b.pos.x += nx * push; b.pos.y += ny * push;
         const vn = b.vel.x * nx + b.vel.y * ny;
-        if (vn < 0) { b.vel.x -= nx * vn; b.vel.y -= ny * vn; }
+        if (vn < 0) {
+          b.vel.x -= nx * vn; b.vel.y -= ny * vn;
+          this.onWallHit?.(b, px, py, -vn);
+        }
       }
     }
   }
@@ -171,6 +175,23 @@ export class Physics {
       }
     }
     return false;
+  }
+
+  // The nearest point of a wall within r of (x, y), or null.
+  wallPoint(x, y, r) {
+    let best = null, bestD = r * r;
+    const minX = Math.floor(x - r), maxX = Math.floor(x + r);
+    const minY = Math.floor(y - r), maxY = Math.floor(y + r);
+    for (let cx = minX; cx <= maxX; cx++) {
+      for (let cy = minY; cy <= maxY; cy++) {
+        if (!this.isWall(cx, cy)) continue;
+        const px = Math.max(cx, Math.min(x, cx + 1));
+        const py = Math.max(cy, Math.min(y, cy + 1));
+        const d2 = (x - px) ** 2 + (y - py) ** 2;
+        if (d2 < bestD) { bestD = d2; best = { x: px, y: py }; }
+      }
+    }
+    return best;
   }
 
   // Sweeps a circle of radius r from (sx, sy) along unit (dx, dy) for `distance`.

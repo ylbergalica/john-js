@@ -69,6 +69,62 @@ export const WALL_VISUAL = {
   squiggleResolution: 7,
   strokeWidth: 0.1,
 };
+// Now and then a patch of wall outline nearby sways faster (its waves taller) or slower
+// (lower) for a while, bunching its waves up on one side as it runs ahead or falls
+// behind. Then, so they fall back in step with those around it, it drifts gently the
+// other way for a while longer.
+export const WALL_GUSTS = {
+  everyRange: { x: 0.4, y: 1.2 }, // seconds between gusts
+  radiusRange: { x: 3, y: 6 }, // tiles: fades out toward its edge
+  holdRange: { x: 1, y: 2.5 }, // seconds fully at the other speed
+  ease: 0.5, // seconds to change speed, and again to change back
+  settleRange: { x: 8, y: 14 }, // seconds drifting back in step after
+  fasterRange: { x: 1.2, y: 2.4 }, // added to the speed (1 = twice as fast)
+  slowerRange: { x: 0.7, y: 0.95 }, // taken off it (1 = stopped)
+  slowerChance: 0.35,
+  swell: 0.8, // a fast gust's waves grow by up to this (0.8 = 1.8× as tall)
+  shrink: 0.45, // a slow gust's shrink by up to this
+};
+// Where something strikes a wall its outline dents in, springs back and forth and
+// ripples out along it, dying away. A body stirs it by how fast it hits.
+export const WALL_IMPACT = {
+  minSpeed: 2, // tiles a second into the wall: slower contacts don't stir it
+  fullSpeed: 20, // and this fast (a dash, a hard knockback) stirs it fully
+  soft: 0.15, // the slowest stir that counts, as a fraction of a full one
+  cooldown: 0.3, // seconds before the same body stirs it again, unless it hits harder
+  swing: 0.6, // the stir of the player's swing reaching a wall
+  attack: 0.5, // of an enemy's attack or projectile reaching one, where it first touches each stretch
+  attackSpacing: 1.2, // tiles: an attack stirs a stretch of wall no closer than this to where it already has
+  depth: 0.18, // tiles a full stir dents the outline in
+  decay: 0.45, // seconds for it to die to about a third
+  frequency: 16, // radians a second it springs back and forth
+  wavenumber: 3.5, // radians per tile across its ripples (with frequency, how fast they run)
+  radius: 0.7, // tiles: how wide the dent is at first
+  spread: 2.5, // tiles a second it widens by, flattening as it goes
+  rise: 0.04, // seconds to dent fully in
+  // Its thump (sfx wallRipple), from the softest stir to a full one: only a little louder and lower.
+  sound: { volume: { x: 0.4, y: 1 }, pitch: { x: 1.12, y: 0.9 } },
+};
+// An explosion shoves the wall outlines round it back: a shockwave runs out from it,
+// denting each wall in as it passes (those facing it most) and letting it spring back.
+// The bigger the explosion, the further its shove carries, the harder it hits and the
+// longer the walls ring after.
+export const WALL_BLAST = {
+  reachScale: 2, // how far the shove carries, in the explosion's own reaches
+  minReach: 4.5, // tiles: even the smallest carries this far
+  fullReach: 28, // tiles: a shove carrying this far hits as hard as any
+  depth: 0.75, // tiles the hardest dents a wall in at its centre
+  curve: 0.9, // a smaller one's: depth × (its reach / fullReach) ^ curve
+  speed: 16, // tiles a second the shockwave runs out
+  rise: 0.05, // seconds for a wall to be shoved fully in as it passes
+  decayRange: { x: 0.22, y: 0.5 }, // seconds for its springing back to die to about a third, smallest to biggest
+  frequency: 11, // radians a second it springs back and forth
+  facing: 0.3, // the shove on walls side-on or facing away, as a fraction of facing ones'
+  // Its boom (sfx wallShove), smallest to fullReach: only a little louder and lower. `far`:
+  // its volume with the nearest wall at the edge of its reach (full with one right by it);
+  // `pull`: the pitch of one caving in, against one going off.
+  sound: { volume: { x: 0.6, y: 1 }, pitch: { x: 1.1, y: 0.86 }, far: 0.45, pull: 1.15 },
+};
 export const WALL_SPARKLES = {
   sparklesPerTile: 0.16,
   // The sky fills in floor by floor: each floor adds this many per tile, up to the max.

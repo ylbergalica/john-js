@@ -3,8 +3,8 @@
 import { Entity } from '../game/entity.js';
 import { Body, ContactSet } from '../engine/physics.js';
 import { hurtBySegment } from '../game/hurtbox.js';
-import { norm, isZero } from '../engine/math.js';
-import { PLAYER, PARTICLES, ADRENALINE, ENEMY_HIT, SHIELD } from '../data/config.js';
+import { lerp, norm, isZero } from '../engine/math.js';
+import { PLAYER, PARTICLES, ADRENALINE, ENEMY_HIT, SHIELD, WALL_IMPACT } from '../data/config.js';
 import { InputBuffer } from './inputBuffer.js';
 import { PlayerView } from './playerView.js';
 import { PlayerDeath } from './death.js';
@@ -181,7 +181,20 @@ export class Player extends Entity {
     const angle = Math.atan2(this.facing.y, this.facing.x);
     this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.swingTint });
     this.buffs.view.swung(p, angle);
+    this.swingAtWall();
     return true;
+  }
+
+  // A swing reaching a wall stirs its outline, where it reaches nearest the player.
+  swingAtWall() {
+    const cap = this.attackCapsule(), b = this.body.pos;
+    let best = null, bestD = Infinity;
+    for (let i = 0; i <= 4; i++) {
+      const w = this.world.physics.wallPoint(lerp(cap.ax, cap.bx, i / 4), lerp(cap.ay, cap.by, i / 4), cap.r);
+      const d = w && (w.x - b.x) ** 2 + (w.y - b.y) ** 2;
+      if (w && d < bestD) { best = w; bestD = d; }
+    }
+    if (best) this.world.stirWall(best.x, best.y, WALL_IMPACT.swing);
   }
 
   endAttack() {

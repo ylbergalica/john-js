@@ -11,7 +11,7 @@ import { ScreenRipple } from '../render/screenRipple.js';
 import { Distortion } from '../render/distortion.js';
 import { tex } from '../render/assets.js';
 import { RING_RADIUS } from '../render/sprites.js';
-import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, MUSIC, PICKUPS, PLAYER, PROPS, STAR_PULSE } from '../data/config.js';
+import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, MUSIC, PICKUPS, PLAYER, PROPS, STAR_PULSE, WALL_BLAST, WALL_IMPACT } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
@@ -19,6 +19,7 @@ import { attackersOn, scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
+import { wallContacts } from '../enemies/hitbox.js';
 import { Tether } from '../enemies/tether.js';
 import { AIState } from '../enemies/ai.js';
 import { Exit } from './pickups.js';
@@ -94,6 +95,8 @@ export class World {
     this.exit = null;
     this.exitTrailAt = Infinity; // when to lay the trail to the exit (see guardianBurst)
     this.physics = new Physics();
+    this.wallStirs = new WeakMap(); // body → { at, strength }: when it last stirred a wall (wallHit)
+    this.attackStirs = new Map(); // live hostile attack → { tiles, at }: the walls it has stirred (stirWallsByAttacks)
     this.navFields = new Map();
     this.cores = { required: 0, collected: 0 };
     this.activeAttackers = 0;
@@ -206,10 +209,72 @@ export class World {
     else sfx.play('floor');
   }
 
+  // A body ran into a wall: it stirs the outline there by how fast it hit (WALL_IMPACT),
+  // and pressing on, now and then; hitting harder, at once.
+  wallHit(body, x, y, speed) {
+    if (speed < WALL_IMPACT.minSpeed) return;
+    const k = clamp01((speed - WALL_IMPACT.minSpeed) / (WALL_IMPACT.fullSpeed - WALL_IMPACT.minSpeed));
+    const strength = lerp(WALL_IMPACT.soft, 1, k);
+    const last = this.wallStirs.get(body);
+    if (last && this.time - last.at < WALL_IMPACT.cooldown && strength <= last.strength * 1.5) return;
+    this.wallStirs.set(body, { at: this.time, strength });
+    this.stirWall(x, y, strength);
+  }
+
+  // Enemy attacks and projectiles reaching into walls stir them (WALL_IMPACT.attack): each
+  // where it first reaches a stretch of wall, so a sweep ripples along it as it goes. An
+  // attack's count starts over each time it goes live.
+  stirWallsByAttacks() {
+    const stirs = this.attackStirs, gap = WALL_IMPACT.attackSpacing ** 2;
+    for (const a of this.hostileAttacks) {
+      let s = stirs.get(a);
+      if (!s) stirs.set(a, (s = { tiles: new Set(), at: [] }));
+      s.live = true;
+      for (const c of wallContacts(a.worldShape(), this.physics)) {
+        if (s.tiles.has(c.key)) continue;
+        s.tiles.add(c.key);
+        if (s.at.some((q) => (q.x - c.x) ** 2 + (q.y - c.y) ** 2 < gap)) continue;
+        s.at.push(c);
+        this.stirWall(c.x, c.y, WALL_IMPACT.attack);
+      }
+    }
+    for (const [a, s] of stirs) {
+      if (s.live) s.live = false;
+      else stirs.delete(a);
+    }
+  }
+
+  // The wall's outline dents in at (x, y) and ripples, with a thump a little louder and
+  // lower the harder it's struck; strength: 0…1.
+  stirWall(x, y, strength) {
+    this.levelView.impact(x, y, strength);
+    const S = WALL_IMPACT.sound;
+    this.sound('wallRipple', { x, y }, { volume: lerp(S.volume.x, S.volume.y, strength), pitch: lerp(S.pitch.x, S.pitch.y, strength) });
+  }
+
+  // An explosion at (x, y) reaching `size` tiles shoves the walls round it back (WALL_BLAST),
+  // or `pull`s them out, booming the louder and lower the bigger it is and the nearer the
+  // walls, if any are in its reach.
+  blastWall(x, y, size, pull = false) {
+    const reach = this.levelView.blast(x, y, size, pull);
+    let near = reach;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * TAU;
+      near = Math.min(near, this.physics.rayLength(x, y, Math.cos(a), Math.sin(a), reach, 0.25));
+    }
+    if (near >= reach) return;
+    const S = WALL_BLAST.sound, k = clamp01(reach / WALL_BLAST.fullReach);
+    this.sound('wallShove', { x, y }, {
+      volume: lerp(S.volume.x, S.volume.y, k) * lerp(S.far, 1, 1 - near / reach),
+      pitch: lerp(S.pitch.x, S.pitch.y, k) * (pull ? S.pull : 1),
+    });
+  }
+
   // Map, physics and the player at its start.
   buildLevel(layout) {
     this.level = layout;
     this.physics = new Physics(layout.grid);
+    this.physics.onWallHit = (body, x, y, speed) => this.wallHit(body, x, y, speed);
     this.levelView.build(layout.grid, layout.rooms, this.session.floor);
     this.player = this.add(new Player(this, layout.start.x, layout.start.y));
     this.camera.snapTo(layout.start);
@@ -606,6 +671,7 @@ export class World {
     const n = this.entities.length;
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].step(dt);
     this.physics.step(dt);
+    this.stirWallsByAttacks(); // before projectiles break on them, in afterPhysics
     for (let i = 0; i < n; i++) if (!this.entities[i].dead) this.entities[i].afterPhysics();
     if (!this.player?.death) this.adrenaline.step(dt); // a dying player's meter is theirs to empty (PlayerDeath)
     this.noteBlows();

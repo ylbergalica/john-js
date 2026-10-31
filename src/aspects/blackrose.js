@@ -110,6 +110,7 @@ class RoseBurst extends Entity {
       t.ai?.suppressMovementFor(E.moveTime + 0.05);
     }
     w.camera.shakeAtLeast(d.fx.shake);
+    w.blastWall(c.x, c.y, d.radius, this.implode);
   }
 
   // Steers `m` along its way, easing out, for this step: true once it's there.

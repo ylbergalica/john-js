@@ -107,6 +107,7 @@ export class AnchorAspect extends Aspect {
       }
       this.arriveFx(this.player.body.pos);
       this.world.add(new WindPulse(this, target));
+      this.world.blastWall(target.x, target.y, this.data.windRadius);
       this.world.sound('shockwave');
       this.stow();
       // Back in control the moment they land; the regrow is only for show.

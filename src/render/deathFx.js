@@ -45,9 +45,11 @@ export class DeathFx {
 
   // Everything in a death after the pop, at (x, y) for a body of radius `r` (D as
   // DEATH_FX.enemy): light flashes, rings race out, rays burst, sparks spray, stars spill,
-  // mist and embers drift, the camera shakes and the screen ripples. Also the player's.
+  // mist and embers drift, the camera shakes, the screen ripples and the walls round it
+  // are shoved back, as far as its rings reach. Also the player's.
   explode(x, y, r, color, D) {
     const w = this.world;
+    w.blastWall(x, y, r * Math.max(1, ...D.rings.map((ring) => ring.to)));
     const fl = D.flash, fs = fl.size * r;
     this.flare(tex.mist, x, y, 0, { time: fl.time, w0: fs, h0: fs, w1: fs * fl.grow, h1: fs * fl.grow, alpha: fl.alpha, color0: 0xffffff, color1: color });
     for (const ring of D.rings) {

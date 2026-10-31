@@ -8,7 +8,7 @@
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
-import { FIXED_DT, FX } from '../data/config.js';
+import { FIXED_DT, FX, WALL_IMPACT } from '../data/config.js';
 import { clamp01, deltaAngle, lerp, lerpColor, randSign, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { ORACLE_DISC } from '../render/sprites.js';
@@ -249,6 +249,7 @@ class OracleDisc extends Entity {
     const F = this.data.fx;
     this.world.effects.burst(at.x, at.y, Math.atan2(this.dir.y, this.dir.x), { ...F.bounce.sparks, color: this.tone(F.bounce.sparks.color, F.exalted.sparks) });
     this.world.sound('oracleBounce', at);
+    this.world.stirWall(at.x, at.y, WALL_IMPACT.attack);
   }
 
   strike(e) {

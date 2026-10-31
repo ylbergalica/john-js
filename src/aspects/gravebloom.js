@@ -98,6 +98,7 @@ export class GravebloomAspect extends Aspect {
     toss(this.glints, G, round ? G.ringCount : G.count, (i) => ({ color: i % 4 === 0 ? F.green : F.white, fade: F.pink }));
     w.effects.burst(x, y, round ? 0 : angle, { ...B.sparks, count: round ? B.sparks.ringCount : B.sparks.count, coneDeg: round ? 180 : P.spreadDeg, color: F.pink });
     w.camera.shakeAtLeast(round ? B.round.shake : B.shake);
+    w.blastWall(x, y, round ? this.data.ring.range : this.data.cone.range * 0.6); // a wave runs one way: less all round
     w.sound(round ? 'bloomRing' : 'bloomBurst', at);
     w.add(new BloomWave(this, at, angle));
     this.used();

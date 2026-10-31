@@ -438,6 +438,26 @@ const SOUNDS = {
   fizzle(v) {
     noise(v, { filter: 'highpass', freq: 2000, to: 800, dur: 0.1, vol: 0.12 });
   },
+  // the walls
+  wallRipple(v) { // struck: a soft thump and a wobble, as of a taut skin, its pitch and swell wavering as it dies
+    const wob = ctx.createGain();
+    wob.gain.value = 0.65;
+    wob.connect(v.out);
+    lfo(v, wob.gain, { rate: 9, depth: 0.35, dur: 0.5 });
+    const skin = tone(v, { freq: 120, to: 85, dur: 0.5, vol: 0.15, attack: 0.006, out: wob });
+    lfo(v, skin.frequency, { rate: 9, depth: 16, dur: 0.5 });
+    const over = tone(v, { type: 'triangle', freq: 240, to: 170, dur: 0.32, vol: 0.04, attack: 0.006, out: dull(v, 900) });
+    lfo(v, over.frequency, { rate: 9, depth: 30, dur: 0.32 });
+    noise(v, { filter: 'lowpass', freq: 450, to: 140, dur: 0.1, vol: 0.07, attack: 0.003 });
+  },
+  wallShove(v) { // shoved back by a blast: a deep boom of the skin wobbling, a whump of air, its stars rattling
+    const skin = tone(v, { freq: 90, to: 48, at: 0.04, dur: 0.85, vol: 0.22, attack: 0.01 });
+    lfo(v, skin.frequency, { rate: 7, depth: 7, dur: 0.9 });
+    tone(v, { type: 'triangle', freq: 180, to: 100, at: 0.04, dur: 0.5, vol: 0.05, attack: 0.01, out: dull(v, 900) });
+    noise(v, { filter: 'lowpass', freq: 900, to: 90, at: 0.03, dur: 0.5, vol: 0.18, attack: 0.015 });
+    tone(v, { freq: 1320, to: 1250, at: 0.05, dur: 0.6, vol: 0.015, attack: 0.02 });
+    tinkles(v, 5, { at: 0.05, spread: 0.45, vol: 0.02, lo: 2200, hi: 4800 });
+  },
   // the Seer
   mistThrow(v) { // a ball of mist flung up out of sight
     noise(v, { freq: 300, to: 2600, q: 0.8, dur: 0.4, vol: 0.26, attack: 0.03 });

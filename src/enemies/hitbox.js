@@ -58,6 +58,44 @@ function closestOnShape(s, cap) {
   return { x: s.x + (dx / l) * reach, y: s.y + (dy / l) * reach };
 }
 
+// Where world shape `s` (any attack's) reaches into walls: for each wall tile bordering the
+// floor that it reaches, the tile's point nearest it, deepest first: { x, y, depth, key }.
+export function wallContacts(s, physics) {
+  const out = [];
+  const add = (part) => {
+    if (part.type === 'group') { part.parts.forEach(add); return; }
+    const reach = part.type === 'capsule' ? part.r : part.type === 'box' ? Math.hypot(part.hw, part.hh) : part.r;
+    const x0 = part.type === 'capsule' ? Math.min(part.ax, part.bx) : part.x, x1 = part.type === 'capsule' ? Math.max(part.ax, part.bx) : part.x;
+    const y0 = part.type === 'capsule' ? Math.min(part.ay, part.by) : part.y, y1 = part.type === 'capsule' ? Math.max(part.ay, part.by) : part.y;
+    const wall = (cx, cy) => physics.isWall(cx, cy);
+    for (let cx = Math.floor(x0 - reach); cx <= Math.floor(x1 + reach); cx++) {
+      for (let cy = Math.floor(y0 - reach); cy <= Math.floor(y1 + reach); cy++) {
+        if (!wall(cx, cy) || (wall(cx - 1, cy) && wall(cx + 1, cy) && wall(cx, cy - 1) && wall(cx, cy + 1))) continue;
+        const near = (px, py) => ({ x: Math.max(cx, Math.min(px, cx + 1)), y: Math.max(cy, Math.min(py, cy + 1)) });
+        let q = null, depth = 0;
+        if (part.type === 'capsule') {
+          // The tile's point nearest the spine, found along it.
+          const n = Math.max(1, Math.ceil(Math.hypot(part.bx - part.ax, part.by - part.ay) / 0.25));
+          let best = Infinity;
+          for (let i = 0; i <= n; i++) {
+            const px = part.ax + ((part.bx - part.ax) * i) / n, py = part.ay + ((part.by - part.ay) * i) / n;
+            const c = near(px, py), d2 = (c.x - px) ** 2 + (c.y - py) ** 2;
+            if (d2 < best) { best = d2; q = c; }
+          }
+          depth = part.r - Math.sqrt(best);
+          if (depth <= 0) q = null;
+        } else {
+          const c = near(part.x, part.y);
+          if (circleVsShape(c.x, c.y, 0.001, part)) { q = c; depth = reach - Math.hypot(c.x - part.x, c.y - part.y); }
+        }
+        if (q) out.push({ x: q.x, y: q.y, depth, key: cx + cy * 65536 });
+      }
+    }
+  };
+  add(s);
+  return out.sort((a, b) => b.depth - a.depth);
+}
+
 export class EnemyHitbox {
   // shape (in enemy-local units, +x forward):
   //   { type: 'circle', r, forward, arcDeg, inner }

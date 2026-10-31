@@ -28,6 +28,7 @@ const PROPS = [
   { type: 'starPod', x: 8.4, y: 10.6 }, { type: 'starPod', x: 9.3, y: 11 }, { type: 'cagedStar', x: 11.6, y: 9.4 },
   { type: 'starEgg', x: 14.6, y: 15 }, { type: 'starEgg', x: 14.7, y: 16.2 },
   { type: 'geode', x: 12.6, y: 25 }, { type: 'geode', x: 12.8, y: 26.3 }, { type: 'geode', x: 28.4, y: 10.6 },
+  { type: 'druse', x: 8.4, y: 22.4 }, { type: 'druse', x: 9.5, y: 22.6 },
   { type: 'reliquary', x: 29.5, y: 25.5 },
 ];
 

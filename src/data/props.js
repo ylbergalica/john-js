@@ -9,6 +9,8 @@
 //   cagedStar   a star held in turning rings of light: one hit, the rings snapping.
 //   starEgg     a speckled shell, something bright stirring inside: two hits, cracking open.
 //   geode       a lump of void rock, light leaking through its cracks: three hits.
+//   druse       a lump of void rock like the geode, rose crystals breaking out all round
+//               it: four hits, splitting open into rubble and crystal chunks.
 //   reliquary   a gilded hex casket sealing a star: five hits, rare, never empty.
 // `glow`: the trapped light behind it, breathing (alpha at its dimmest and brightest,
 //   `pulse` Hz), brighter as it cracks (`crackGlow`: extra alpha once fully cracked).
@@ -134,6 +136,35 @@ export const PROPS = {
       ripple: null,
     },
     loot: { rolls: 1, chance: 0.3, table: 'common' },
+  },
+  druse: {
+    health: 4, radius: 0.44, size: 1.32, mass: 5, damping: 14,
+    color: 0xff8ac8,
+    glow: { size: 2.6, alpha: [0.1, 0.2], pulse: 0.4, crackGlow: 0.3 },
+    mote: null,
+    sounds: { hit: 'druseHit', break: 'druseBreak' },
+    hit: {
+      push: 1.4, jolt: 0.06, wobble: 0.12, wobbleTime: 0.28, wobbleHz: 10,
+      chips: { count: 8, speed: [2, 5], size: [0.1, 0.22], life: [0.8, 1.2] },
+      sparks: { count: 14, speed: 9, lifetime: 0.35, size: 0.36, coneDeg: 36 },
+      shake: { duration: 0.11, strength: 0.1, frequency: 26 },
+    },
+    break: {
+      pop: { time: 0.28, scale: 1.6 },
+      flash: { size: 5, grow: 2, time: 0.3, alpha: 0.95 },
+      rings: [{ delay: 0, time: 0.35, from: 1, to: 4.5, alpha: 0.95 }, { delay: 0.07, time: 0.6, from: 1, to: 6.5, alpha: 0.4 }],
+      rays: { count: 5, length: [3, 5], width: [0.28, 0.45], time: [0.3, 0.45] },
+      sparks: [{ count: 34, speed: 12, lifetime: 0.5, size: 0.46, coneDeg: 180 }, { count: 12, speed: 7, lifetime: 0.4, size: 0.3, coneDeg: 180, color: 0xffffff }],
+      blow: { count: 20, speed: 16, lifetime: 0.4, size: 0.55, coneDeg: 26, color: 0xffffff },
+      stars: { count: 12, speed: [2, 6], size: [0.2, 0.36], life: [0.7, 1.2], color: 0xffffff },
+      mist: { count: 10, speed: [1, 3], size: [1.1, 1.7], grow: 2.4, life: [0.6, 1], alpha: 0.4 }, // rock dust
+      embers: null,
+      // Heavy chunks of rock and crystal, more of them and longer lying than the geode's.
+      shards: { count: 28, speed: [2, 6.5], size: [0.14, 0.36], spin: 8, life: [1.8, 2.8], along: 0.4, colors: [0x3a2e40, 0x2a2030, 0x54445a, 0xff8ac8, 0xffd0e8] },
+      shake: { duration: 0.24, strength: 0.18, frequency: 22 },
+      ripple: null,
+    },
+    loot: { rolls: 2, chance: 0.25, table: 'common' },
   },
   reliquary: {
     health: 5, radius: 0.48, size: 1.12, mass: 6, damping: 14,
@@ -280,6 +311,8 @@ export const SPAWNERS = {
 // or the exit. `hoard`: `chance` a floor that a corridor also gets a huge pile of `size`
 // props all of one kind (never one with a `maxPerFloor`), heaped out of one of its nooks (a
 // corner `cornerBias` of the time) up to `reach` units, spilling into a room if it must.
+// `types` come in floor by floor as enemies do (enemySpawn in level.js): the better props
+// only deeper down, rising to their full weight over a few floors.
 export const PROP_SPAWN = {
   hoard: { chance: 0.05, size: [30, 50], reach: 14, cornerBias: 0.85 },
   room: { clusters: [1, 1], clusterSize: [2, 3], cornerBias: 0.85, mixed: 0.4, pile: { chance: 0.5, size: [3, 5], reach: 1.6 } },
@@ -291,8 +324,9 @@ export const PROP_SPAWN = {
     { type: 'starPod', weight: 2 },
     { type: 'cagedStar', weight: 2 },
     { type: 'starEgg', weight: 2 },
-    { type: 'geode', weight: 2 },
-    { type: 'reliquary', weight: 0.35 },
+    { type: 'geode', weight: { min: 1, max: 2 }, fromFloor: 4, peakFloor: 6 },
+    { type: 'druse', weight: { min: 0.8, max: 1.6 }, fromFloor: 9, peakFloor: 12 },
+    { type: 'reliquary', weight: { min: 0.2, max: 0.35 }, fromFloor: 15, peakFloor: 17 },
   ],
 };
 

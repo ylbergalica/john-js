@@ -824,6 +824,29 @@ const SOUNDS = {
     noise(v, { filter: 'highpass', freq: 4000, to: 2500, dur: 0.3, vol: 0.1 });
     arp(v, [988, 1319, 1976], 0.045, { type: 'triangle', at: 0.06, dur: 0.5, vol: 0.05 });
   },
+  druseHit(v) { // a druse struck: a deep, woody thock, a gritty crunch and a low knock under it
+    tone(v, { freq: 95, to: 55, dur: 0.14, vol: 0.4 });
+    tone(v, { type: 'triangle', freq: 340, to: 210, dur: 0.1, vol: 0.22 });
+    noise(v, { freq: 900, to: 500, q: 3, dur: 0.07, vol: 0.4 });
+    noise(v, { filter: 'lowpass', freq: 2200, to: 250, dur: 0.12, vol: 0.4 });
+    for (let i = 0; i < 4; i++) noise(v, { freq: 700 + Math.random() * 900, q: 3, at: 0.02 + Math.random() * 0.08, dur: 0.02, vol: 0.08 });
+  },
+  druseBreak(v) { // ...and splitting open: a heavy crack and thud, rubble knocking and clattering
+    // down like wood blocks, then a low, warm marimba roll of the crystals ringing out
+    tone(v, { freq: 85, to: 30, dur: 0.6, vol: 0.55 });
+    tone(v, { type: 'triangle', freq: 260, to: 110, dur: 0.12, vol: 0.3 });
+    noise(v, { freq: 1100, to: 400, q: 2, dur: 0.08, vol: 0.5 });
+    noise(v, { filter: 'lowpass', freq: 2800, to: 80, dur: 0.55, vol: 0.6 });
+    for (let i = 0; i < 16; i++) {
+      const at = 0.03 + 0.5 * Math.random() ** 1.5, freq = 220 + Math.random() * 500;
+      tone(v, { type: 'triangle', freq, to: freq * 0.8, at, dur: 0.05 + Math.random() * 0.04, vol: 0.06 + Math.random() * 0.06 });
+      noise(v, { freq: freq * 3, q: 3, at, dur: 0.025, vol: 0.06 + Math.random() * 0.05 });
+    }
+    for (const [freq, at] of [[392, 0.06], [494, 0.11], [587, 0.16], [784, 0.22]]) {
+      tone(v, { freq, at, dur: 0.45, vol: 0.09 });
+      tone(v, { freq: freq * 4, at, dur: 0.08, vol: 0.02 }); // a mallet's bright overtone, gone at once
+    }
+  },
   cacheHit(v) { // a reliquary struck: a gilded clang, ringing
     tone(v, { type: 'triangle', freq: 620, to: 600, dur: 0.4, vol: 0.08 });
     tone(v, { freq: 930, to: 915, dur: 0.28, vol: 0.05 });

@@ -10,6 +10,7 @@ import { lerp, norm, pickWeighted, randInt, randRange, TAU } from '../engine/mat
 import { FIXED_DT, LOOT, PICKUPS, PROPS, PROP_SPAWN } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { propStageCount } from '../render/sprites.js';
+import { spawnableOn } from '../level/difficulty.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { AdrenalineOrb, BuffPickup, MendOrb } from './pickups.js';
 
@@ -211,12 +212,13 @@ function makeDrop(world, drop, x, y) {
 // start and the exit.
 export function scatterProps(world, { rooms, grid, start, exit }) {
   const S = PROP_SPAWN, placed = {};
+  const kinds = spawnableOn(S.types, world.session.floor); // this floor's, weighted for it
   const nooks = findNooks(grid, rooms);
   const avoid = [start, exit].filter(Boolean);
   const allowed = (type) => (placed[type] ?? 0) < (PROPS[type].maxPerFloor ?? Infinity);
 
   const pickType = () => {
-    const types = S.types.filter((e) => allowed(e.type));
+    const types = kinds.filter((e) => allowed(e.type));
     return types.length ? pickWeighted(types).type : null;
   };
   const spawn = (t, pos) => { world.spawnProp(t, pos); placed[t] = (placed[t] ?? 0) + 1; };
@@ -272,7 +274,7 @@ export function scatterProps(world, { rooms, grid, start, exit }) {
   // capped per floor.
   const H = S.hoard;
   if (Math.random() < H.chance) {
-    const types = S.types.filter((e) => PROPS[e.type].maxPerFloor == null);
+    const types = kinds.filter((e) => PROPS[e.type].maxPerFloor == null);
     const type = pickWeighted(types).type;
     const first = pickNook(world, nooks.corridors, PROPS[type].radius, avoid, H.cornerBias);
     if (first) {

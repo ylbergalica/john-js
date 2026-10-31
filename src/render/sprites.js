@@ -2420,6 +2420,16 @@ const PROP_ART = {
     crack: '#e6fff8', crackGlow: rgba('#7af0d0', 0.95),
     detail: geodeDetail, over: geodeCrystals,
   },
+  // A lump of void rock like the geode, rose crystals breaking out of it in clumps all round
+  // its rim. Each stage snaps more of the crystals off to glowing stumps.
+  druse: {
+    path: drusePath, line: 0.034, cracks: [1, 3, 5, 7],
+    palette: { stroke: ['#e4d6e8', '#9a88a8', '#4a3e5a'], glow: rgba('#ff8ac8', 0.4) },
+    fill: (ctx) => radial(ctx, 0.5, 0.5, 0.4, ['#282030', '#09070d'], 0.42, 0.4),
+    clouds: [['#ff5aa8', 0.16], ['#6a46b0', 0.16]], seed: 103,
+    crack: '#fff0f8', crackGlow: rgba('#ff8ac8', 0.95),
+    detail: druseDetail, over: druseCrystals,
+  },
   // A gilded hex casket: an inner hex sealing a star, straps of gold out to studs at its
   // corners.
   reliquary: {
@@ -2464,7 +2474,7 @@ function propSprite(name, stage, S = 256, A = PROP_ART[name]) {
     ctx.lineWidth = A.line;
     ctx.stroke(shape);
   });
-  A.over?.(ctx, px);
+  A.over?.(ctx, px, stage);
   return c;
 }
 
@@ -2652,6 +2662,134 @@ function geodeCrystals(ctx, px) {
       ctx.restore();
     }
   });
+}
+
+// The druse's crystals, in clumps breaking out round the rock's rim: [angle in degrees, root's
+// distance from the centre, length, half width], drawn in order so later ones lie over
+// earlier ones. `snap`: the ones snapped off by each crack stage (by index, `perStage` more
+// each stage, the biggest first), each leaving a stump `stump` × its length, light pouring
+// from the break.
+const DRUSE = {
+  crystals: [
+    [-26, 0.25, 0.17, 0.045], [-75, 0.25, 0.15, 0.042], [-50, 0.22, 0.24, 0.066],
+    [56, 0.25, 0.15, 0.044], [96, 0.26, 0.13, 0.038], [76, 0.22, 0.23, 0.06],
+    [207, 0.25, 0.15, 0.044], [133, 0.27, 0.12, 0.034], [185, 0.22, 0.22, 0.058],
+  ],
+  snap: [2, 5, 8, 0, 3, 6], perStage: 2, stump: 0.35,
+};
+
+// A lumpy, angular rock like the geode's, smaller to leave room for its crystals.
+function drusePath() {
+  const rand = seededRandom(107), n = 11, p = new Path2D();
+  for (let i = 0; i < n; i++) {
+    const a = ((i + lerp(-0.25, 0.25, rand())) / n) * TAU, r = lerp(0.26, 0.33, rand());
+    const x = 0.5 + Math.cos(a) * r, y = 0.5 + Math.sin(a) * r;
+    if (i === 0) p.moveTo(x, y); else p.lineTo(x, y);
+  }
+  p.closePath();
+  return p;
+}
+
+// Faint facet edges catching the light across the rock, and light pooling where the
+// crystals break out of it.
+function druseDetail(ctx) {
+  const rand = seededRandom(109);
+  ctx.strokeStyle = rgba('#d0b0d0', 0.12);
+  ctx.lineWidth = 0.012;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = rand() * TAU, b = a + lerp(0.8, 1.6, rand());
+    ctx.moveTo(0.5 + Math.cos(a) * 0.33, 0.5 + Math.sin(a) * 0.33);
+    ctx.lineTo(0.5 + Math.cos(a) * 0.11 + lerp(-0.05, 0.05, rand()), 0.5 + Math.sin(a) * 0.11);
+    ctx.lineTo(0.5 + Math.cos(b) * 0.33, 0.5 + Math.sin(b) * 0.33);
+  }
+  ctx.stroke();
+  for (const [deg, r0, len] of DRUSE.crystals) {
+    const [x, y] = polar(0.5, 0.5, deg, r0), r = len * 0.8;
+    ctx.fillStyle = radial(ctx, x, y, r, [rgba('#ff8ac8', 0.45), rgba('#ff8ac8', 0)]);
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+}
+
+// The crystals, those snapped off by `stage` as stumps.
+function druseCrystals(ctx, px, stage = 0) {
+  const snapped = new Set(DRUSE.snap.slice(0, stage * DRUSE.perStage));
+  DRUSE.crystals.forEach(([deg, r0, len, w], i) => {
+    druseColumn(ctx, px, polar(0.5, 0.5, deg, r0), deg, len, w, snapped.has(i) ? DRUSE.stump : null);
+  });
+}
+
+// Each face of a druse crystal, lit side to shaded, brightening from root to tip.
+const DRUSE_FACES = [
+  ['#b0407e', '#ff9ad0', '#fff0f8'],
+  ['#7a2058', '#e0609e', '#ffc4e2'],
+  ['#3e0c30', '#8e2a62', '#c86aa2'],
+];
+
+// A crystal breaking out of the rock at `root`, pointing `deg`: a six-sided column (three of
+// its faces showing, lit, half lit and shaded) rising to a facetted point, darker at its
+// root, a glowing edge, the ridges between its faces catching the light, and a glint on the
+// lit face. Snapped (`cut`: the share of it left), it ends in a jagged break glowing
+// white-hot instead.
+function druseColumn(ctx, px, root, deg, len, w, cut) {
+  ctx.save();
+  ctx.translate(...root);
+  ctx.rotate(deg * DEG);
+  const b = -0.02, t = w / 3, sh = len * 0.68, ridge = len * 0.76; // root, a ridge's offset, the shoulders
+  let edge, faces, ridges; // the outline, each face's corners, the ridges between them
+  if (cut == null) {
+    edge = [[b, -w], [sh, -w], [len, 0], [sh, w], [b, w]];
+    faces = [
+      [[b, -w], [sh, -w], [len, 0], [ridge, -t], [b, -t]],
+      [[b, -t], [ridge, -t], [len, 0], [ridge, t], [b, t]],
+      [[b, t], [ridge, t], [len, 0], [sh, w], [b, w]],
+    ];
+    ridges = [[[b, -t], [ridge, -t], [len, 0]], [[b, t], [ridge, t], [len, 0]]];
+  } else {
+    const c = len * cut, k = [[c * 1.08, -w], [c * 0.9, -t], [c * 1.16, 0], [c * 1.02, t], [c * 0.94, w]];
+    edge = [[b, -w], ...k, [b, w]];
+    faces = [[[b, -w], k[0], k[1], [b, -t]], [[b, -t], k[1], k[2], k[3], [b, t]], [[b, t], k[3], k[4], [b, w]]];
+    ridges = [[[b, -t], k[1]], [[b, t], k[3]]];
+  }
+  const path = (pts) => {
+    const p = new Path2D();
+    pts.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
+    p.closePath();
+    return p;
+  };
+  const outline = path(edge), reach = cut == null ? len : len * cut;
+  glow(ctx, rgba('#ff8ac8', 0.85), px * 0.05, () => { ctx.fillStyle = '#7a2058'; ctx.fill(outline); });
+  faces.forEach((f, i) => {
+    ctx.fillStyle = linear(ctx, 0, 0, len, 0, DRUSE_FACES[i]);
+    ctx.fill(path(f));
+  });
+  ctx.fillStyle = linear(ctx, b, 0, reach * 0.55, 0, [rgba('#2a0820', 0.6), rgba('#2a0820', 0)]);
+  ctx.fill(outline);
+  ctx.strokeStyle = rgba('#ffe8f4', 0.6);
+  ctx.lineWidth = 0.006;
+  ctx.beginPath();
+  for (const r of ridges) r.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.stroke();
+  glow(ctx, rgba('#ff8ac8', 0.9), px * 0.035, () => {
+    ctx.strokeStyle = '#fff0f8';
+    ctx.lineWidth = 0.011;
+    ctx.stroke(outline);
+  });
+  if (cut == null) {
+    ctx.strokeStyle = rgba('#ffffff', 0.75); // light running up the lit face
+    ctx.lineWidth = 0.008;
+    ctx.beginPath(); ctx.moveTo(len * 0.18, -w * 0.68); ctx.lineTo(sh * 0.92, -w * 0.68); ctx.stroke();
+    if (w > 0.05) sparkle(ctx, sh * 0.95, -w * 0.62, w * 0.95, '#ffffff', 0.95);
+  } else {
+    glow(ctx, rgba('#ffffff', 0.95), px * 0.06, () => {
+      ctx.beginPath();
+      edge.slice(1, -1).forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.strokeStyle = '#fff4fa';
+      ctx.lineWidth = 0.016;
+      ctx.stroke();
+    });
+  }
+  ctx.restore();
 }
 
 const RELIQUARY_HEX = { w: 0.84, inner: 0.52 };

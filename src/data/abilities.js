@@ -356,6 +356,35 @@ export const ABILITIES = {
     bounceForce: 12, crashRecoveryTime: 0.8,
     hitboxRadius: 0.55, hitboxArcDeg: 150, parryKnockback: 8, strikeSound: 'jetSwoop',
   },
+  // The Razor's blades: its disc hurts whoever touches it, a whole circle `hitboxRadius` round
+  // (RAZOR.disc.outer), for `damageMultiplier` of its damage, whenever it isn't stunned or
+  // striking (a strike hurts in its place). Parried, it's knocked back and stunned like any
+  // attack, its blades slowing and harmless until the stun ends.
+  RazorBlades: {
+    type: 'bladeDisc', cooldown: 0, range: 0, windUpTime: 0, duration: 0, recoveryTime: 0,
+    damageMultiplier: 0.5, parryStunTime: 0.7, hitboxRadius: 0.84, parryKnockback: 10,
+  },
+  // Its dashes, the blades the hitbox, all round. `legs`: each dash's length, × `legLength`,
+  // flown at `speed` (gathered over `launchTime`, braked over `brakeTime` to `carry` of it),
+  // through the player and on, stopping short at a wall, the next `legGap` after the last.
+  // Dash: one, straight down its locked aim.
+  RazorDash: {
+    type: 'bladeDash', tell: 'razor', cooldown: 2.6, range: 5, windUpTime: 0.5, lockTime: 0.18, duration: 0, recoveryTime: 0.3,
+    damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.3),
+    legs: [1], legLength: 5.5, offDeg: 0, steerDeg: 0, legGap: 0, speed: 16, launchTime: 0.05, brakeTime: 0.07, carry: 0.2, turnEase: 0.03, skidEase: 0.08,
+    hitboxRadius: 0.84, parryKnockback: 10, strikeSound: 'razorDash',
+  },
+  // Zigzag: four, `offDeg` to either side of its locked aim by turns, the first short so they
+  // cross the line of its aim, not just touch it. Through the wind-up it turns to face the way
+  // the first will go, and halfway along each dash it starts turning to face the next, there
+  // by the time it sets off. Each one's line of advance turns after the player by up to
+  // `steerDeg`, while they're ahead.
+  RazorZigzag: {
+    type: 'bladeDash', tell: 'zigzag', cooldown: 5.5, range: 6, windUpTime: 0.7, lockTime: 0.2, duration: 0, recoveryTime: 0.45,
+    damageMultiplier: 1, parryStunTime: 1.2, ...clearPath({ x: 1, y: 1 }, 0.3),
+    legs: [0.6, 1, 1, 1], legLength: 4.2, offDeg: 38, steerDeg: 14, legGap: 0.05, speed: 15, launchTime: 0.04, brakeTime: 0.05, carry: 0.15, turnEase: 0.03, skidEase: 0.08,
+    hitboxRadius: 0.84, parryKnockback: 10, strikeSound: 'razorDash', legSound: 'razorTurn',
+  },
   // The Binary's beam attack, made by the two stars together: either one starts it and draws
   // the other in, when that one is free, no more than `pairRange` from the player, and their
   // beam isn't broken. Through the wind-up they spiral in close together: their middle is

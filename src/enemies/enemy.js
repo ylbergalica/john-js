@@ -22,13 +22,14 @@ import { NovaRig } from './novaRig.js';
 import { BulwarkRig } from './bulwarkRig.js';
 import { JetRig } from './jetRig.js';
 import { BinaryRig } from './binaryRig.js';
+import { RazorRig } from './razorRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 import { DamageCause } from '../game/damage.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig, razor: RazorRig };
 
 export class Enemy extends Entity {
   // twin: the second of a pair (a type with a `pair`), wearing its type's `twin` look.

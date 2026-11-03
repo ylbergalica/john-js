@@ -166,7 +166,7 @@ export class EnemyAttackFx {
       sx = swell * (1 - tell.squash * ease);
       sy = swell * (1 + tell.squash * 0.5 * ease);
       turn = twistOf(windup) * ease;
-      this.drawTell(tell, r, elapsed, t, W.alpha * fade * lerp(0.45, 1, t), 0);
+      this.drawTell(tell, r, elapsed, t, W.alpha * fade * lerp(0.45, 1, t), 0, windup.side);
     }
 
     // The strike: the body swells and flashes white-hot, and the tell bursts outward.
@@ -181,7 +181,7 @@ export class EnemyAttackFx {
     if (!windup && last) turn = followThrough(last, since);
     if (!windup && since >= 0 && since < S.releaseTime) {
       const k = since / S.releaseTime;
-      this.drawTell(tellOf(last), r, 0, 1, W.alpha * (1 - k), easeOut(k) * S.releaseReach * r);
+      this.drawTell(tellOf(last), r, 0, 1, W.alpha * (1 - k), easeOut(k) * S.releaseReach * r, last.side);
     }
 
     // A charging body burns and stretches along its path, leaving afterimages.
@@ -259,7 +259,7 @@ export class EnemyAttackFx {
 
   // Draws a tell in the enemy's frame (+x forward). `t`: wind-up progress, the tell tightening
   // to land at 1; `out`: how far it has burst outward since the strike.
-  drawTell(tell, r, elapsed, t, alpha, out) {
+  drawTell(tell, r, elapsed, t, alpha, out, side = 1) {
     if (alpha <= 0) return;
     const g = this.tell, color = lerpColor(X.color, X.hot, 0.3 * t);
     const radius = () => lerp(r * (1 + tell.reach), r * tell.to, t) + out;
@@ -285,6 +285,17 @@ export class EnemyAttackFx {
           const u = (i + (flow % 1)) / tell.count; // 0 → 1 along the stream
           const x = r * 1.05 + u * tell.count * tell.spacing * r + size * 0.8;
           this.stroke(color, alpha * Math.sin(Math.PI * u), () => g.moveTo(x - size * 0.8, -size).lineTo(x, 0).lineTo(x - size * 0.8, size));
+        }
+        break;
+      }
+      case 'zigzag': {
+        const len = tell.step * r * lerp(0.5, 1, t), back = -side * tell.turnDeg * DEG;
+        let x = r * tell.start + out, y = 0;
+        for (let i = 0; i < tell.count; i++) {
+          const a = i % 2 ? back : 0, ax = x, ay = y;
+          x += Math.cos(a) * len;
+          y += Math.sin(a) * len;
+          this.stroke(color, alpha * (1 - i / (tell.count + 1)), () => g.moveTo(ax, ay).lineTo(x, y));
         }
         break;
       }

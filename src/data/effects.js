@@ -119,6 +119,9 @@ export const ATTACK_FX = {
   //   ring      closes in from `reach` past the body to `to` all around (attacks all around)
   //   arc       the same, only across the front, `arcDeg` wide and `lines` deep (strikes in front)
   //   chevrons  `count` arrows streaming forward from the front, faster as it nears (charges)
+  //   zigzag    a line of `count` stretches, `step` × radius long, from `start` × radius ahead:
+  //             the first straight ahead, the next `turnDeg` back across, and so on by turns,
+  //             growing out as it nears (a zigzag)
   //   focus     `count` sparks spiralling in from `reach` to `to` around a point `at` ahead
   //             (a beam gathering at the muzzle)
   //   none      nothing (a throw shows its orb instead)
@@ -162,6 +165,8 @@ export const ATTACK_FX = {
     bank: { shape: 'none', lean: 0, squash: 0, swell: 0, stretchIn: 0.14 }, // banking away shows which way it comes round
     binary: { shape: 'ring', reach: 1.1, to: 1.2, lean: 0, squash: 0, swell: 0.12 }, // the beam between the pair flaring up shows the rest
     lash: { shape: 'ring', reach: 1.6, to: 1.15, lean: 0, squash: 0, swell: 0.1 }, // all round it
+    razor: { shape: 'chevrons', count: 4, spacing: 0.6, size: 0.42, lean: 0.2, squash: 0.1, swell: 0, stretchIn: 0.05 }, // out past its disc
+    zigzag: { shape: 'zigzag', count: 4, start: 2.1, step: 1.8, turnDeg: 76, lean: 0.14, squash: 0.08, swell: 0.04, stretchIn: 0.04 }, // the way it will go, straight ahead of it first (RazorZigzag: 2 × offDeg)
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
   // in over the first `rise` of its `time`, then shrinking away as it turns `spin` radians,
@@ -649,6 +654,26 @@ export const JET = {
   },
   glow: { size: [0.34, 0.83, 1], alpha: [0.3, 0.7, 0.85], color: 0xff4a20 },
   sparks: { rate: 40, windup: 0.4, count: 1, speed: 3, lifetime: 0.25, size: 0.22, coneDeg: 14, color: 0xff7a2a },
+};
+
+// The Razor's disc (src/enemies/razorRig.js; its art in src/render/sprites.js). A disc of
+// blades from `disc.inner` to `disc.outer` out (its hitbox and hurtbox, RazorBlades), the
+// gap inside it clear of its body: `disc.blades` of them, each swept `disc.sweep`° round.
+// Its look eases (`ease` seconds) between `idle`, `windup`, `strike` and `still` (stunned,
+// its blades slowing into sight): turning at `spin` rad/s, its blur and the blades that show
+// through it at those alphas, its `glow` (`glowSize` across) so strong. Striking it sheds
+// `sparks` off its rim at `sparks.rate` a second, and grinding on a wall `grind` at
+// `grind.rate`; shattering (`shatter`, its death) it throws them all round.
+export const RAZOR = {
+  disc: { inner: 0.54, outer: 0.84, blades: 7, sweep: 58 },
+  ease: 0.09, glowColor: 0xdfe8ff, glowSize: 2.6,
+  idle: { spin: 24, blur: 0.8, blades: 0.2, glow: 0.14 },
+  windup: { spin: 44, blur: 1, blades: 0.1, glow: 0.42 },
+  strike: { spin: 60, blur: 1, blades: 0, glow: 0.6 },
+  still: { spin: 3, blur: 0.08, blades: 1, glow: 0 },
+  sparks: { rate: 70, count: 1, speed: 6, lifetime: 0.22, size: 0.2, coneDeg: 30, color: 0xf2f6ff },
+  grind: { rate: 26, count: 1, speed: 4.5, lifetime: 0.24, size: 0.2, coneDeg: 60, color: 0xfff2d0 },
+  shatter: { count: 22, speed: 7.5, lifetime: 0.45, size: 0.3, coneDeg: 180, color: 0xf2f6ff },
 };
 
 // The Binary's two stars and the light between them (src/enemies/binaryRig.js, tether.js).

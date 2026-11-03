@@ -99,7 +99,7 @@ export class EnemyAI {
   decideReposition() {
     const d = this.distToPlayer();
     if (this.shouldLoseAggro(d)) this.changeState(AIState.Idle);
-    else if (d <= this.attackRange && this.hasAvailableAttack()) this.changeState(AIState.Chase);
+    else if (!this.cfg.circlesFirst && d <= this.attackRange && this.hasAvailableAttack()) this.changeState(AIState.Chase); // `circlesFirst`: only once its time is up
     else if (this.stateTimer <= 0 && this.now >= this.nextDecisionTime) this.changeState(AIState.Chase);
   }
 
@@ -160,7 +160,8 @@ export class EnemyAI {
     return this.availableCache;
   }
 
-  get blockedSightDistance() { return Math.max(0.75, this.cfg.orbitRadius * 0.5); }
+  // How near it comes with no attack to hand before circling again: its `holdOff`, if any.
+  get blockedSightDistance() { return this.cfg.holdOff ?? Math.max(0.75, this.cfg.orbitRadius * 0.5); }
   get engageRange() { return this.cfg.attackEngageRange > 0 ? this.cfg.attackEngageRange : this.attackRange; }
 
   tryAcquireSlot() {

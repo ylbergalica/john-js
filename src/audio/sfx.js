@@ -666,6 +666,23 @@ const SOUNDS = {
     tone(v, { type: 'triangle', freq: 1500, to: 520, dur: 0.6, vol: 0.06, attack: 0.05 });
     noise(v, { freq: 300, to: 1400, q: 0.9, dur: 0.65, vol: 0.2, attack: 0.08 });
   },
+  // the Razor
+  razorRev(v) { // its blades winding up: a whine climbing over a thin buzz
+    tone(v, { type: 'sawtooth', freq: 500, to: 1500, dur: 0.45, vol: 0.035, attack: 0.08 });
+    noise(v, { filter: 'highpass', freq: 3200, dur: 0.42, vol: 0.05, attack: 0.15 });
+  },
+  razorDash(v) { // blades tearing through the air: a hard metallic rip over a rush
+    noise(v, { freq: 1500, to: 4200, q: 1.1, dur: 0.24, vol: 0.24, attack: 0.008 });
+    tone(v, { type: 'sawtooth', freq: 1900, to: 700, dur: 0.2, vol: 0.05, attack: 0.004 });
+  },
+  razorTurn(v) { // cutting back the other way: a short sharp zip
+    noise(v, { freq: 2200, to: 4800, q: 1.2, dur: 0.11, vol: 0.2, attack: 0.004 });
+    tone(v, { type: 'sawtooth', freq: 1100, to: 2100, dur: 0.08, vol: 0.035, attack: 0.002 });
+  },
+  razorShatter(v) { // its blades flying apart: a bright ringing clatter
+    noise(v, { filter: 'highpass', freq: 2800, dur: 0.1, vol: 0.2, attack: 0.001 });
+    for (const [at, freq] of [[0, 3100], [0.05, 2400], [0.11, 3600], [0.18, 2000]]) tone(v, { type: 'triangle', freq, to: freq * 0.9, at, dur: 0.14, vol: 0.05 });
+  },
   // the Binary
   binaryCharge(v) { // the light between them flaring up: two glassy tones rising a fifth apart over a thin crackle
     tone(v, { type: 'sine', freq: 440, to: 880, dur: 0.8, vol: 0.05, attack: 0.3 });

@@ -210,6 +210,23 @@ export const ENEMY_TYPES = {
     ai: { ...AI_DEFAULTS, aggroRange: 14, orbitRadius: 5, moveSpeed: 3.4, orbitSpeed: 2.8, repositionSpeed: 3, maxTurnSpeed: 5,
       attacks: [{ ability: 'BinaryOrbit', weight: 1 }, { ability: 'BinaryLash', weight: 1 }] },
   },
+  // A pale white ball with a V on its front, ringed by razor blades spinning so fast they blur
+  // into a thick disc, a little way out from its body (`rig`, see razorRig.js). The disc hurts
+  // whoever touches it, always (RazorBlades), and it's what a blow lands on (`hurtbox`). It
+  // circles right up against the player (`orbitRadius`; `circlesFirst` has it keep circling
+  // until it's time to attack, from within `attackEngageRange`; `holdOff` keeps it from closing
+  // in any further with no attack to hand), then dashes through them, or four times in a
+  // zigzag at them.
+  razor: {
+    name: 'Razor', maxHealth: 36, damage: 3, radius: 0.42, mass: 3, linearDamping: 1,
+    knockbackResistance: 0.05, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xe8edf5, sfxPitch: 1.1,
+    visual: { kind: 'sprite', outline: 'razor_idle', void: 'razor_idle_void', size: 1.3, sparkleCount: 10, rig: 'razor' },
+    hurtbox: Array.from({ length: 16 }, (_, i) => [0.84 * Math.cos((i * Math.PI) / 8), 0.84 * Math.sin((i * Math.PI) / 8)]), // the disc, RAZOR.disc.outer round
+    ai: { ...AI_DEFAULTS, aggroRange: 14, orbitRadius: 1.4, holdOff: 1.5, circlesFirst: true, attackEngageRange: 3, moveSpeed: 4.6, orbitSpeed: 3.8, repositionSpeed: 4.4, maxTurnSpeed: 7,
+      decisionDelayRange: { x: 1, y: 2 }, repositionDurationRange: { x: 1, y: 2 },
+      attacks: [{ ability: 'RazorDash', weight: 0.6 }, { ability: 'RazorZigzag', weight: 0.4 }], passives: [{ ability: 'RazorBlades' }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

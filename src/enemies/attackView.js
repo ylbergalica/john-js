@@ -13,9 +13,11 @@
 //   BlobLook       the same for the Alembic's orbs of toxin.
 //   CanisterLook   the same for its canisters launched.
 //   SilkLook       the same for the Weaver's anchors and balls of web.
+//   BoltLook       the same for the Tyrant's tracers.
+//   ShellLook      the same for its shells.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, WEB as WB } from '../data/config.js';
+import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -887,6 +889,87 @@ export class SilkLook {
   destroy() { this.container.destroy({ children: true }); }
 }
 
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook };
+// One of the Tyrant's tracers (TYRANT.bolt): a narrow white-hot sliver along its flight in a
+// hard yellow halo. Drawn like ProjectileLook.
+export class BoltLook {
+  get color() { return TY.bolt.color; }
+  get maxTrail() { return TY.bolt.trail; }
+
+  constructor(parent, { trail = true } = {}) {
+    const B = TY.bolt;
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: B.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: B.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: B.bright });
+    for (const s of this.container.children) s.visible = true;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const B = TY.bolt, pulse = 0.5 + 0.5 * Math.sin(now * B.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.halo.width = this.halo.height = size * B.halo.size * lerp(0.9, 1.1, pulse);
+    this.halo.alpha = B.halo.alpha * glow;
+    this.core.rotation = rot;
+    this.core.width = size * B.length * ORB_PAD;
+    this.core.height = size * B.width * ORB_PAD;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * B.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+// The Tyrant's shell (TYRANT.shell): a great round in a burning halo, a star turning in it,
+// flickering faster and going from yellow to red-hot as its `fuse` (0 → 1) runs out.
+export class ShellLook {
+  get color() { return TY.shell.color; }
+  get maxTrail() { return TY.shell.trail; }
+
+  constructor(parent, { trail = true } = {}) {
+    const H = TY.shell;
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: H.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: H.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: H.color });
+    this.glint = sprite(tex.glint, this.container, { blendMode: 'add', tint: H.color });
+    for (const s of this.container.children) s.visible = true;
+    this.phase = 0;
+    this.last = null;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0, fuse = 0 } = {}) {
+    const H = TY.shell, step = this.last === null ? 0 : Math.max(0, now - this.last);
+    this.last = now;
+    this.phase += step * lerp(H.pulse[0], H.pulse[1], fuse * fuse) * TAU; // so the flicker quickens without jumping
+    const pulse = 0.5 + 0.5 * Math.sin(this.phase), color = lerpColor(H.color, H.hot, fuse * fuse);
+    this.container.position.set(x, y);
+    this.halo.tint = color;
+    this.halo.width = this.halo.height = size * H.halo.size * lerp(0.85, 1.2, pulse);
+    this.halo.alpha = H.halo.alpha * glow;
+    this.core.tint = lerpColor(color, 0xffffff, pulse * 0.35);
+    this.core.width = this.core.height = size * H.core * ORB_PAD;
+    this.glint.tint = color;
+    this.glint.rotation = now * H.glint.spin * TAU;
+    this.glint.width = this.glint.height = size * H.glint.size * lerp(0.8, 1.1, pulse);
+    this.glint.alpha = H.glint.alpha * glow;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.tint = color;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * H.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook };
 // The colour a look bursts into, by an ability's `look`.
-export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color })[look] ?? X.color;
+export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color })[look] ?? X.color;

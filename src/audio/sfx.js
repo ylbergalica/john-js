@@ -666,6 +666,52 @@ const SOUNDS = {
     tone(v, { type: 'triangle', freq: 1500, to: 520, dur: 0.6, vol: 0.06, attack: 0.05 });
     noise(v, { freq: 300, to: 1400, q: 0.9, dur: 0.65, vol: 0.2, attack: 0.08 });
   },
+  // the Tyrant
+  tyrantShot(v) { // one tracer: a hard flat crack
+    noise(v, { filter: 'highpass', freq: 2200, to: 900, q: 0.8, dur: 0.05, vol: 0.28, attack: 0.001 });
+    tone(v, { type: 'square', freq: 420, to: 120, dur: 0.07, vol: 0.09 });
+    tone(v, { freq: 150, to: 60, dur: 0.1, vol: 0.28 });
+  },
+  tyrantFan(v) { // a whole volley: a wide, ringing boom
+    noise(v, { filter: 'highpass', freq: 1800, to: 500, q: 0.7, dur: 0.09, vol: 0.3, attack: 0.002 });
+    noise(v, { freq: 620, to: 140, q: 0.8, dur: 0.28, vol: 0.42, attack: 0.003 });
+    tone(v, { type: 'sawtooth', freq: 190, to: 52, dur: 0.18, vol: 0.1 });
+    tone(v, { freq: 84, to: 30, dur: 0.38, vol: 0.5 });
+  },
+  tyrantSpin(v) { // its barrels spooling up: a whine climbing over a quickening clatter
+    tone(v, { type: 'sawtooth', freq: 90, to: 620, dur: 1, vol: 0.05, attack: 0.25 });
+    tone(v, { type: 'square', freq: 45, to: 310, dur: 1, vol: 0.03, attack: 0.25 });
+    noise(v, { freq: 600, to: 2600, q: 1.4, dur: 1, vol: 0.09, attack: 0.5 });
+  },
+  tyrantRattle(v) { // the stream, shot by shot: a dry mechanical bark
+    noise(v, { filter: 'highpass', freq: 1500, dur: 0.035, vol: 0.2, attack: 0.001 });
+    tone(v, { type: 'square', freq: 230, to: 90, dur: 0.045, vol: 0.09 });
+    tone(v, { freq: 110, to: 60, dur: 0.06, vol: 0.2 });
+  },
+  tyrantHeave(v) { // gathering its barrels: heavy metal locking home, over a groan
+    tone(v, { type: 'sawtooth', freq: 70, to: 120, dur: 0.6, vol: 0.05, attack: 0.1 });
+    for (const [at, freq] of [[0.05, 620], [0.28, 470], [0.52, 780]]) {
+      tone(v, { type: 'triangle', freq, to: freq * 0.82, at, dur: 0.09, vol: 0.09 });
+      tone(v, { freq: 120, to: 70, at, dur: 0.08, vol: 0.2 });
+    }
+  },
+  tyrantThump(v) { // the mortar: a deep hollow thoomp
+    noise(v, { filter: 'lowpass', freq: 900, to: 120, dur: 0.3, vol: 0.45, attack: 0.002 });
+    tone(v, { freq: 130, to: 28, dur: 0.5, vol: 0.6 });
+    tone(v, { type: 'triangle', freq: 320, to: 90, dur: 0.12, vol: 0.14 });
+  },
+  tyrantFlak(v) { // the shell going off: a sharp crack and shrapnel flying
+    noise(v, { filter: 'highpass', freq: 2600, to: 1000, q: 0.7, dur: 0.1, vol: 0.32, attack: 0.001 });
+    noise(v, { freq: 1100, to: 220, q: 0.8, dur: 0.3, vol: 0.4, attack: 0.002 });
+    tone(v, { freq: 100, to: 34, dur: 0.32, vol: 0.45 });
+    for (const [at, freq] of [[0.04, 2600], [0.09, 1900], [0.15, 3100]]) tone(v, { type: 'triangle', freq, to: freq * 0.85, at, dur: 0.08, vol: 0.04 });
+  },
+  tyrantWreck(v) { // its barrels blowing off: a run of heavy clanks
+    for (const [at, freq] of [[0, 520], [0.06, 390], [0.13, 610], [0.21, 330]]) {
+      tone(v, { type: 'triangle', freq, to: freq * 0.8, at, dur: 0.14, vol: 0.09 });
+      tone(v, { type: 'square', freq: freq / 3, to: freq / 5, at, dur: 0.05, vol: 0.04 });
+    }
+  },
   // the Razor
   razorRev(v) { // its blades winding up: a whine climbing over a thin buzz
     tone(v, { type: 'sawtooth', freq: 500, to: 1500, dur: 0.45, vol: 0.035, attack: 0.08 });

@@ -166,6 +166,10 @@ export const ATTACK_FX = {
     binary: { shape: 'ring', reach: 1.1, to: 1.2, lean: 0, squash: 0, swell: 0.12 }, // the beam between the pair flaring up shows the rest
     lash: { shape: 'ring', reach: 1.6, to: 1.15, lean: 0, squash: 0, swell: 0.1 }, // all round it
     razor: { shape: 'chevrons', count: 4, spacing: 0.6, size: 0.42, lean: 0.2, squash: 0.1, swell: 0, stretchIn: 0.05 }, // out past its disc
+    snap: { shape: 'chevrons', count: 3, spacing: 0.38, size: 0.26, lean: 0.16, squash: 0.06, swell: 0.03 }, // its barrels bunching show the rest
+    splay: { shape: 'arc', arcDeg: 120, lines: 3, reach: 1.5, to: 1.95, lean: 0.1, squash: 0.06, swell: 0.07 }, // the fan about to go off
+    spool: { shape: 'focus', count: 7, at: 1.75, reach: 1.2, to: 0.3, lean: 0.05, squash: 0, swell: 0.05 }, // its barrels spinning up
+    heave: { shape: 'none', lean: 0.2, squash: 0.1, swell: 0.08 }, // rearing back on its mortar
     zigzag: { shape: 'zigzag', count: 4, start: 2.1, step: 1.8, turnDeg: 76, lean: 0.14, squash: 0.08, swell: 0.04, stretchIn: 0.04 }, // the way it will go, straight ahead of it first (RazorZigzag: 2 × offDeg)
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
@@ -674,6 +678,41 @@ export const RAZOR = {
   sparks: { rate: 70, count: 1, speed: 6, lifetime: 0.22, size: 0.2, coneDeg: 30, color: 0xf2f6ff },
   grind: { rate: 26, count: 1, speed: 4.5, lifetime: 0.24, size: 0.2, coneDeg: 60, color: 0xfff2d0 },
   shatter: { count: 22, speed: 7.5, lifetime: 0.45, size: 0.3, coneDeg: 180, color: 0xf2f6ff },
+};
+
+// The Tyrant's guns (src/enemies/tyrantRig.js; their art in src/render/sprites.js): `count`
+// barrels, each pivoting `mount` out from its middle with its muzzle `reach` out. They ease
+// (`ease` seconds, `spinEase` for their spin) to the `poses` its attacks name, so the way
+// they lie says what's coming: `angles` off its facing (degrees, one a barrel), drawn `back`
+// a little, or spun round each other at `spin` rad/s, `side` out from the line of fire, those
+// on the far side of the turn dimmed to `far`. Each shot kicks its barrel `kick` back, over
+// `kickTime`. Long fire heats them towards `hotColor` (`heatRise`, `heatFall` seconds). Its
+// eyes glow `eyes.at` ahead, brighter through its attacks.
+export const TYRANT = {
+  count: 7, mount: 0.16, reach: 0.98, ease: 0.07, spinEase: 0.3, far: 0.5,
+  kick: 0.13, kickTime: 0.07, breathe: { deg: 1.6, speed: 1.3 },
+  hotColor: 0xff8a2a, heatRise: 0.8, heatFall: 1.4,
+  eyes: { at: 0.17, size: 0.85, color: 0xffd400, idle: 0.22, attack: 0.8 },
+  poses: {
+    idle: { angles: [-45, -30, -15, 0, 15, 30, 45] },
+    focus: { angles: [-72, -54, -5, 0, 5, 54, 72] }, // three bunched ahead, the rest folded out of the way
+    fan: { angles: [-51, -34, -17, 0, 17, 34, 51] }, // TyrantFan's seven
+    gap: { angles: [-42.5, -25.5, -8.5, 0, 8.5, 25.5, 42.5], back: 0.03 }, // its six, in the gaps the seven left
+    hose: { angles: [0, 0, 0, 0, 0, 0, 0], spin: 40, side: 0.13 },
+    heavy: { angles: [-8, -5.5, -2.5, 0, 2.5, 5.5, 8], back: 0.13 }, // gathered into one great muzzle
+    slack: { angles: [-80, -52, -25, 4, 29, 56, 78], back: 0.1 }, // stunned, hanging loose
+  },
+  sparks: { count: 3, speed: 5, lifetime: 0.35, size: 0.22, coneDeg: 70, color: 0xffd400 },
+  // Its shots. `bolt`: a hard, narrow tracer (`length` and `width` × its size), `shell`: a
+  // great round flickering as its fuse burns down (`pulse`, Hz from lit to burst), going from
+  // `color` to `hot`. Sizes × the shot's, except `trail` (world units).
+  bolt: { color: 0xffd400, bright: 0xfff6b0, length: 2.7, width: 0.7, halo: { size: 2.8, alpha: 0.6 }, trail: 1.6, trailWidth: 1, pulseSpeed: 13 },
+  shell: { color: 0xffd400, hot: 0xff5a1c, core: 0.95, halo: { size: 3, alpha: 0.65 }, glint: { size: 1.5, spin: 1.3, alpha: 0.5 }, pulse: [3, 15], trail: 1.3, trailWidth: 0.8 },
+  // A shell going off: `flash` and `ring` flaring from `from` to `to` across over `time`, and sparks.
+  burst: {
+    flash: { from: 0.8, to: 3.2, time: 0.16 }, ring: { from: 0.4, to: 5, time: 0.24 },
+    sparks: { count: 20, speed: 8, lifetime: 0.3, size: 0.3, coneDeg: 180 }, wallClear: 0.6,
+  },
 };
 
 // The Binary's two stars and the light between them (src/enemies/binaryRig.js, tether.js).

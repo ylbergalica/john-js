@@ -4,8 +4,9 @@
 // ability that threw it.
 import { Entity } from '../game/entity.js';
 import { Body, circleVsCircle, circleVsCapsule } from '../engine/physics.js';
-import { clamp, deltaAngle, fromAngle } from '../engine/math.js';
-import { ATTACK_FX } from '../data/config.js';
+import { clamp, deltaAngle, fromAngle, TAU } from '../engine/math.js';
+import { ATTACK_FX, TYRANT } from '../data/config.js';
+import { tex } from '../render/assets.js';
 import { PROJECTILE_LOOKS, renderTime } from './attackView.js';
 
 export class Projectile extends Entity {
@@ -38,7 +39,7 @@ export class Projectile extends Entity {
   }
 
   step(dt) {
-    if (this.world.time >= this.expiresAt) { this.destroy(); return; }
+    if (this.world.time >= this.expiresAt) { this.spent(); this.destroy(); return; }
     let heading = this.dir;
     if (this.curve && this.world.time < this.curveUntil) heading = this.bend(dt);
     else if (this.turnRate > 0) this.home(dt);
@@ -69,6 +70,9 @@ export class Projectile extends Entity {
   overlapsCapsule(cap) { return circleVsCapsule(this.body.pos.x, this.body.pos.y, this.body.radius, cap); }
   closestPoint() { return { x: this.body.pos.x, y: this.body.pos.y }; }
 
+  // It has run its course: out of time, broken on a wall or struck home (not parried).
+  spent() {}
+
   // Also once it has struck and gone (a late parry, see Player.hitBy).
   parry() {
     if (this.parried) return false;
@@ -83,6 +87,7 @@ export class Projectile extends Entity {
     if (!this.passesWalls && this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) {
       this.world.sound('fizzle', b.pos);
       this.world.effects.burst(b.pos.x, b.pos.y, this.body.rotation + Math.PI, { ...ATTACK_FX.projectile.fizzle, color: this.look.color });
+      this.spent();
       this.destroy();
       return;
     }
@@ -92,18 +97,44 @@ export class Projectile extends Entity {
     const dx = b.pos.x - p.body.pos.x, dy = b.pos.y - p.body.pos.y, l = Math.hypot(dx, dy) || 1;
     const hitPoint = { x: p.body.pos.x + (dx / l) * p.body.radius, y: p.body.pos.y + (dy / l) * p.body.radius };
     p.hitBy(this, this.damage, hitPoint, { ...b.pos });
+    this.spent();
     this.destroy();
   }
 
   render(alpha) {
     const p = this.body.lerpPos(alpha), now = renderTime(this.world, alpha);
     const trail = Math.min(this.look.maxTrail, Math.max(0, now - this.spawnedAt) * this.speed);
-    this.look.render(now, p.x, p.y, this.body.rotation, this.size, { trailLength: trail });
+    const fuse = clamp((now - this.spawnedAt) / (this.expiresAt - this.spawnedAt), 0, 1);
+    this.look.render(now, p.x, p.y, this.body.rotation, this.size, { trailLength: trail, fuse });
   }
 
   dispose() {
     this.world.hostileAttacks.delete(this);
     this.world.physics.remove(this.body);
     this.look.destroy();
+  }
+}
+
+// A shell: goes off in a ring of `shards` when it runs its course, wherever that is, unless
+// it's parried. Shards heading straight into a wall right beside it are never fired.
+// opts: Projectile's, and shards: { count, speed, lifetime, size, look, damage, sound }.
+export class Shell extends Projectile {
+  constructor(world, sourceAbility, x, y, opts) {
+    super(world, sourceAbility, x, y, opts);
+    this.shards = opts.shards;
+  }
+
+  spent() {
+    const w = this.world, { x, y } = this.body.pos, S = this.shards, B = TYRANT.burst, turn = Math.random() * TAU;
+    for (let i = 0; i < S.count; i++) {
+      const dir = fromAngle(turn + (TAU * i) / S.count);
+      if (w.physics.circleHitsWall(x + dir.x * B.wallClear, y + dir.y * B.wallClear, S.size / 2)) continue;
+      w.add(new Projectile(w, this.sourceAbility, x, y, { dir, speed: S.speed, lifetime: S.lifetime, damage: S.damage, size: S.size, look: S.look }));
+    }
+    w.sound(S.sound, this.body.pos);
+    const color = this.look.color;
+    w.effects.burst(x, y, 0, { ...B.sparks, color });
+    w.deathFx.flare(tex.mist, x, y, 0, { time: B.flash.time, w0: B.flash.from, h0: B.flash.from, w1: B.flash.to, h1: B.flash.to, color0: 0xffffff, color1: color, fade: 1.5 });
+    w.deathFx.flare(tex.ring, x, y, 0, { time: B.ring.time, w0: B.ring.from, h0: B.ring.from, w1: B.ring.to, h1: B.ring.to, color0: 0xffffff, color1: color, fade: 1.5 });
   }
 }

@@ -7,7 +7,20 @@
 // Dashes hurt only across the front `hitboxArcDeg` of their hitbox, as seen from its centre,
 // so running into a dashing enemy's side or back is safe.
 
+import { TYRANT } from './effects.js';
+
 const clearPath = (size, offset) => ({ requireClearAttackPath: true, attackPathCastSize: size, attackPathOriginOffset: offset });
+
+// The Tyrant's shots: `n` muzzles spread `stepDeg` apart across its front, `TYRANT.reach` out.
+const fan = (n, stepDeg) => Array.from({ length: n }, (_, i) => {
+  const a = ((i - (n - 1) / 2) * stepDeg * Math.PI) / 180;
+  return { x: Math.cos(a) * TYRANT.reach, y: Math.sin(a) * TYRANT.reach, angle: a };
+});
+// A list of volleys as CannonsAbility takes it: every muzzle, and each volley's by index.
+const guns = (...volleys) => {
+  const muzzles = [];
+  return { muzzles, volleys: volleys.map((v) => v.map((m) => muzzles.push(m) - 1)) };
+};
 
 export const ABILITIES = {
   GoblinThrow: {
@@ -384,6 +397,50 @@ export const ABILITIES = {
     damageMultiplier: 1, parryStunTime: 1.2, ...clearPath({ x: 1, y: 1 }, 0.3),
     legs: [0.6, 1, 1, 1], legLength: 4.2, offDeg: 38, steerDeg: 14, legGap: 0.05, speed: 15, launchTime: 0.04, brakeTime: 0.05, carry: 0.15, turnEase: 0.03, skidEase: 0.08,
     hitboxRadius: 0.84, parryKnockback: 10, strikeSound: 'razorDash', legSound: 'razorTurn',
+  },
+  // The Tyrant's guns: `volleys` of shots, one every `salvoInterval`, each straight out its
+  // muzzle (`guns`), its barrels lying as `poses` says for each volley (TYRANT.poses). Unlike
+  // the Gunner it doesn't always stand still, and it turns after the player as it fires, at up
+  // to `turnRate` (rad/s) until `salvoLock` before each volley, aiming `lead` of the way to
+  // where they'd be when the shot arrives (at most `maxLead` ahead). Any one shot parried
+  // stuns it and stops the rest.
+  // Snap: three fast tracers, the first where the player is, the others where they're going.
+  TyrantSnap: {
+    type: 'tyrantGuns', tell: 'snap', cooldown: 2.4, range: 13, windUpTime: 0.5, lockTime: 0.12, duration: 0, recoveryTime: 0.3,
+    damageMultiplier: 1, parryStunTime: 0.9, ...clearPath({ x: 1, y: 1 }, 0.3),
+    look: 'bolt', projectileSpeed: 10.5, projectileLifetime: 1.6, projectileSize: 0.3,
+    ...guns(fan(1, 0), fan(1, 0), fan(1, 0)), poses: ['focus'], salvoInterval: 0.12, together: true, regrowTime: 0.1,
+    turnRate: 7, salvoLock: 0, lead: 0.8, maxLead: 3, recoil: 0.5, cueEvery: 3, salvoSound: 'tyrantShot',
+  },
+  // Fan: seven across its whole front, then six in the gaps the seven left, then seven again,
+  // so standing in a gap only lasts one volley.
+  TyrantFan: {
+    type: 'tyrantGuns', tell: 'splay', cooldown: 5, range: 11, windUpTime: 0.85, lockTime: 0.2, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 1.1, ...clearPath({ x: 1, y: 1 }, 0.3),
+    look: 'bolt', projectileSpeed: 7.7, projectileLifetime: 2.4, projectileSize: 0.36,
+    ...guns(fan(7, 17), fan(6, 17), fan(7, 17)), poses: ['fan', 'gap', 'fan'], salvoInterval: 0.42, together: true, regrowTime: 0.25,
+    turnRate: 1, salvoLock: 0.15, recoil: 1.1, salvoSound: 'tyrantFan',
+  },
+  // Hose: its barrels spin up and it walks after the player (`stalk`, stopping `stop` away)
+  // pouring out a stream of shots, each off by up to `jitterDeg`, turning about as fast as they
+  // can run round it from a few tiles off: get in close, get behind something, or parry.
+  TyrantHose: {
+    type: 'tyrantGuns', tell: 'spool', cooldown: 8, range: 12, windUpTime: 1, lockTime: 0, duration: 0, recoveryTime: 0.7,
+    damageMultiplier: 1, parryStunTime: 1.6, ...clearPath({ x: 1, y: 1 }, 0.3),
+    look: 'bolt', projectileSpeed: 8.75, projectileLifetime: 2, projectileSize: 0.26,
+    ...guns(...Array.from({ length: 18 }, () => fan(1, 0))), poses: ['hose'], salvoInterval: 0.085,
+    turnRate: 1.15, salvoLock: 0, jitterDeg: 3.5, recoil: 0, stalk: { speed: 1.3, stop: 4, ease: 0.2 }, cueEvery: 6,
+    spoolSound: 'tyrantSpin', salvoSound: 'tyrantRattle',
+  },
+  // Flak: its barrels gather into one and lob a single great shell at where the player stands;
+  // it goes off there (after `fuse` [min, max] s at most) or on whatever it hits first, in a ring
+  // of `shards`, unless it's parried. Too close and it won't use it (`minRange`).
+  TyrantFlak: {
+    type: 'tyrantGuns', tell: 'heave', cooldown: 6.5, range: 14, minRange: 3.5, windUpTime: 0.8, lockTime: 0.2, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1.2, parryStunTime: 1.2, ...clearPath({ x: 1, y: 1 }, 0.3),
+    look: 'shell', projectileSpeed: 5.6, projectileLifetime: 2, projectileSize: 0.6, fuse: [0.7, 2.3],
+    ...guns(fan(1, 0)), poses: ['heavy'], salvoInterval: 0, recoil: 2, spoolSound: 'tyrantHeave', salvoSound: 'tyrantThump',
+    shards: { count: 12, look: 'bolt', speed: 5.95, lifetime: 1.8, size: 0.3, damageMultiplier: 0.8, sound: 'tyrantFlak' },
   },
   // The Binary's beam attack, made by the two stars together: either one starts it and draws
   // the other in, when that one is free, no more than `pairRange` from the player, and their

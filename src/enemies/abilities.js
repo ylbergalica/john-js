@@ -12,7 +12,7 @@ import { clamp, clamp01, clampLength, deltaAngle, dist, dirTo, fromAngle, lerp, 
 import { ATTACK_FX, BLIGHT, FIXED_DT, NOVA, WEB } from '../data/config.js';
 import { segmentPointDistSq } from '../engine/physics.js';
 import { EnemyHitbox } from './hitbox.js';
-import { Projectile } from './projectile.js';
+import { Projectile, Shell } from './projectile.js';
 import { MistShell } from './mistShell.js';
 import { DamageCause } from '../game/damage.js';
 import { hurtDistance } from '../game/hurtbox.js';
@@ -1653,7 +1653,8 @@ class CannonsAbility extends ThrowAbility {
 
   execute() {
     const d = this.data, all = this.muzzles.map((_, i) => i);
-    if (d.together) this.salvos = Array.from({ length: d.salvos }, () => all);
+    if (d.volleys) this.salvos = d.volleys;
+    else if (d.together) this.salvos = Array.from({ length: d.salvos }, () => all);
     else {
       const order = [];
       while (order.length < d.salvos) {
@@ -1676,14 +1677,14 @@ class CannonsAbility extends ThrowAbility {
   step(dt) {
     const d = this.data, live = this.phase === 'windup' || this.phase === 'active';
     if (live && this.cued < this.salvos.length && this.world.time >= this.fireTime(this.cued) - ATTACK_FX.cue.lead) {
-      this.cueAt = this.world.time;
+      if (this.cued % (d.cueEvery ?? 1) === 0) this.cueAt = this.world.time;
       this.cuedSalvo = this.cued++;
     }
     super.step(dt);
     if (this.phase !== 'active') return;
     while (this.fired < this.salvos.length && this.world.time >= this.fireTime(this.fired)) this.fireSalvo();
-    if (d.turnRate && this.player && this.world.time < this.fireTime(this.fired) - d.lockTime) {
-      const b = this.enemy.body, want = this.dirToPlayer(), max = d.turnRate * dt;
+    if (d.turnRate && this.player && this.world.time < this.fireTime(this.fired) - (d.salvoLock ?? d.lockTime)) {
+      const b = this.enemy.body, want = this.aimDir(), max = d.turnRate * dt;
       b.rotation += clamp(deltaAngle(b.rotation, Math.atan2(want.y, want.x)), -max, max);
     }
   }
@@ -1712,17 +1713,31 @@ class CannonsAbility extends ThrowAbility {
     if (!this.player) return;
     for (const i of cannons) {
       const m = this.muzzles[i], x = b.pos.x + dir.x * m.x - dir.y * m.y, y = b.pos.y + dir.y * m.x + dir.x * m.y;
-      const rot = b.rotation + (m.angle ?? 0);
-      this.world.add(new Projectile(this.world, this, x, y, {
-        dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier,
-        size: d.projectileSize, look: d.look,
-      }));
+      const rot = b.rotation + (m.angle ?? 0) + this.scatter();
+      this.launch(x, y, rot);
       this.world.effects.burst(x, y, rot, { ...ATTACK_FX.projectile.muzzle, color: lookColor(d.look) });
     }
     b.vel.x -= dir.x * d.recoil;
     b.vel.y -= dir.y * d.recoil;
     this.sound(d.salvoSound ?? (cannons.length > 1 ? 'broadside' : 'cannon'));
   }
+
+  // Where it turns to, firing.
+  aimDir() { return this.dirToPlayer(); }
+
+  // How far off its cannon's line a shot goes (radians).
+  scatter() { return 0; }
+
+  launch(x, y, rot) {
+    const d = this.data;
+    this.world.add(new Projectile(this.world, this, x, y, {
+      dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: this.enemy.damage * d.damageMultiplier,
+      size: d.projectileSize, look: d.look,
+    }));
+  }
+
+  // The cannons with a shot waiting at them.
+  loaded() { return new Set(this.salvos.slice(this.fired).flat()); }
 
   // A shot sits at every cannon yet to fire: formed over the wind-up, then a fresh set
   // over `regrowTime` after each `together` salvo.
@@ -1735,14 +1750,55 @@ class CannonsAbility extends ThrowAbility {
 
   chargePoints(alpha) {
     const b = this.enemy.body, p = b.lerpPos(alpha), rot = b.lerpRotation(alpha), c = Math.cos(rot), s = Math.sin(rot);
-    const loaded = new Set(this.salvos.slice(this.fired).flat());
-    return [...loaded].map((i) => {
+    return [...this.loaded()].map((i) => {
       const m = this.muzzles[i];
       return { x: p.x + c * m.x - s * m.y, y: p.y + s * m.x + c * m.y, rot: rot + (m.angle ?? 0) };
     });
   }
 
   cuePoints() { return (this.salvos[this.cuedSalvo] ?? []).map((i) => ({ x: this.muzzles[i].x, y: this.muzzles[i].y })); }
+}
+
+// Projectile: the Tyrant's guns, cannons firing a set list of `volleys` (see TyrantSnap in
+// data/abilities.js). Only the next volley's shots show, and with `lead` it turns after where
+// the player's going. `jitterDeg` scatters its shots, `stalk` has it walk after the player as
+// it fires, `shards` makes each shot a shell. Its barrels (tyrantRig.js) read `poses` and `fired`.
+class TyrantGunsAbility extends CannonsAbility {
+  execute() {
+    super.execute();
+    if (this.data.spoolSound) this.sound(this.data.spoolSound);
+  }
+
+  step(dt) {
+    super.step(dt);
+    const S = this.data.stalk;
+    if (!S || this.phase !== 'active' || !this.player) return;
+    const b = this.enemy.body, go = dist(b.pos, this.player.body.pos) > S.stop ? S.speed : 0, dir = fromAngle(b.rotation);
+    b.vel.x += (dir.x * go - b.vel.x) * S.ease;
+    b.vel.y += (dir.y * go - b.vel.y) * S.ease;
+  }
+
+  aimDir() {
+    const d = this.data;
+    if (!d.lead) return super.aimDir();
+    const p = this.player.body, from = this.enemy.body.pos, t = (dist(from, p.pos) / d.projectileSpeed) * d.lead;
+    const ahead = clampLength({ x: p.vel.x * t, y: p.vel.y * t }, d.maxLead);
+    return dirTo(from, { x: p.pos.x + ahead.x, y: p.pos.y + ahead.y });
+  }
+
+  scatter() { return this.data.jitterDeg ? randRange(-this.data.jitterDeg, this.data.jitterDeg) * DEG : 0; }
+
+  launch(x, y, rot) {
+    const d = this.data, S = d.shards;
+    if (!S) { super.launch(x, y, rot); return; }
+    const damage = this.enemy.damage * d.damageMultiplier;
+    this.world.add(new Shell(this.world, this, x, y, {
+      dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: clamp(dist(this.enemy.body.pos, this.player.body.pos) / d.projectileSpeed, ...d.fuse),
+      damage, size: d.projectileSize, look: d.look, shards: { ...S, damage: damage * S.damageMultiplier },
+    }));
+  }
+
+  loaded() { return new Set(this.salvos[this.fired] ?? []); }
 }
 
 // Whether thread `t` lies along the line a–b: near it (within `apart`) and close to parallel.
@@ -3176,7 +3232,7 @@ const TYPES = {
   slam: SlamAbility, hook: HookAbility, flurry: FlurryAbility, throw: ThrowAbility, lob: LobAbility, missiles: MissilesAbility, spin: SpinThrowAbility, volley: VolleyAbility,
   cannons: CannonsAbility, scimitar: ScimitarAbility, rush: RushAbility, ring: RingAbility, canisters: CanistersAbility, spew: SpewAbility,
   globs: GlobsAbility, weave: WeaveAbility, reel: ReelAbility, flare: FlareAbility, bash: BashAbility, plant: PlantAbility, jetDash: JetDashAbility,
-  swoop: SwoopAbility, binaryOrbit: OrbitPairAbility, binaryLash: LashAbility, bladeDisc: BladeDiscAbility, bladeDash: BladeDashAbility,
+  swoop: SwoopAbility, binaryOrbit: OrbitPairAbility, binaryLash: LashAbility, bladeDisc: BladeDiscAbility, bladeDash: BladeDashAbility, tyrantGuns: TyrantGunsAbility,
 };
 
 export function createAbility(enemy, data) {

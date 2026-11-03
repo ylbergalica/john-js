@@ -3,8 +3,8 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, RAZOR_ART, SHIELD_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges, weaverKnee, weaverLegsRest } from './sprites.js';
-import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR, SHIELD, WEAVER_LEGS } from '../data/config.js';
+import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, RAZOR_ART, SHIELD_ART, TYRANT_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges, weaverKnee, weaverLegsRest } from './sprites.js';
+import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR, SHIELD, TYRANT, WEAVER_LEGS } from '../data/config.js';
 import { capeRest } from '../enemies/cape.js';
 
 export const tex = {};
@@ -31,7 +31,7 @@ export async function loadAssets() {
   // White silhouettes swapped in while something flashes (replaces a per-object filter),
   // and tinted over an enemy as it winds up an attack. A prop's cracks never change its
   // outline, so one serves all its stages.
-  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'weaver_idle', 'weaver_idle_void', 'nova_idle', 'nova_idle_void', 'bulwark_idle', 'bulwark_idle_void', 'bulwark_shield', 'jet_idle', 'jet_idle_void', 'razor_idle', 'razor_idle_void', 'razor_disc', 'razor_blades', 'binary_idle', 'binary_idle_void', 'binary_twin_idle', 'binary_twin_idle_void', 'blight_idle', 'blight_idle_void', 'tail', 'hexFlat']) {
+  for (const name of ['goblin_idle', 'goblin_idle_void', 'striker_idle', 'striker_idle_void', 'seraph_idle', 'seraph_idle_void', 'mauler_idle', 'mauler_idle_void', 'star_maul', 'shade_idle', 'shade_idle_void', 'shade_blade', 'seer_idle', 'seer_idle_void', 'lemur_idle', 'lemur_idle_void', 'lemur_spade', 'lemur_spade_rim', 'boxer_idle', 'boxer_idle_void', 'boxer_fist', 'gunner_idle', 'gunner_idle_void', 'corsair_idle', 'corsair_idle_void', 'scimitar', 'weaver_idle', 'weaver_idle_void', 'nova_idle', 'nova_idle_void', 'bulwark_idle', 'bulwark_idle_void', 'bulwark_shield', 'jet_idle', 'jet_idle_void', 'razor_idle', 'razor_idle_void', 'razor_disc', 'razor_blades', 'tyrant_idle', 'tyrant_idle_void', 'tyrant_barrel', 'binary_idle', 'binary_idle_void', 'binary_twin_idle', 'binary_twin_idle_void', 'blight_idle', 'blight_idle_void', 'tail', 'hexFlat']) {
     tex[`${name}_white`] = toTexture(whiteSilhouette(tex[name].source.resource));
   }
   blightParts().forEach((_, i) => { tex[`blight_part_${i}_white`] = toTexture(whiteSilhouette(tex[`blight_part_${i}`].source.resource)); });
@@ -81,6 +81,7 @@ function enemyPortrait(visual, S = 128) {
   if (visual.rig === 'legs') return weaverPortrait(c, ctx, visual, S);
   if (visual.rig === 'shield') return bulwarkPortrait(c, ctx, visual, S);
   if (visual.rig === 'razor') return razorPortrait(c, ctx, visual, S);
+  if (visual.rig === 'guns') return tyrantPortrait(c, ctx, visual, S);
   const layers = visual.kind === 'sprite' ? [visual.void, visual.outline] : ['hexFlat'];
   for (const name of layers) {
     const src = tex[name].source.resource;
@@ -88,6 +89,20 @@ function enemyPortrait(visual, S = 128) {
     const w = src.width * k, h = src.height * k;
     ctx.drawImage(src, (S - w) / 2, (S - h) / 2, w, h);
   }
+  return c;
+}
+
+// The Tyrant with its barrels at rest, reaching out past its nose: shrunk and shifted back to fit.
+function tyrantPortrait(c, ctx, visual, S) {
+  const u = S / 2.1, cx = S / 2 - 0.2 * u, cy = S / 2, half = (visual.size / 2) * u, { w, h, root } = TYRANT_ART;
+  for (const deg of TYRANT.poses.idle.angles) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((deg * Math.PI) / 180);
+    ctx.drawImage(tex.tyrant_barrel.source.resource, (TYRANT.mount - root) * u, (-h / 2) * u, w * u, h * u);
+    ctx.restore();
+  }
+  for (const name of [visual.void, visual.outline]) ctx.drawImage(tex[name].source.resource, cx - half, cy - half, half * 2, half * 2);
   return c;
 }
 

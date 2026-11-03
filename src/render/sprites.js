@@ -6,7 +6,7 @@
 import { seededRandom, lerp, lerpColor, clamp01, smoothStep01, TAU } from '../engine/math.js';
 import { ASPECTS } from '../data/aspects.js';
 import { PLAYER } from '../data/player.js';
-import { BLIGHT, LEMUR_TAIL, NOVA, RAZOR, WEAVER_LEGS } from '../data/effects.js';
+import { BLIGHT, LEMUR_TAIL, NOVA, RAZOR, TYRANT, WEAVER_LEGS } from '../data/effects.js';
 import { ENEMY_TYPES } from '../data/enemies.js';
 import { antlerParts, mirrored } from './antlerShape.js';
 
@@ -70,6 +70,9 @@ export function sprites() {
     razor_idle_void: voidFill(razorPath(), VOIDS.razor),
     razor_disc: razorDisc(),
     razor_blades: razorBlades(),
+    tyrant_idle: tyrantOutline(),
+    tyrant_idle_void: voidFill(tyrantPath(), VOIDS.tyrant),
+    tyrant_barrel: tyrantBarrel(),
     binary_idle: binaryOutline(BINARY_ART.rims[0]),
     binary_idle_void: voidFill(binaryPath(), VOIDS.binary),
     binary_twin_idle: binaryOutline(BINARY_ART.rims[1]),
@@ -888,6 +891,7 @@ const VOIDS = {
   corsair: { core: '#33270a', edge: '#090602', clouds: [['#c8961e', 0.22], ['#7a5a12', 0.24]], seed: 71 },
   weaver: { core: '#16151d', edge: '#030304', clouds: [['#5e587e', 0.2], ['#2c2a3c', 0.24]], seed: 79 },
   bulwark: { core: '#1c212a', edge: '#050608', clouds: [['#5f6d82', 0.22], ['#2e3746', 0.26]], seed: 83 },
+  tyrant: { core: '#2c2300', edge: '#060500', clouds: [['#e0b400', 0.26], ['#6b4e00', 0.3]], seed: 113 },
   razor: { core: '#868d9a', edge: '#23262d', clouds: [['#f4f7ff', 0.34], ['#aeb8cc', 0.26]], seed: 107 },
   binary: { core: '#16264a', edge: '#03060e', clouds: [['#7ab4ff', 0.26], ['#e8f4ff', 0.12], ['#3a5cff', 0.2]], seed: 101 },
   binaryTwin: { core: '#3a2408', edge: '#0a0602', clouds: [['#ffbc48', 0.26], ['#fff2d0', 0.12], ['#e0661c', 0.2]], seed: 103 },
@@ -1690,6 +1694,81 @@ function jetOutline(S = 256) {
 // One of the Binary's stars: a small sun, a disc ringed by `rays` points, long and short in
 // turn (`long`, `short` out from its middle, the notches between them `inner`), its rim
 // lit from a white-hot middle out to its colour (`rims`: the first star's, then its twin's).
+// The Tyrant's hull: a coffin-shaped wedge with two great horns swept back off its shoulders,
+// in hazard yellow. `hull`: the upper half of its outline, [ahead, out] from its middle,
+// from the flat of its nose round to its tail. Two slit `eyes` slant in towards its nose, and
+// hazard `chevrons` run down its back, [tip ahead, back, out], dimmed to `chevronAlpha`. Its
+// barrels are sprites of their own, `TYRANT_ART`, so its rig can fan them.
+const TYRANT_BODY = {
+  line: 0.04, eyeLine: 0.026, chevronLine: 0.024, chevronAlpha: 0.6,
+  hull: [[0.2, 0.09], [0.13, 0.22], [0.04, 0.24], [-0.17, 0.37], [-0.1, 0.2], [-0.24, 0.12], [-0.19, 0]],
+  eyes: [[0.14, 0.03], [0.05, 0.135]],
+  chevrons: [[-0.02, -0.075, 0.1], [-0.09, -0.145, 0.085]],
+};
+const TYRANT_PALETTE = { stroke: ['#fff8b8', '#ffd400', '#c88a00'], glow: rgba('#ffc800', 0.7) };
+// One barrel, along +x in a sprite `w` by `h` (world units, `unit` px each): its tube from
+// `root`, tapering from half-width `gauge[0]` to `[1]` by `brake` along it, then a heavier
+// muzzle brake of half-width `brakeGauge` to its `length`, TYRANT.reach - TYRANT.mount.
+export const TYRANT_ART = {
+  w: 1, h: 0.3, unit: 256, root: 0.06, length: TYRANT.reach - TYRANT.mount, gauge: [0.078, 0.056], brake: 0.6, brakeGauge: [0.094, 0.07], line: 0.026,
+};
+
+function tyrantPath() {
+  const { hull } = TYRANT_BODY, p = new Path2D();
+  hull.forEach(([x, y], i) => (i ? p.lineTo(0.5 + x, 0.5 + y) : p.moveTo(0.5 + x, 0.5 + y)));
+  for (let i = hull.length - 2; i >= 0; i--) p.lineTo(0.5 + hull[i][0], 0.5 - hull[i][1]);
+  p.closePath();
+  return p;
+}
+
+function tyrantOutline(S = 256) {
+  const { line, eyeLine, chevronLine, chevronAlpha, eyes: [e0, e1], chevrons } = TYRANT_BODY;
+  return outline(S, TYRANT_PALETTE, (ctx) => {
+    ctx.lineJoin = 'miter';
+    ctx.lineWidth = line;
+    ctx.stroke(tyrantPath());
+    ctx.lineWidth = eyeLine;
+    ctx.lineCap = 'butt';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(0.5 + e0[0], 0.5 + side * e0[1]);
+      ctx.lineTo(0.5 + e1[0], 0.5 + side * e1[1]);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = chevronAlpha;
+    ctx.lineWidth = chevronLine;
+    for (const [tip, back, out] of chevrons) {
+      ctx.beginPath();
+      ctx.moveTo(0.5 + back, 0.5 - out);
+      ctx.lineTo(0.5 + tip, 0.5);
+      ctx.lineTo(0.5 + back, 0.5 + out);
+      ctx.stroke();
+    }
+  });
+}
+
+function tyrantBarrel() {
+  const { w, h, unit, root, length, gauge: [g0, g1], brake, brakeGauge: [b0, b1], line } = TYRANT_ART;
+  const { c, ctx, px } = surface(Math.round(w * unit), Math.round(h * unit), unit), y = h / 2, end = root + length;
+  const p = new Path2D();
+  p.moveTo(root, y - g0);
+  p.lineTo(root + brake, y - g1);
+  p.lineTo(root + brake, y - b0);
+  p.lineTo(end, y - b1);
+  p.lineTo(end, y + b1);
+  p.lineTo(root + brake, y + b0);
+  p.lineTo(root + brake, y + g1);
+  p.lineTo(root, y + g0);
+  p.closePath();
+  ctx.fillStyle = '#1c1600';
+  ctx.fill(p);
+  ctx.strokeStyle = linear(ctx, root, 0, end, 0, ['#c88a00', '#ffd400', '#fff8b8']);
+  ctx.lineWidth = line;
+  ctx.lineJoin = 'miter';
+  glow(ctx, TYRANT_PALETTE.glow, px * 0.03, () => ctx.stroke(p));
+  return c;
+}
+
 // The Razor: a plain circle with a V on its front, its point ahead, in the outline's colour
 // (`vee`: its point and its arms' ends, along +x from the centre and across). Its disc and
 // blades are sprites of their own, `RAZOR_ART.size` across in world units, so its rig can

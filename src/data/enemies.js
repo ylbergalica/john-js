@@ -227,6 +227,22 @@ export const ENEMY_TYPES = {
       decisionDelayRange: { x: 1, y: 2 }, repositionDurationRange: { x: 1, y: 2 },
       attacks: [{ ability: 'RazorDash', weight: 0.6 }, { ability: 'RazorZigzag', weight: 0.4 }], passives: [{ ability: 'RazorBlades' }] },
   },
+  // The last word in guns: a horned hull in hazard yellow with slit eyes, hazard chevrons down
+  // its back and a crown of seven barrels across its front, which splay, bunch or spin to show
+  // what's coming (`rig`, see tyrantRig.js). It keeps far off and each attack throws a different
+  // number of shots: three quick tracers aimed where the player's going; seven, six and seven
+  // across its whole front, each volley in the last one's gaps; a stream of eighteen as it walks
+  // after them; or one great shell that bursts into twelve.
+  tyrant: {
+    name: 'Tyrant', maxHealth: 50, damage: 2, radius: 0.56, mass: 5, linearDamping: 1,
+    knockbackResistance: 0.2, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xffd400, sfxPitch: 0.9,
+    visual: { kind: 'sprite', outline: 'tyrant_idle', void: 'tyrant_idle_void', size: 1.8, sparkleCount: 16, rig: 'guns' },
+    hurtbox: [[0.5, 0], [0.36, 0.3], [0.07, 0.46], [-0.29, 0.62], [-0.43, 0.22], [-0.43, -0.22], [-0.29, -0.62], [0.07, -0.46], [0.36, -0.3]], // hull and horns, the barrels' roots
+    ai: { ...AI_DEFAULTS, aggroRange: 18, orbitRadius: 7, attackEngageRange: 9, moveSpeed: 3, orbitSpeed: 2.6, repositionSpeed: 2.8, maxTurnSpeed: 4.5,
+      turnSmoothTime: 0.14, decisionDelayRange: { x: 0.5, y: 1.1 },
+      attacks: [{ ability: 'TyrantSnap', weight: 0.3 }, { ability: 'TyrantFan', weight: 0.3 }, { ability: 'TyrantFlak', weight: 0.2 }, { ability: 'TyrantHose', weight: 0.2 }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

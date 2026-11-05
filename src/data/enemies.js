@@ -258,6 +258,20 @@ export const ENEMY_TYPES = {
       decisionDelayRange: { x: 0.5, y: 1.2 }, recoverDuration: 0.3, repositionDurationRange: { x: 0.8, y: 1.6 },
       attacks: [{ ability: 'MorayBite', weight: 0.5 }, { ability: 'MorayLeap', weight: 0.25 }, { ability: 'MoraySpit', weight: 0.35 }], passives: [{ ability: 'MorayLurk' }] },
   },
+  // A gaunt duelist in pale verdigris with a long needle (`rig`, see revenantRig.js), and always,
+  // 0.7s behind it, its afterimage: the same silhouette in ghostly light, repeating everything
+  // it does, blade and all (RevenantAfterimage). So every attack comes twice: a long thrust, a
+  // pair of crossing slashes. Or it blinks back to where its afterimage stands, cutting along
+  // the line between them. Its afterimage can't be struck, only parried.
+  revenant: {
+    name: 'Revenant', maxHealth: 46, damage: 3, radius: 0.46, mass: 3, linearDamping: 1,
+    knockbackResistance: 0.05, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x7fe0c0, sfxPitch: 1.05,
+    visual: { kind: 'sprite', outline: 'revenant_idle', void: 'revenant_idle_void', size: 1.5, sparkleCount: 10, rig: 'revenant' },
+    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 3.6, attackEngageRange: 5.4, moveSpeed: 5.4, orbitSpeed: 4.6, repositionSpeed: 5, maxTurnSpeed: 9,
+      decisionDelayRange: { x: 0.5, y: 1.1 }, recoverDuration: 0.35, repositionDurationRange: { x: 0.7, y: 1.4 },
+      attacks: [{ ability: 'RevenantThrust', weight: 0.45 }, { ability: 'RevenantCross', weight: 0.45 }, { ability: 'RevenantRecall', weight: 0.3 }], passives: [{ ability: 'RevenantAfterimage' }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

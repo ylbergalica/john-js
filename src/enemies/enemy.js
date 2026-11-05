@@ -25,13 +25,14 @@ import { BinaryRig } from './binaryRig.js';
 import { RazorRig } from './razorRig.js';
 import { TyrantRig } from './tyrantRig.js';
 import { MorayRig } from './morayRig.js';
+import { RevenantRig } from './revenantRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 import { DamageCause } from '../game/damage.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig, razor: RazorRig, guns: TyrantRig, eel: MorayRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig, razor: RazorRig, guns: TyrantRig, eel: MorayRig, revenant: RevenantRig };
 
 export class Enemy extends Entity {
   // twin: the second of a pair (a type with a `pair`), wearing its type's `twin` look.
@@ -61,6 +62,7 @@ export class Enemy extends Entity {
     this.tether = null; // the light binding it to its twin (the Binary's, tether.js), while there is one
     this.widowed = false; // its twin gone (a pair's, see Tether.widow)
     this.lair = null; // its life in the wall, which does its moving (a Moray's, WallLurkAbility)
+    this.afterimage = null; // the ghost repeating its every move (a Revenant's, AfterimageAbility)
     // A shield it holds up ahead (its type's `guard`, the Bulwark's): blows from within its
     // arc glance off, unless it's broken off its arm (until `brokenUntil`).
     const G = this.type.guard;

@@ -118,8 +118,8 @@ export class Player extends Entity {
       const pull = this.reeledBy?.pullOn(this);
       if (pull) { this.steer(pull.x, pull.y, 1); return; }
       const speed = PLAYER.moveSpeed * this.world.adrenaline.speedMultiplier * this.buffs.speedMultiplier * (devFlags.noclip ? 3 : 1);
-      const push = this.shoveVelocity(now);
-      this.steer(this.movement.x * speed + push.x, this.movement.y * speed + push.y, PLAYER.movementResponsiveness);
+      const push = this.shoveVelocity(now), drag = this.gravityVelocity(speed);
+      this.steer(this.movement.x * speed + push.x + drag.x, this.movement.y * speed + push.y + drag.y, PLAYER.movementResponsiveness);
     }
   }
 
@@ -133,6 +133,20 @@ export class Player extends Entity {
     const k = s ? 1 - (now - s.at) / s.time : 0;
     if (k <= 0) { this.shoved = null; return { x: 0, y: 0 }; }
     return { x: s.vx * k * k, y: s.vy * k * k };
+  }
+
+  // What's dragging them along on top of walking (World.gravities, a Collapsar's): a velocity,
+  // and only while they walk, so walls stop it like walking and a dash outruns it. However
+  // many are at it, they can always just about walk away (PLAYER.gravityLimit of `speed`).
+  gravityVelocity(speed) {
+    let x = 0, y = 0;
+    if (devFlags.noclip || this.intangible || this.shrouded) return { x, y };
+    for (const g of this.world.gravities) {
+      const v = g.pullOn(this);
+      x += v.x; y += v.y;
+    }
+    const k = (speed * PLAYER.gravityLimit) / Math.max(1e-6, Math.hypot(x, y));
+    return k < 1 ? { x: x * k, y: y * k } : { x, y };
   }
 
   afterPhysics() {

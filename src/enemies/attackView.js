@@ -16,9 +16,11 @@
 //   BoltLook       the same for the Tyrant's tracers.
 //   ShellLook      the same for its shells.
 //   EmberLook      the same for the Comet's embers.
+//   DarkOrbLook    the same for the Collapsar's orb, a gravity well in the making.
+//   CoalLook       the same for its shots and shards.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, BLOB as BL, COMET as CO, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
+import { ATTACK_FX, BLOB as BL, COMET as CO, COLLAPSAR as CL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -1006,6 +1008,73 @@ export class EmberLook {
   destroy() { this.container.destroy({ children: true }); }
 }
 
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook, ember: EmberLook };
+// The Collapsar's orb (COLLAPSAR.darkOrb): a black round ringed in fire, in a violet halo.
+export class DarkOrbLook {
+  get color() { return CL.darkOrb.color; }
+  get maxTrail() { return CL.darkOrb.trail; }
+
+  constructor(parent, { trail = true } = {}) {
+    const O = CL.darkOrb;
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: O.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: O.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: O.core });
+    this.ring = sprite(tex.ring, this.container, { blendMode: 'add', tint: O.rim });
+    for (const s of this.container.children) s.visible = true;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const O = CL.darkOrb, pulse = 0.5 + 0.5 * Math.sin(now * O.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.halo.width = this.halo.height = size * O.halo.size * lerp(0.9, 1.1, pulse);
+    this.halo.alpha = O.halo.alpha * glow;
+    this.core.width = this.core.height = size * O.coreSize * ORB_PAD;
+    this.ring.width = this.ring.height = (size * O.ring.size) / 2 / RING_RADIUS;
+    this.ring.alpha = O.ring.alpha * glow * lerp(0.7, 1, pulse);
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * O.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+// One of its shots or shards (COLLAPSAR.ember, by `variant`): a coal in a burning halo.
+export class CoalLook {
+  get color() { return this.kind.color; }
+  get maxTrail() { return CL.ember.trail; }
+
+  constructor(parent, { trail = true, variant = 'orange' } = {}) {
+    this.kind = CL.ember[variant];
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: this.kind.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: this.kind.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: this.kind.core });
+    for (const s of this.container.children) s.visible = true;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const E = CL.ember, pulse = 0.5 + 0.5 * Math.sin(now * E.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.halo.width = this.halo.height = size * E.halo.size * lerp(0.9, 1.1, pulse);
+    this.halo.alpha = E.halo.alpha * glow;
+    this.core.width = this.core.height = size * E.coreSize * ORB_PAD;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * E.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook, ember: EmberLook, darkOrb: DarkOrbLook, coal: CoalLook };
 // The colour a look bursts into, by an ability's `look`.
-export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color, ember: CO.ember.color })[look] ?? X.color;
+export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color, ember: CO.ember.color, darkOrb: CL.darkOrb.color, coal: CL.ember.orange.color })[look] ?? X.color;

@@ -9,7 +9,7 @@
 //               parry only disarms it: it plays out harmlessly while the enemy is stunned
 //   projectile  something is thrown; a parry breaks the projectile
 import { clamp, clamp01, clampLength, deltaAngle, dist, dirTo, fromAngle, lerp, pickWeighted, randRange, randSign, smoothStep01, TAU } from '../engine/math.js';
-import { ATTACK_FX, BLIGHT, COMET, FIXED_DT, MORAY, NOVA, WEB } from '../data/config.js';
+import { ATTACK_FX, BLIGHT, COMET, COLLAPSAR, FIXED_DT, MORAY, NOVA, WEB } from '../data/config.js';
 import { segmentPointDistSq } from '../engine/physics.js';
 import { EnemyHitbox } from './hitbox.js';
 import { Projectile, Shell } from './projectile.js';
@@ -26,6 +26,7 @@ import { AIState } from './ai.js';
 import { LashView } from './tether.js';
 import { PathTell, Wake } from './wake.js';
 import { blightMuzzle, blightParts } from '../render/sprites.js';
+import { EjectaShot, WellOrb, gravityPull, wellsIn } from './gravity.js';
 
 const DEG = Math.PI / 180;
 
@@ -4121,6 +4122,141 @@ class CometSlingAbility extends CometRunAbility {
   }
 }
 
+// ── the Collapsar ──────────────────────────────────────────────────
+// Its gravity (CollapsarGravity), never picked by its AI. It lives in World.gravities, which
+// the player answers to as they walk. Its rig reads `pull`, how hard it has hold, 0 → 1.
+class GravityAbility extends Ability {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.pull = 1;
+    this.humAt = 0;
+    this.world.gravities.add(this);
+  }
+
+  shouldExecute() { return false; }
+
+  step(dt) {
+    super.step();
+    const d = this.data, e = this.enemy, w = this.world;
+    this.pull = lerp(this.pull, e.stunned ? 0 : 1, 1 - Math.exp(-dt / d.ease));
+    const p = w.livePlayer;
+    if (w.time < this.humAt || e.stunned || !p || dist(e.body.pos, p.body.pos) > d.reach) return;
+    this.humAt = w.time + d.humEvery;
+    this.sound('collapsarHum');
+  }
+
+  pullOn(player) { return gravityPull(this.world, this.enemy.body.pos, player.body, this.data, this.pull); }
+
+  dispose() {
+    super.dispose();
+    this.world.gravities.delete(this);
+  }
+}
+
+// Zone: its Inhale, hauling the player in through the wind-up, then the crush all round it.
+class InhaleAbility extends HitboxAbility {
+  constructor(enemy, data) {
+    const area = { type: 'circle', r: data.hitboxRadius };
+    super(enemy, data, area, area, { parryKnockback: data.parryKnockback, strikeSound: 'collapsarCrush' });
+    this.world.gravities.add(this);
+  }
+
+  execute() {
+    super.execute();
+    this.sound('collapsarInhale');
+  }
+
+  strike() {
+    const b = this.enemy.body, w = this.world, s = this.data.crushShake, { volume } = w.positional(b.pos);
+    if (volume > 0) w.camera.shake(s.duration, s.strength * volume, s.frequency);
+    w.effects.burst(b.pos.x, b.pos.y, 0, COLLAPSAR.crushSparks);
+  }
+
+  pullOn(player) {
+    const d = this.data;
+    if (this.phase !== 'windup') return { x: 0, y: 0 };
+    return gravityPull(this.world, this.enemy.body.pos, player.body, d.pull, smoothStep01(clamp01((this.world.time - this.phaseStartedAt) / d.pullRise)));
+  }
+
+  dispose() {
+    super.dispose();
+    this.world.gravities.delete(this);
+  }
+}
+
+// Projectile: its Well, an orb lobbed at where the player stands (WellOrb).
+class WellAbility extends ThrowAbility {
+  // Nothing can hurt as the wind-up ends, so EnemyAttackFx never cues it.
+  get armDelay() { return Infinity; }
+
+  // At most so many on the floor, counting those on their way: orbs flying and being gathered.
+  shouldExecute() {
+    const w = this.world, gathering = w.enemies.filter((e) => [...e.abilities.values()].some((a) => a instanceof WellAbility && a.phase === 'windup')).length;
+    return wellsIn(w) + gathering < this.data.well.max && super.shouldExecute();
+  }
+
+  execute() {
+    super.execute();
+    this.sound('collapsarGather');
+  }
+
+  release() {
+    const e = this.enemy, d = this.data, from = this.chargePoints(1)[0], to = this.player.body.pos;
+    this.world.add(new WellOrb(this.world, this, from, to, {
+      speed: d.projectileSpeed, size: d.projectileSize, damage: e.damage * d.damageMultiplier, well: d.well,
+    }));
+    this.sound('collapsarLob');
+  }
+}
+
+// Projectile: its Ejecta (EjectaShot), the shots showing all round its disc as they form,
+// gaps and all, orbiting it the way they'll be thrown.
+class EjectaAbility extends ThrowAbility {
+  constructor(enemy, data) {
+    super(enemy, data);
+    this.side = 1;
+    this.turn = 0;
+    this.open = []; // the slots with a shot in them
+  }
+
+  get armDelay() { return Infinity; }
+
+  execute() {
+    const d = this.data, n = d.slots, gaps = new Set();
+    this.side = randSign();
+    this.turn = Math.random() * TAU;
+    d.gaps.forEach((size, g) => {
+      const at = Math.round(((g + randRange(-0.12, 0.12)) * n) / d.gaps.length);
+      for (let i = 0; i < size; i++) gaps.add((at + i + n) % n);
+    });
+    this.open = Array.from({ length: n }, (_, i) => i).filter((i) => !gaps.has(i));
+    super.execute();
+    this.sound('collapsarGather');
+  }
+
+  angleOf(i, now) { return this.turn + (TAU * i) / this.data.slots + this.side * this.data.orbitSpeed * (now - this.phaseStartedAt); }
+
+  chargePoints(alpha, now = this.world.time) {
+    const p = this.enemy.body.lerpPos(alpha), R = this.data.radius;
+    return this.open.map((i) => {
+      const a = this.angleOf(i, now);
+      return { x: p.x + Math.cos(a) * R, y: p.y + Math.sin(a) * R, rot: a + (this.side * Math.PI) / 2 };
+    });
+  }
+
+  release() {
+    const e = this.enemy, d = this.data, w = this.world;
+    for (const { x, y, rot } of this.chargePoints(1)) {
+      if (w.physics.circleHitsWall(x, y, d.projectileSize / 2)) continue; // into a wall right beside it
+      w.add(new EjectaShot(w, this, x, y, {
+        dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier, size: d.projectileSize,
+        look: d.look, curve: (this.side * d.projectileSpeed) / d.swing, curveTime: d.curveTime, flingSpeed: d.flingSpeed,
+      }));
+    }
+    this.sound('collapsarEjecta');
+  }
+}
+
 const TYPES = {
   dash: DashAbility, ram: RamAbility, laser: LaserAbility, punch: PunchAbility, swing: SwingAbility, slashes: SlashesAbility, smash: SmashAbility, groundPound: GroundPoundAbility,
   slam: SlamAbility, hook: HookAbility, flurry: FlurryAbility, throw: ThrowAbility, lob: LobAbility, missiles: MissilesAbility, spin: SpinThrowAbility, volley: VolleyAbility,
@@ -4129,6 +4265,7 @@ const TYPES = {
   swoop: SwoopAbility, binaryOrbit: OrbitPairAbility, binaryLash: LashAbility, bladeDisc: BladeDiscAbility, bladeDash: BladeDashAbility, tyrantGuns: TyrantGunsAbility,
   wallLurk: WallLurkAbility, morayBite: MorayBiteAbility, morayLeap: MorayLeapAbility, moraySpit: MoraySpitAbility,
   cometWake: WakeAbility, cometStreak: CometStreakAbility, cometNoose: CometNooseAbility, cometSling: CometSlingAbility,
+  gravity: GravityAbility, inhale: InhaleAbility, well: WellAbility, ejecta: EjectaAbility,
 };
 
 export function createAbility(enemy, data) {

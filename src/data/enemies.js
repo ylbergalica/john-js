@@ -275,6 +275,25 @@ export const ENEMY_TYPES = {
       decisionDelayRange: { x: 0.4, y: 0.9 }, repositionDurationRange: { x: 0.5, y: 1.1 }, wander: { reach: 9, speed: 5, pause: [0, 0.25] },
       attacks: [{ ability: 'CometStreak', weight: 0.5 }, { ability: 'CometNoose', weight: 0.5 }, { ability: 'CometSling', weight: 0.35 }], passives: [{ ability: 'CometWake' }] },
   },
+  // A heavy dead star: a near-black sphere in a burning accretion disc, orange into violet at
+  // its rim, spinning faster as it gathers itself (`rig`, see collapsarRig.js). The first
+  // enemy whose threat is forced movement: its gravity is always at the player, a drag they
+  // feel in their steering (CollapsarGravity). It lumbers after them and hauls them in, harder
+  // and harder, for a crushing bite; lobs a dark orb that settles into a gravity well and
+  // implodes into shards; or throws a broken ring of shots off its disc, which swing in round
+  // it before flying out. Parry the bite and its disc unravels and its gravity lets go. It's
+  // what a blow lands on, its disc's bright band (`hurtbox`). Killed, it implodes, then blasts.
+  collapsar: {
+    name: 'Collapsar', maxHealth: 72, damage: 3.2, radius: 0.62, mass: 8, linearDamping: 1,
+    knockbackResistance: 0.75, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 3, maxAdrenalineDrops: 4, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xff8a3c, sfxPitch: 0.8,
+    visual: { kind: 'sprite', outline: 'collapsar_idle', void: 'collapsar_idle_void', size: 2, sparkleCount: 6, rig: 'collapsar' },
+    hurtbox: Array.from({ length: 16 }, (_, i) => [0.95 * Math.cos((i * Math.PI) / 8), 0.95 * Math.sin((i * Math.PI) / 8)]),
+    ai: { ...AI_DEFAULTS, aggroRange: 15, orbitRadius: 5, moveSpeed: 1.7, orbitSpeed: 1.2, repositionSpeed: 1.4, maxTurnSpeed: 2.2, turnSmoothTime: 0.25,
+      movementResponsiveness: 0.12, decisionDelayRange: { x: 0.6, y: 1.3 }, repositionDurationRange: { x: 0.8, y: 1.6 },
+      attacks: [{ ability: 'CollapsarInhale', weight: 0.4 }, { ability: 'CollapsarWell', weight: 0.3 }, { ability: 'CollapsarEjecta', weight: 0.3 }],
+      passives: [{ ability: 'CollapsarGravity' }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

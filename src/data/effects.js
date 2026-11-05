@@ -176,6 +176,9 @@ export const ATTACK_FX = {
     splay: { shape: 'arc', arcDeg: 120, lines: 3, reach: 1.5, to: 1.95, lean: 0.1, squash: 0.06, swell: 0.07 }, // the fan about to go off
     spool: { shape: 'focus', count: 7, at: 1.75, reach: 1.2, to: 0.3, lean: 0.05, squash: 0, swell: 0.05 }, // its barrels spinning up
     heave: { shape: 'none', lean: 0.2, squash: 0.1, swell: 0.08 }, // rearing back on its mortar
+    inhale: { shape: 'focus', count: 12, at: 0, reach: 4.2, to: 1.5, lean: 0, squash: 0, swell: -0.12 }, // everything rushing in on it
+    lob: { shape: 'none', lean: 0.16, squash: 0.06, swell: 0.05 }, // rearing back, its orb showing
+    flare: { shape: 'ring', reach: 0.8, to: 2.5, lean: 0, squash: 0, swell: 0.06 }, // its disc swelling, the shots forming round it
     zigzag: { shape: 'zigzag', count: 4, start: 2.1, step: 1.8, turnDeg: 76, lean: 0.14, squash: 0.08, swell: 0.04, stretchIn: 0.04 }, // the way it will go, straight ahead of it first (RazorZigzag: 2 × offDeg)
   },
   // The parry cue: an amber four-point star with a small white core in a soft halo, popping
@@ -905,5 +908,75 @@ export const BLOB = {
     stars: { count: 6, size: [0.05, 0.1], twinkle: [0.8, 2] },
     pop: { count: 3, speed: 2, lifetime: 0.25, size: 0.25, coneDeg: 180, color: 0xa8f060 },
     fumes: 4, fume: { count: 1, speed: 1.5, lifetime: 0.7, size: 0.4, coneDeg: 20, color: 0x5ab02a },
+  },
+};
+
+// The Collapsar (src/enemies/collapsarRig.js, gravity.js; its art in src/render/sprites.js).
+// Its disc, `disc.inner` to `disc.outer` round in two layers, the outer turning `outerPace` as
+// fast. It eases (`ease` seconds) between `looks`: `spin` rad/s, `disc` its layers' alpha, `scale`,
+// `glow` its corona's alpha and `strands` the alpha of the strands it comes apart into. `flare`:
+// the burst of light and swell as it throws something. Unravelling it sheds `shed` a second,
+// after `unravel` all at once.
+// `infall`: the streaks falling in on what pulls (`calm` to `hard`): `rate` a second, from within
+// `reach`, `speed` and `accel` (tiles a second, and that a second), `length`, `width`, `alpha`,
+// going from `far` to `near` as they fall. Their last `inner` tiles are hidden in what they fall on.
+// `well`: a gravity well, `size` across, its rim ring `ringAlpha` at the edge of its reach.
+// `darkOrb` and `ember`: the looks of its orb and shots. `death`: `time` seconds shrinking to
+// `end` of its size, pulling the player in (`pull`) and the walls round it (`wall`, tiles), then
+// `blast` (as DEATH_FX.enemy, without its pop), and `shove` (as DEATH_FX.guardian.push).
+export const COLLAPSAR = {
+  disc: { inner: 0.6, band: 1.08, outer: 1.5 }, ease: 0.16, outerPace: 0.55, glowColor: 0xff6a2c, glowSize: 5,
+  looks: {
+    idle: { spin: 1.4, disc: 0.82, scale: 1, glow: 0.2, strands: 0 },
+    gather: { spin: 5, disc: 1, scale: 1.03, glow: 0.42, strands: 0 },
+    ejecta: { spin: 7, disc: 1, scale: 1.14, glow: 0.55, strands: 0 },
+    inhale: { spin: 15, disc: 1, scale: 0.8, glow: 0.75, strands: 0 },
+    crush: { spin: 22, disc: 1, scale: 0.5, glow: 1, strands: 0 },
+    slack: { spin: 0.4, disc: 0.1, scale: 1.25, glow: 0.05, strands: 0.95 },
+  },
+  flare: { time: 0.26, glow: 0.5, scale: 0.16 },
+  crushSparks: { count: 34, speed: 11, lifetime: 0.32, size: 0.36, coneDeg: 180, color: 0xffb060 },
+  unravel: { count: 26, speed: 6.5, lifetime: 0.7, size: 0.32, coneDeg: 180, color: 0xc070ff },
+  shed: { rate: 16, count: 1, speed: 2.4, lifetime: 0.6, size: 0.24, coneDeg: 30, color: 0xb060ff },
+  infall: {
+    far: 0x7a3cff, near: 0xffa050, inner: 1.2,
+    calm: { rate: 10, speed: 1.1, accel: 2.4, length: 0.32, width: 0.035, alpha: 0.34 },
+    hard: { rate: 75, speed: 6, accel: 15, length: 1.15, width: 0.055, alpha: 0.85 },
+  },
+  well: {
+    size: 2.2, inner: 0.7, glowColor: 0x8a3cff, glowSize: 3.4, glowAlpha: 0.45, ringColor: 0x8a4cff, ringAlpha: 0.22, spin: 2.2, warnSpin: 9, slack: 0.3,
+    infall: { calm: { rate: 16, speed: 1, accel: 3, length: 0.28, width: 0.035, alpha: 0.42 }, hard: { rate: 55, speed: 3.5, accel: 11, length: 0.7, width: 0.05, alpha: 0.85 } },
+    settle: { count: 16, speed: 4.5, lifetime: 0.4, size: 0.26, coneDeg: 180, color: 0xa060ff },
+    flash: { from: 0.6, to: 4.4, time: 0.2 }, ring: { from: 0.4, to: 5.5, time: 0.3 },
+    sparks: { count: 24, speed: 8.5, lifetime: 0.34, size: 0.3, coneDeg: 180, color: 0xc48cff }, wall: 1.6,
+    marker: { line: 0.05, alpha: 0.5 },
+  },
+  darkOrb: { color: 0x8a3cff, rim: 0xff8a3c, core: 0x07040c, coreSize: 0.74, halo: { size: 3.2, alpha: 0.7 }, ring: { size: 1.1, alpha: 0.85 }, trail: 1.5, trailWidth: 1.1, pulseSpeed: 3.5 },
+  ember: {
+    orange: { color: 0xff8a3c, core: 0xffe0b0 }, violet: { color: 0xa45cff, core: 0xecd8ff },
+    coreSize: 0.8, halo: { size: 3, alpha: 0.7 }, trail: 1.3, trailWidth: 1.1, pulseSpeed: 7,
+  },
+  death: {
+    time: 0.25, end: 0.1, spin: 40, wall: 3, pull: { reach: 7, near: 6, curve: 0.6 },
+    infall: { rate: 130, speed: 9, accel: 30, length: 1.5, width: 0.06, alpha: 0.9 },
+    blast: {
+      flash: { size: 7, grow: 2.2, time: 0.3, alpha: 1 },
+      rings: [
+        { delay: 0, time: 0.32, from: 1, to: 6, alpha: 1, color: 0xffffff },
+        { delay: 0.04, time: 0.55, from: 1, to: 8.5, alpha: 0.8, color: 0xa45cff },
+      ],
+      rays: { count: 9, length: [3, 6.5], width: [0.3, 0.55], time: [0.25, 0.42] },
+      sparks: [
+        { count: 44, speed: 15, lifetime: 0.55, size: 0.48, coneDeg: 180 },
+        { count: 26, speed: 11, lifetime: 0.6, size: 0.4, coneDeg: 180, color: 0xa45cff },
+      ],
+      stars: { count: 22, speed: [3, 10], size: [0.22, 0.42], life: [0.6, 1.2], color: 0xffffff },
+      mist: { count: 14, speed: [1.5, 4.5], size: [1.2, 1.9], grow: 2.4, life: [0.5, 0.9], alpha: 0.4 },
+      embers: null,
+      shake: { duration: 0.28, strength: 0.32, frequency: 18 },
+      ripple: { duration: 0.6, strength: 0.022, width: 0.07, glow: 0.5, grade: [0.94, 0.92, 0.97] },
+    },
+    shove: { radius: 6, speed: 9, stagger: 0.3, playerTime: 0.35 },
+    hold: 0.05,
   },
 };

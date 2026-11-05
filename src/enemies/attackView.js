@@ -16,10 +16,10 @@
 //   BoltLook       the same for the Tyrant's tracers.
 //   ShellLook      the same for its shells.
 //   DarkOrbLook    the same for the Collapsar's orb, a gravity well in the making.
-//   EmberLook      the same for its shots and shards.
+//   CoalLook       the same for its shots and shards.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, BLOB as BL, COLLAPSAR as CO, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
+import { ATTACK_FX, BLOB as BL, COLLAPSAR as CL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -974,11 +974,11 @@ export class ShellLook {
 
 // The Collapsar's orb (COLLAPSAR.darkOrb): a black round ringed in fire, in a violet halo.
 export class DarkOrbLook {
-  get color() { return CO.darkOrb.color; }
-  get maxTrail() { return CO.darkOrb.trail; }
+  get color() { return CL.darkOrb.color; }
+  get maxTrail() { return CL.darkOrb.trail; }
 
   constructor(parent, { trail = true } = {}) {
-    const O = CO.darkOrb;
+    const O = CL.darkOrb;
     this.container = new Container();
     this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: O.color });
     this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: O.color }) : null;
@@ -990,7 +990,7 @@ export class DarkOrbLook {
   }
 
   render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
-    const O = CO.darkOrb, pulse = 0.5 + 0.5 * Math.sin(now * O.pulseSpeed * TAU);
+    const O = CL.darkOrb, pulse = 0.5 + 0.5 * Math.sin(now * O.pulseSpeed * TAU);
     this.container.position.set(x, y);
     this.halo.width = this.halo.height = size * O.halo.size * lerp(0.9, 1.1, pulse);
     this.halo.alpha = O.halo.alpha * glow;
@@ -1008,12 +1008,12 @@ export class DarkOrbLook {
 }
 
 // One of its shots or shards (COLLAPSAR.ember, by `variant`): a coal in a burning halo.
-export class EmberLook {
+export class CoalLook {
   get color() { return this.kind.color; }
-  get maxTrail() { return CO.ember.trail; }
+  get maxTrail() { return CL.ember.trail; }
 
   constructor(parent, { trail = true, variant = 'orange' } = {}) {
-    this.kind = CO.ember[variant];
+    this.kind = CL.ember[variant];
     this.container = new Container();
     this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: this.kind.color });
     this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: this.kind.color }) : null;
@@ -1024,7 +1024,7 @@ export class EmberLook {
   }
 
   render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
-    const E = CO.ember, pulse = 0.5 + 0.5 * Math.sin(now * E.pulseSpeed * TAU);
+    const E = CL.ember, pulse = 0.5 + 0.5 * Math.sin(now * E.pulseSpeed * TAU);
     this.container.position.set(x, y);
     this.halo.width = this.halo.height = size * E.halo.size * lerp(0.9, 1.1, pulse);
     this.halo.alpha = E.halo.alpha * glow;
@@ -1039,6 +1039,6 @@ export class EmberLook {
   destroy() { this.container.destroy({ children: true }); }
 }
 
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook, darkOrb: DarkOrbLook, ember: EmberLook };
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook, darkOrb: DarkOrbLook, coal: CoalLook };
 // The colour a look bursts into, by an ability's `look`.
-export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color, darkOrb: CO.darkOrb.color, ember: CO.ember.orange.color })[look] ?? X.color;
+export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color, darkOrb: CL.darkOrb.color, coal: CL.ember.orange.color })[look] ?? X.color;

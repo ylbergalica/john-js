@@ -747,6 +747,63 @@ const SOUNDS = {
     tone(v, { type: 'sine', freq: 240, to: 60, dur: 0.24, vol: 0.2, attack: 0.01 });
     noise(v, { freq: 500, to: 160, q: 1, dur: 0.22, vol: 0.12 });
   },
+  // the Collapsar
+  collapsarHum(v) { // its weight, always there: a deep beating hum, swelling and falling away
+    for (const freq of [41, 41.7]) tone(v, { freq, dur: 2.9, vol: 0.13, attack: 0.9 });
+    tone(v, { type: 'triangle', freq: 82, to: 80, dur: 2.7, vol: 0.022, attack: 1 });
+  },
+  collapsarInhale(v) { // everything rushing in: a wind rising and narrowing, a groan climbing under it
+    noise(v, { freq: 280, to: 2400, q: 1.1, dur: 1.3, vol: 0.2, attack: 0.9 });
+    noise(v, { filter: 'highpass', freq: 1800, to: 5200, dur: 1.25, vol: 0.05, attack: 1 });
+    const muffled = dull(v, 700, 1);
+    for (const freq of [46, 47]) tone(v, { type: 'sawtooth', freq, to: freq * 2.5, dur: 1.3, vol: 0.055, attack: 0.6, out: muffled });
+  },
+  collapsarCrush(v) { // the bite: a huge dull slam with a grinding crunch through it
+    tone(v, { freq: 120, to: 26, dur: 0.34, vol: 0.5, attack: 0.001, out: grit(v, 1.3, 0.4) });
+    noise(v, { freq: 900, to: 180, q: 0.7, dur: 0.2, vol: 0.42, attack: 0.002 });
+    for (let i = 0; i < 5; i++) noise(v, { freq: 1400 - i * 170, q: 1.4, at: 0.015 + i * 0.024, dur: 0.035, vol: 0.2 - i * 0.025 });
+  },
+  collapsarGather(v) { // gathering itself: a low swell with its disc whirring up over it
+    tone(v, { freq: 58, to: 98, dur: 0.9, vol: 0.14, attack: 0.5 });
+    noise(v, { freq: 500, to: 1300, q: 2.2, dur: 0.85, vol: 0.07, attack: 0.55 });
+  },
+  collapsarLob(v) { // the orb going: a heavy, hollow gulp
+    tone(v, { freq: 170, to: 62, dur: 0.24, vol: 0.28, attack: 0.008 });
+    noise(v, { freq: 420, to: 180, q: 1.4, dur: 0.2, vol: 0.14 });
+  },
+  wellForm(v) { // settling into the floor: a sinking thud, then a low throb opening up
+    tone(v, { freq: 92, to: 40, dur: 0.3, vol: 0.28, attack: 0.004 });
+    for (const freq of [55, 56.2]) tone(v, { freq, to: freq * 0.85, at: 0.06, dur: 0.75, vol: 0.09, attack: 0.15 });
+    noise(v, { freq: 700, to: 240, q: 1.6, dur: 0.42, vol: 0.09, attack: 0.05 });
+  },
+  wellCave(v) { // caving in: the throb winding up fast, sucking air
+    tone(v, { type: 'triangle', freq: 70, to: 320, dur: 0.6, vol: 0.12, attack: 0.15 });
+    noise(v, { freq: 300, to: 2600, q: 1.3, dur: 0.6, vol: 0.16, attack: 0.3 });
+  },
+  wellImplode(v) { // gone: a hard, dry clap with shards ringing out of it
+    tone(v, { freq: 210, to: 40, dur: 0.22, vol: 0.4, attack: 0.001 });
+    noise(v, { freq: 1500, to: 400, q: 0.8, dur: 0.14, vol: 0.34, attack: 0.001 });
+    for (const [at, freq] of [[0.02, 1900], [0.06, 2500], [0.1, 1500]]) tone(v, { type: 'triangle', freq, to: freq * 0.82, at, dur: 0.15, vol: 0.035 });
+  },
+  collapsarEjecta(v) { // its disc throwing them off: a tearing whoosh round a deep thump
+    tone(v, { freq: 130, to: 44, dur: 0.26, vol: 0.3, attack: 0.002 });
+    noise(v, { freq: 1900, to: 520, q: 0.9, dur: 0.42, vol: 0.2, attack: 0.012 });
+    noise(v, { filter: 'highpass', freq: 3600, dur: 0.16, vol: 0.05 });
+  },
+  collapsarUnravel(v) { // its disc coming apart: its whirr running down, its hum let go
+    noise(v, { freq: 1700, to: 200, q: 2.2, dur: 0.85, vol: 0.14, attack: 0.01 });
+    tone(v, { type: 'sawtooth', freq: 260, to: 34, dur: 0.8, vol: 0.05, attack: 0.01 });
+    tone(v, { freq: 80, to: 30, dur: 0.6, vol: 0.2, attack: 0.01 });
+  },
+  collapsarImplode(v) { // struck down: all of it dropping inward at once, pitch and air falling away to nothing
+    for (const freq of [640, 654]) tone(v, { type: 'sawtooth', freq, to: 40, dur: 0.26, vol: 0.05, attack: 0.005 });
+    noise(v, { freq: 3200, to: 180, q: 1.1, dur: 0.26, vol: 0.26, attack: 0.008 });
+  },
+  collapsarBlast(v) { // and back out: a deep split with a long roar falling off it
+    tone(v, { freq: 150, to: 24, dur: 0.75, vol: 0.55, attack: 0.001, out: grit(v, 1.4, 0.38) });
+    noise(v, { freq: 1200, to: 110, q: 0.6, dur: 0.85, vol: 0.42, attack: 0.002 });
+    noise(v, { filter: 'highpass', freq: 3000, dur: 0.1, vol: 0.14 });
+  },
   razorRev(v) { // its blades winding up: a whine climbing over a thin buzz
     tone(v, { type: 'sawtooth', freq: 500, to: 1500, dur: 0.45, vol: 0.035, attack: 0.08 });
     noise(v, { filter: 'highpass', freq: 3200, dur: 0.42, vol: 0.05, attack: 0.15 });

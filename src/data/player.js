@@ -7,6 +7,7 @@ export const PLAYER = {
   linearDamping: 1,
   moveSpeed: 5,
   movementResponsiveness: 0.8, // fraction of the velocity error corrected per step
+  gravityLimit: 0.96, // whatever's dragging them (Player.gravityVelocity) never goes faster than this × their walking
   knockbackResistance: 0,
   inputBufferTime: 0.12,
   attack: {

@@ -90,6 +90,7 @@ export class World {
     this.props = []; // destroyables, for the player's attacks
     this.floorTextures = []; // made for this floor alone (a spawner's art), destroyed with it
     this.hostileAttacks = new Set(); // enemy hitboxes/projectiles the player can parry
+    this.gravities = new Set(); // what's dragging the player about, each with a pullOn(player) (see Player.gravityVelocity)
     this.player = null;
     this.decoy = null; // { body }: a stand-in the enemies hunt instead of the player (Afterimage)
     this.level = null;

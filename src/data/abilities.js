@@ -434,6 +434,44 @@ export const ABILITIES = {
     type: 'moraySpit', tell: 'moraySpit', cooldown: 4, range: 10, minRange: 2.5, windUpTime: 0.6, lockTime: 0.15, duration: 0, recoveryTime: 0.4,
     damageMultiplier: 0.8, parryStunTime: 1.2, projectileSpeed: 7.5, projectileLifetime: 2.2, projectileSize: 0.32, chargeSize: 0.4, spawnDistance: 0.7, spreadDeg: [-22, 0, 22],
   },
+  // The Collapsar's gravity, never picked by its AI: a pull on the player, `near` tiles a second
+  // right by it falling to nothing `reach` tiles out as (1 - d / reach) ^ `curve`, with no wall
+  // between them. Stunned it lets go; `ease` seconds to let go or take hold again. It hums every
+  // `humEvery` seconds with the player in reach.
+  CollapsarGravity: {
+    type: 'gravity', cooldown: 0, range: 0, windUpTime: 0, duration: 0, recoveryTime: 0, damageMultiplier: 0,
+    reach: 7, near: 1.8, curve: 1.2, ease: 0.25, humEvery: 2.6,
+  },
+  // Inhale: over its wind-up it hauls the player in (`pull`, on top of its gravity, gathering
+  // over the first `pullRise` of it), then crushes all round. Walking away from close by only
+  // about holds them level (PLAYER.gravityLimit); from a few tiles off it gets them clear, and
+  // standing still it reaches them from anywhere it would start this. A dash outruns it.
+  CollapsarInhale: {
+    type: 'inhale', tell: 'inhale', pose: 'inhale', cooldown: 6, range: 7, windUpTime: 1.3, lockTime: 0, duration: 0.14, recoveryTime: 0.9,
+    damageMultiplier: 1, parryStunTime: 2.4, ...clearPath({ x: 1, y: 1 }, 0.7), cueAt: 1.6,
+    hitboxRadius: 2.6, parryKnockback: 16, pull: { reach: 10, near: 6, curve: 0.5 }, pullRise: 0.2, crushShake: { duration: 0.2, strength: 0.28, frequency: 18 },
+  },
+  // Well: lobs a slow dark orb at where the player stands, which settles there into a gravity
+  // well (`well`: at most `max` on a floor at once, their orbs in flight included) `time` seconds
+  // long, pulling as gravity does, harder (`hard`) over its last `warn` seconds, as it caves in,
+  // to burst in a ring of `shards`. Its maker stunned, it lets go too; its maker dead, it caves
+  // in at once, harmlessly (`fizzle` seconds). Parried, the orb's gone and its maker stunned.
+  CollapsarWell: {
+    type: 'well', tell: 'lob', pose: 'gather', cooldown: 7, range: 11, minRange: 3, windUpTime: 0.9, lockTime: 0.15, duration: 0, recoveryTime: 0.6,
+    damageMultiplier: 0.8, parryStunTime: 1.2, ...clearPath({ x: 0.8, y: 0.8 }, 0.7),
+    look: 'darkOrb', projectileSpeed: 5, projectileSize: 0.56, spawnDistance: 1.3,
+    well: { max: 2, time: 4, form: 0.35, warn: 0.6, fizzle: 0.25, reach: 3.5, near: 2.8, curve: 0.8, hard: 1.5, ease: 0.2,
+      shards: { count: 12, look: 'ember', variant: 'violet', speed: 5, lifetime: 1.8, size: 0.3, damageMultiplier: 0.7, wallClear: 0.6 } },
+  },
+  // Ejecta: `slots` shots form round its disc `radius` out, orbiting it at `orbitSpeed` (rad/s),
+  // `gaps` runs of them left out, one each side of it, and it throws them off along their orbits.
+  // They swing in round it on a tighter circle (`swing` across) for `curveTime` seconds, at
+  // `projectileSpeed`, then fly straight on out at `flingSpeed`. Any of them parried stuns it.
+  CollapsarEjecta: {
+    type: 'ejecta', tell: 'flare', pose: 'ejecta', cooldown: 5.5, range: 8, windUpTime: 0.9, lockTime: 0, duration: 0, recoveryTime: 0.7,
+    damageMultiplier: 0.8, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.7), look: 'ember', projectileSize: 0.34, chargeSize: 0.34,
+    slots: 18, gaps: [2, 2], radius: 1.4, orbitSpeed: 1.5, projectileSpeed: 3.4, swing: 1.15, curveTime: 1.1, flingSpeed: 4.8, projectileLifetime: 3.7,
+  },
   // The Tyrant's guns: `volleys` of shots, one every `salvoInterval`, each straight out its
   // muzzle (`guns`), its barrels lying as `poses` says for each volley (TYRANT.poses). Unlike
   // the Gunner it doesn't always stand still, and it turns after the player as it fires, at up

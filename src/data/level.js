@@ -44,6 +44,7 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'razor', weight: { min: 0.4, max: 0.9 }, fromFloor: 25, peakFloor: 29, toFloor: 32 },
       { type: 'tyrant', weight: { min: 0.4, max: 0.9 }, fromFloor: 27, peakFloor: 33, toFloor: 36 },
       { type: 'moray', weight: { min: 0.4, max: 0.9 }, fromFloor: 32, peakFloor: 36, toFloor: 42 },
+      { type: 'collapsar', weight: { min: 0.35, max: 0.8 }, fromFloor: 40, peakFloor: 45, toFloor: 52 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
     // in a room) until killing them all fills `meterShare` of a meter even if each drops

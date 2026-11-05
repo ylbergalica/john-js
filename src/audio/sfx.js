@@ -713,6 +713,53 @@ const SOUNDS = {
     }
   },
   // the Razor
+  // the Revenant
+  revenantThrust(v) { // the needle going through: a thin hard rip with a glint on it
+    noise(v, { freq: 2600, to: 5600, q: 1.5, dur: 0.15, vol: 0.26, attack: 0.004 });
+    tone(v, { type: 'triangle', freq: 3100, to: 1500, dur: 0.09, vol: 0.06, attack: 0.002 });
+  },
+  revenantThrustEcho(v) { // the same a beat late: colder and hollow, a little flat, two tones beating
+    noise(v, { filter: 'highpass', freq: 3600, to: 2400, at: 0.025, dur: 0.2, vol: 0.09, attack: 0.012 });
+    tone(v, { type: 'sine', freq: 2780, to: 1330, at: 0.025, dur: 0.16, vol: 0.05, attack: 0.008 });
+    tone(v, { type: 'sine', freq: 2850, to: 1360, at: 0.04, dur: 0.2, vol: 0.04, attack: 0.008 });
+  },
+  revenantSlash(v) { // a quick whistling cut
+    noise(v, { freq: 1800, to: 3800, q: 1.3, dur: 0.11, vol: 0.2, attack: 0.006 });
+    tone(v, { type: 'triangle', freq: 1500, to: 2300, dur: 0.07, vol: 0.035, attack: 0.002 });
+  },
+  revenantSlashEcho(v) { // its ghost: thinner and flat, late
+    noise(v, { filter: 'highpass', freq: 3000, to: 2100, at: 0.02, dur: 0.14, vol: 0.08, attack: 0.01 });
+    tone(v, { type: 'sine', freq: 1340, to: 2050, at: 0.02, dur: 0.1, vol: 0.04, attack: 0.006 });
+    tone(v, { type: 'sine', freq: 1385, to: 2110, at: 0.035, dur: 0.12, vol: 0.03, attack: 0.006 });
+  },
+  revenantEchoGather(v) { // the afterimage drawing itself up: a faint cold breath rising
+    noise(v, { filter: 'highpass', freq: 2200, to: 4600, dur: 0.34, vol: 0.035, attack: 0.2 });
+    tone(v, { type: 'sine', freq: 880, to: 1320, dur: 0.34, vol: 0.016, attack: 0.2 });
+  },
+  revenantRecallRise(v) { // reaching back to its afterimage: a thin tone sucked upward
+    tone(v, { type: 'sine', freq: 500, to: 2300, dur: 0.38, vol: 0.05, attack: 0.28 });
+    noise(v, { freq: 1200, to: 5200, q: 2, dur: 0.38, vol: 0.09, attack: 0.3 });
+  },
+  revenantRecall(v) { // gone and there: a crack of air and a long tear down the line
+    noise(v, { filter: 'highpass', freq: 2600, dur: 0.05, vol: 0.32, attack: 0.001 });
+    tone(v, { type: 'sine', freq: 180, to: 60, dur: 0.16, vol: 0.28 });
+    noise(v, { freq: 5000, to: 1100, q: 1.2, at: 0.01, dur: 0.24, vol: 0.2 });
+    tone(v, { type: 'sine', freq: 2600, to: 900, at: 0.01, dur: 0.22, vol: 0.04 });
+  },
+  revenantShatter(v) { // the afterimage breaking: a pane of cold glass going, in a falling run
+    noise(v, { filter: 'highpass', freq: 3800, dur: 0.1, vol: 0.28, attack: 0.001 });
+    for (const [at, freq] of [[0, 4200], [0.03, 3300], [0.07, 3750], [0.12, 2600], [0.18, 3050], [0.26, 2100]]) tone(v, { type: 'sine', freq, to: freq * 0.97, at, dur: 0.16, vol: 0.05 });
+    tone(v, { type: 'sine', freq: 300, to: 110, dur: 0.14, vol: 0.14 });
+  },
+  revenantReform(v) { // coming back: a shimmer rising out of nothing
+    for (const [at, freq] of [[0, 1180], [0.07, 1760], [0.15, 2360]]) tone(v, { type: 'sine', freq, to: freq * 1.01, at, dur: 0.3, vol: 0.022, attack: 0.1 });
+    noise(v, { filter: 'highpass', freq: 5000, dur: 0.45, vol: 0.025, attack: 0.25 });
+  },
+  revenantDeath(v) { // it and its afterimage gone at once: glass and a long breath let out
+    noise(v, { filter: 'highpass', freq: 3200, dur: 0.14, vol: 0.2, attack: 0.001 });
+    for (const [at, freq] of [[0, 3400], [0.05, 2500], [0.12, 1900]]) tone(v, { type: 'sine', freq, to: freq * 0.7, at, dur: 0.34, vol: 0.05 });
+    noise(v, { freq: 1500, to: 280, q: 0.7, at: 0.06, dur: 0.6, vol: 0.07, attack: 0.1 });
+  },
   // the Moray
   morayWake(v) { // moving in the wall: a low rumble and a dry scrape, hardly there
     tone(v, { type: 'sine', freq: 62, to: 48, dur: 0.5, vol: 0.09, attack: 0.1 });

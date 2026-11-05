@@ -472,6 +472,44 @@ export const ABILITIES = {
     damageMultiplier: 0.8, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.7), look: 'coal', projectileSize: 0.34, chargeSize: 0.34,
     slots: 18, gaps: [2, 2], radius: 1.4, orbitSpeed: 1.5, projectileSpeed: 3.4, swing: 1.15, curveTime: 1.1, flingSpeed: 4.8, projectileLifetime: 3.7,
   },
+  // The Revenant's afterimage: a passive, replaying the Revenant `delay` seconds behind, its
+  // hitboxes and all, each for `damageMultiplier` of its damage (whatever isn't `noEcho`).
+  // Parried it shatters, the Revenant dealt a parry's damage, knocked back and staggered for
+  // `staggerTime`. Shattered either way (a parry of the Revenant's own blade too), it re-forms
+  // once the stun's over, no sooner than `downTime`, fading in over `fadeTime`.
+  RevenantAfterimage: {
+    type: 'afterimage', cooldown: 0, range: 0, windUpTime: 0, duration: 0, recoveryTime: 0,
+    delay: 0.7, damageMultiplier: 1, staggerTime: 0.5, downTime: 0.5, fadeTime: 0.55, parryKnockback: 7,
+  },
+  // Thrust: along its locked aim for `length` at `speed` (gathered over `launchTime`, leaving
+  // it `carry` of it to skid off), through the player and on, needle first (`hitbox`, a thin
+  // strip ahead of it, out past its point). Sometimes (`followUp`) it's straight into a Recall.
+  RevenantThrust: {
+    type: 'revenantThrust', tell: 'revenantThrust', ready: 'thrustReady', cooldown: 3.2, range: 5.6, minRange: 1.5, windUpTime: 0.55, lockTime: 0.15, duration: 0, recoveryTime: 0.12,
+    damageMultiplier: 1, parryStunTime: 1.1, ...clearPath({ x: 0.6, y: 0.6 }, 0.3),
+    length: 4.8, speed: 22, launchTime: 0.04, carry: 0.25, skidEase: 0.07, hitbox: { from: 0.1, length: 2.25, r: 0.17 },
+    followUp: { ability: 'RevenantRecall', chance: 0.4 }, parryKnockback: 9, strikeSound: 'revenantThrust', echoSound: 'revenantThrustEcho',
+  },
+  // Cross: two slashes of its needle, from either side by turns, `swingTime` each, the second
+  // `gap` after the first, half its afterimage's delay so all four land on an even beat, its
+  // own two then its echo's. It steps `stepDistance` into each, the second turned after the
+  // player by up to `turnDeg`, and the second has its cue `cueLead` ahead of it.
+  RevenantCross: {
+    type: 'revenantCross', tell: 'revenantCross', ready: 'slashReady', cooldown: 3.4, range: 3.1, windUpTime: 0.48, lockTime: 0.12, duration: 0.5, recoveryTime: 0.3,
+    damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 0.6, y: 0.6 }, 0.3),
+    gap: 0.35, swingTime: 0.15, stepDistance: 0.95, skidEase: 0.05, turnDeg: 28, cueLead: 0.2, bladeHit: { reach: [0.3, 2.05], radius: 0.14, samples: 4 },
+    parryKnockback: 7, strikeSound: 'revenantSlash', echoSound: 'revenantSlashEcho',
+  },
+  // Recall: it blinks back to where its afterimage stands, at least `minGap` off with nothing
+  // between them, cutting all along the line from where it stood to `past` beyond (as wide as
+  // `hitboxRadius`). It only goes with the player within `lineReach` of that line. The afterimage
+  // waits for it through the wind-up (`holdsEcho`), and the cut isn't echoed (`noEcho`): the
+  // afterimage is taken back into it, recording afresh from there.
+  RevenantRecall: {
+    type: 'revenantRecall', tell: 'revenantRecall', ready: 'thrustReady', noEcho: true, holdsEcho: true, cooldown: 5, range: 8, windUpTime: 0.4, duration: 0.14, recoveryTime: 0.42,
+    damageMultiplier: 1, parryStunTime: 1.1, minGap: 2.4, lineReach: 1.5, past: 1.6, hitboxRadius: 0.24,
+    shake: { duration: 0.16, strength: 0.13, frequency: 30 }, parryKnockback: 8, strikeSound: 'revenantRecall',
+  },
   // The Tyrant's guns: `volleys` of shots, one every `salvoInterval`, each straight out its
   // muzzle (`guns`), its barrels lying as `poses` says for each volley (TYRANT.poses). Unlike
   // the Gunner it doesn't always stand still, and it turns after the player as it fires, at up

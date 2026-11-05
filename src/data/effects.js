@@ -171,6 +171,9 @@ export const ATTACK_FX = {
     cometStreak: { shape: 'chevrons', count: 4, spacing: 0.55, size: 0.36, lean: 0.24, squash: 0.12, swell: 0, stretchIn: 0.05 }, // the floor shows the rest (PathTell)
     cometNoose: { shape: 'ring', reach: 1.5, to: 1.1, lean: 0.06, squash: 0, swell: 0.1, stretchIn: 0.05 },
     cometSling: { shape: 'arc', arcDeg: 150, lines: 2, reach: 0.8, to: 1.2, lean: 0.16, squash: 0.06, swell: 0.05, stretchIn: 0.05 },
+    revenantThrust: { shape: 'chevrons', count: 5, spacing: 0.72, size: 0.2, lean: 0.3, squash: 0.1, swell: 0, stretchIn: 0.04 }, // down a thin strip
+    revenantCross: { shape: 'arc', arcDeg: 130, lines: 2, reach: 5.2, to: 4.6, lean: 0.1, squash: 0.04, swell: 0.05 }, // out where its needle will sweep
+    revenantRecall: { shape: 'ring', reach: 1.4, to: 0.95, lean: 0, squash: 0.12, swell: -0.06 }, // gathering in on itself; RecallView shows the rest
     razor: { shape: 'chevrons', count: 4, spacing: 0.6, size: 0.42, lean: 0.2, squash: 0.1, swell: 0, stretchIn: 0.05 }, // out past its disc
     snap: { shape: 'chevrons', count: 3, spacing: 0.38, size: 0.26, lean: 0.16, squash: 0.06, swell: 0.03 }, // its barrels bunching show the rest
     splay: { shape: 'arc', arcDeg: 120, lines: 3, reach: 1.5, to: 1.95, lean: 0.1, squash: 0.06, swell: 0.07 }, // the fan about to go off
@@ -733,6 +736,54 @@ export const MORAY = {
   swell: { radius: 1.05, along: [[0, 0.17], [1.1, 0.13], [2.2, 0.08]] },
   deathEvery: 0.5,
   deathSparks: { count: 4, speed: 4.5, lifetime: 0.35, size: 0.26, coneDeg: 180 },
+};
+
+// The Revenant's needle and afterimage (src/enemies/revenantRig.js, the ability AfterimageAbility;
+// their art in src/render/sprites.js). A pose: where the needle's guard sits in its frame, on its
+// right, and how it lies (`rot`, degrees, 0 pointing ahead). It eases there over `ease`, and at
+// rest sways `sway` degrees with its stride. A `smear` trails each strike, `inner` of the way
+// along the needle out to its point, for `life` seconds.
+// `ghost`: the afterimage, in `color`, its fill, edge and needle at those alphas, flickering at
+// `flicker.freq` Hz by `flicker.amount`, brightening as it winds up (`charge`). `motes` a second
+// drift off it. `scar`: what it's about to repeat, a pale wake lying where the strike passed,
+// `alpha` going from the first to the second as the echo nears. `tether`: the thin thread of
+// light tying it to the body, `segments` long, wavering `wave` tiles at `waveFreq` Hz, `waves`
+// to its length, with `beads` of light running along it at `beadSpeed` lengths a second, none
+// nearer than `minGap`. `shatter`: its going; `snap` the thread's last flash, for its `time`.
+export const REVENANT = {
+  needle: { len: 2.05, cue: 0.8 },
+  ease: { windup: 0.05, rest: 0.1 }, sway: 7, stride: 1.8, stunWobble: { deg: 5, freq: 2.4 },
+  poses: {
+    idle: { x: 0.18, y: 0.36, rot: 12 },
+    thrustReady: { x: -0.5, y: 0.04, rot: 0 },
+    thrustThrough: { x: 0.34, y: 0, rot: 0 },
+    slashReady: { x: 0.02, y: 0.42, rot: 80 },
+    slashThrough: { x: 0.3, y: -0.3, rot: -74 },
+    stunned: { x: -0.2, y: 0.42, rot: 150 },
+  },
+  smear: { life: 0.1, inner: 0.15, alpha: 0.3, line: 0.05 },
+  deathSparks: { count: 18, speed: 7, lifetime: 0.5, size: 0.28, coneDeg: 180, color: 0xaef8e0 },
+  ghost: {
+    color: 0x8ff0d4, hot: 0xffffff, fill: 0.16, edge: 0.5, needle: 0.65,
+    glow: { size: 2.6, alpha: 0.16, charge: 0.5 }, flicker: { freq: 7, amount: 0.12 }, charge: 0.5,
+    motes: { rate: 11, count: 1, speed: 0.9, lifetime: 0.55, size: 0.16, coneDeg: 180, color: 0xaef8e0 },
+    scar: { inner: 0.15, alpha: [0.015, 0.09], line: 0.1, every: 2 },
+    tether: { segments: 10, wave: 0.13, waveFreq: 1.6, waves: 1.5, line: 0.03, alpha: 0.26, minGap: 0.45, beads: 2, beadSpeed: 0.7, beadSize: 0.055 },
+    shatter: {
+      flare: { flash: 3, ring: 2.2, time: 0.3, sparks: { count: 18, speed: 8, lifetime: 0.45, size: 0.3, coneDeg: 180 } },
+      swell: 1.9, time: 0.26, spill: { spacing: 0.45, count: 2, speed: 2.5, lifetime: 0.35, size: 0.2, coneDeg: 90, color: 0xaef8e0 },
+      snap: { time: 0.24, line: 0.12 }, hold: 0.05, shake: { duration: 0.14, strength: 0.1, frequency: 30 },
+    },
+    vanish: { count: 14, speed: 5, lifetime: 0.4, size: 0.24, coneDeg: 180, color: 0xaef8e0 },
+  },
+  // The Recall's wind-up, a line to the afterimage (`marks` of it running out along it, at
+  // `flow` a second), and its cut, a streak `streak.line` wide fading over `streak.time`, shedding
+  // `streak.sparks` every `streak.spacing`.
+  recall: {
+    line: 0.05, marks: 4, flow: 1.4, size: 0.2, ring: 0.7,
+    streak: { time: 0.26, line: 0.42, spacing: 0.4, sparks: { count: 2, speed: 4, lifetime: 0.3, size: 0.24, coneDeg: 60 } },
+    flare: { flash: 2.4, ring: 1.5, time: 0.24, sparks: { count: 10, speed: 7, lifetime: 0.35, size: 0.26, coneDeg: 180 } },
+  },
 };
 
 export const RAZOR = {

@@ -46,6 +46,7 @@ export const BASE_LEVEL_CONFIG = {
       { type: 'moray', weight: { min: 0.4, max: 0.9 }, fromFloor: 32, peakFloor: 36, toFloor: 42 },
       { type: 'comet', weight: { min: 0.4, max: 0.9 }, fromFloor: 36, peakFloor: 41, toFloor: 47 },
       { type: 'collapsar', weight: { min: 0.35, max: 0.8 }, fromFloor: 40, peakFloor: 45, toFloor: 52 },
+      { type: 'revenant', weight: { min: 0.4, max: 0.9 }, fromFloor: 43, peakFloor: 48, toFloor: 56 },
     ],
     // Each room gets minEnemiesPerRoom, then enemies are added (never past maxEnemiesPerRoom
     // in a room) until killing them all fills `meterShare` of a meter even if each drops

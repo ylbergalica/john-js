@@ -243,6 +243,21 @@ export const ENEMY_TYPES = {
       turnSmoothTime: 0.14, decisionDelayRange: { x: 0.5, y: 1.1 },
       attacks: [{ ability: 'TyrantSnap', weight: 0.3 }, { ability: 'TyrantFan', weight: 0.3 }, { ability: 'TyrantFlak', weight: 0.2 }, { ability: 'TyrantHose', weight: 0.2 }] },
   },
+  // A long eel in orchid and bone that lives in the walls (`rig`, see morayRig.js): it swims
+  // along behind the outline, swelling it out as it passes, seen only dimly through the wall,
+  // and can't be aimed at there, though anything reaching it hits it, and being hit there
+  // pops it out onto the floor, stunned, to crawl back to the nearest wall (MorayLurk). Out of
+  // the wall it lunges at the player and whips aside; hurls itself across the room, through
+  // them, into the wall beyond; or spits a fan of shots.
+  moray: {
+    name: 'Moray', maxHealth: 40, damage: 2.6, radius: 0.5, mass: 3, linearDamping: 1,
+    knockbackResistance: 0.05, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0xff4fa8, sfxPitch: 0.95,
+    visual: { kind: 'sprite', outline: 'moray_idle', void: 'moray_idle_void', size: 1.7, sparkleCount: 12, rig: 'eel' },
+    ai: { ...AI_DEFAULTS, aggroRange: 16, orbitRadius: 6, moveSpeed: 6, repositionSpeed: 4, maxTurnSpeed: 8,
+      decisionDelayRange: { x: 0.5, y: 1.2 }, recoverDuration: 0.3, repositionDurationRange: { x: 0.8, y: 1.6 },
+      attacks: [{ ability: 'MorayBite', weight: 0.5 }, { ability: 'MorayLeap', weight: 0.25 }, { ability: 'MoraySpit', weight: 0.35 }], passives: [{ ability: 'MorayLurk' }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

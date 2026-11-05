@@ -17,6 +17,7 @@ import { generateLayout, randomFloorInRoom } from '../level/generator.js';
 import { playgroundLayout } from '../level/playground.js';
 import { attackersOn, scaleConfig } from '../level/difficulty.js';
 import { NavField } from '../level/navField.js';
+import { Shore } from '../level/shore.js';
 import { Player } from '../player/player.js';
 import { Enemy } from '../enemies/enemy.js';
 import { wallContacts } from '../enemies/hitbox.js';
@@ -98,6 +99,7 @@ export class World {
     this.wallStirs = new WeakMap(); // body → { at, strength }: when it last stirred a wall (wallHit)
     this.attackStirs = new Map(); // live hostile attack → { tiles, at }: the walls it has stirred (stirWallsByAttacks)
     this.navFields = new Map();
+    this.floorShore = null; // the wall tiles touching the floor, once something swims them (shore)
     this.cores = { required: 0, collected: 0 };
     this.activeAttackers = 0;
     this.maxAttackers = ENEMY_COMBAT.attackers.playground; // how many may attack at once on this floor (attackersOn)
@@ -273,6 +275,7 @@ export class World {
   // Map, physics and the player at its start.
   buildLevel(layout) {
     this.level = layout;
+    this.floorShore = null;
     this.physics = new Physics(layout.grid);
     this.physics.onWallHit = (body, x, y, speed) => this.wallHit(body, x, y, speed);
     this.levelView.build(layout.grid, layout.rooms, this.session.floor);
@@ -592,6 +595,8 @@ export class World {
     if (p) field.update(p.body.pos, this.time, refreshInterval, searchRadius);
     return field;
   }
+
+  get shore() { return (this.floorShore ??= new Shore(this.level.grid)); }
 
   // At most a few enemies commit to attacks at once, more on deeper floors (maxAttackers).
   tryAcquireAttackSlot() {

@@ -165,6 +165,9 @@ export const ATTACK_FX = {
     bank: { shape: 'none', lean: 0, squash: 0, swell: 0, stretchIn: 0.14 }, // banking away shows which way it comes round
     binary: { shape: 'ring', reach: 1.1, to: 1.2, lean: 0, squash: 0, swell: 0.12 }, // the beam between the pair flaring up shows the rest
     lash: { shape: 'ring', reach: 1.6, to: 1.15, lean: 0, squash: 0, swell: 0.1 }, // all round it
+    morayBite: { shape: 'arc', arcDeg: 60, lines: 2, reach: 0.7, to: 1.15, lean: 0.22, squash: 0.08, swell: 0.06 }, // its fangs spreading show the rest
+    morayLeap: { shape: 'chevrons', count: 5, spacing: 0.5, size: 0.36, lean: 0.3, squash: 0.16, swell: 0 },
+    moraySpit: { shape: 'none', lean: 0.1, squash: 0.04, swell: 0.08 },
     razor: { shape: 'chevrons', count: 4, spacing: 0.6, size: 0.42, lean: 0.2, squash: 0.1, swell: 0, stretchIn: 0.05 }, // out past its disc
     snap: { shape: 'chevrons', count: 3, spacing: 0.38, size: 0.26, lean: 0.16, squash: 0.06, swell: 0.03 }, // its barrels bunching show the rest
     splay: { shape: 'arc', arcDeg: 120, lines: 3, reach: 1.5, to: 1.95, lean: 0.1, squash: 0.06, swell: 0.07 }, // the fan about to go off
@@ -668,6 +671,23 @@ export const JET = {
 // through it at those alphas, its `glow` (`glowSize` across) so strong. Striking it sheds
 // `sparks` off its rim at `sparks.rate` a second, and grinding on a wall `grind` at
 // `grind.rate`; shattering (`shatter`, its death) it throws them all round.
+// The Moray (src/enemies/morayRig.js; its head's art in src/render/sprites.js): `length` tiles
+// long, drawn `step` apart, dimmed to `ghostAlpha` in the wall. `wave`: how far (tiles) its body
+// waves off its path, in the wall, out of it and thrashing, and how fast (`speed` rad/s, slowed
+// to `restPace` when it's still), `number` radians per tile along it, none for its first
+// `settleIn`. `swell`: [tiles behind its head, how far out it swells the outline].
+export const MORAY = {
+  length: 3.8, step: 0.2, ghostAlpha: 0.72,
+  wave: { inWall: 0.05, out: 0.14, thrash: 0.3, ease: 0.12, speed: 11, restPace: 0.3, thrashPace: 2.2, number: 2.4, settleIn: 0.7 },
+  width: { neck: 0.25, tail: 0.03, belly: 1.15, bellyAt: 0.25 },
+  body: { fill: 0x24091b, outline: 0xff4fa8, glow: 0xff2f96, line: 0.05, glowLine: 0.14, glowAlpha: 0.28 },
+  spots: { from: 4, every: 3, off: 0.45, size: 0.28, color: 0xffc8e4, alpha: 0.55 },
+  fang: { x: 0.28, y: 0.15, restDeg: 6, openDeg: 44, slack: 0.45, ease: 0.05 },
+  swell: { radius: 1.05, along: [[0, 0.17], [1.1, 0.13], [2.2, 0.08]] },
+  deathEvery: 0.5,
+  deathSparks: { count: 4, speed: 4.5, lifetime: 0.35, size: 0.26, coneDeg: 180 },
+};
+
 export const RAZOR = {
   disc: { inner: 0.54, outer: 0.84, blades: 7, sweep: 58 },
   ease: 0.09, glowColor: 0xdfe8ff, glowSize: 2.6,

@@ -33,7 +33,7 @@ export class OracleAspect extends Aspect {
   nearest(from, struck) {
     let best = null, bestD = this.data.reach ** 2;
     for (const e of this.world.enemies) {
-      if (!alive(e) || struck.has(e)) continue;
+      if (!alive(e) || e.untargetable || struck.has(e)) continue;
       const d = (e.body.pos.x - from.x) ** 2 + (e.body.pos.y - from.y) ** 2;
       if (d < bestD) { bestD = d; best = e; }
     }
@@ -43,7 +43,7 @@ export class OracleAspect extends Aspect {
   // The enemies in the fight: every live one within reach of the player.
   fighting() {
     const from = this.player.body.pos, r2 = this.data.reach ** 2;
-    return this.world.enemies.filter((e) => alive(e) && (e.body.pos.x - from.x) ** 2 + (e.body.pos.y - from.y) ** 2 < r2);
+    return this.world.enemies.filter((e) => alive(e) && !e.untargetable && (e.body.pos.x - from.x) ** 2 + (e.body.pos.y - from.y) ** 2 < r2);
   }
 }
 

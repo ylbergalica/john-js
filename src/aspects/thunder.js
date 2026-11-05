@@ -177,7 +177,7 @@ class Thunder extends Entity {
     while (taken.size < d.maxTargets) {
       let best = null;
       for (const e of w.enemies) {
-        if (!alive(e) || taken.has(e)) continue;
+        if (!alive(e) || e.untargetable || taken.has(e)) continue;
         const p = e.body.pos;
         for (const b of this.bolts) {
           const a = this.at(b.from), c = this.at(b.to);

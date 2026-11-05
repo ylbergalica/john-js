@@ -24,13 +24,14 @@ import { JetRig } from './jetRig.js';
 import { BinaryRig } from './binaryRig.js';
 import { RazorRig } from './razorRig.js';
 import { TyrantRig } from './tyrantRig.js';
+import { MorayRig } from './morayRig.js';
 import { StunMark } from './stunMark.js';
 import { AdrenalineOrb, ChaserCore } from '../game/pickups.js';
 import { devFlags } from '../game/devFlags.js';
 import { closestOnHurtbox } from '../game/hurtbox.js';
 import { DamageCause } from '../game/damage.js';
 
-const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig, razor: RazorRig, guns: TyrantRig };
+const RIGS = { maul: MaulerRig, blades: ShadeRig, tail: LemurRig, fists: BoxerRig, scimitar: CorsairRig, alembic: BlightRig, legs: WeaverRig, nova: NovaRig, shield: BulwarkRig, jet: JetRig, binary: BinaryRig, razor: RazorRig, guns: TyrantRig, eel: MorayRig };
 
 export class Enemy extends Entity {
   // twin: the second of a pair (a type with a `pair`), wearing its type's `twin` look.
@@ -59,6 +60,7 @@ export class Enemy extends Entity {
     this.detonated = false; // a Nova bursting: its supernova is its death's look (FlareAbility)
     this.tether = null; // the light binding it to its twin (the Binary's, tether.js), while there is one
     this.widowed = false; // its twin gone (a pair's, see Tether.widow)
+    this.lair = null; // its life in the wall, which does its moving (a Moray's, WallLurkAbility)
     // A shield it holds up ahead (its type's `guard`, the Bulwark's): blows from within its
     // arc glance off, unless it's broken off its arm (until `brokenUntil`).
     const G = this.type.guard;
@@ -96,6 +98,7 @@ export class Enemy extends Entity {
     this.isActing = false;
     this.body.stop();
     this.stunUntil = Math.max(this.stunUntil, this.world.time + duration);
+    this.lair?.struck(this.world.livePlayer?.body.pos ?? this.body.pos);
   }
 
   buildView() {
@@ -131,6 +134,12 @@ export class Enemy extends Entity {
   afterPhysics() {
     for (const a of this.abilities.values()) a.afterPhysics();
   }
+
+  // Whether it can't be aimed at just now (a Moray in the wall): whatever reaches it still hits it.
+  get untargetable() { return this.lair?.submerged ?? false; }
+
+  // Its hurtbox in the world, if it's that long (a Moray's whole body).
+  hurtOutline() { return this.lair?.outline() ?? null; }
 
   // Where a blow from `p` lands: the nearest point of its hurtbox.
   closestPoint(p) { return closestOnHurtbox(this, p); }
@@ -199,6 +208,7 @@ export class Enemy extends Entity {
 
   onHurt(hitPoint, source) {
     this.flashUntil = this.world.time + this.type.flashDuration;
+    this.lair?.struck(source);
     const b = this.body;
     let dir = { x: b.pos.x - source.x, y: b.pos.y - source.y };
     if (dir.x * dir.x + dir.y * dir.y < 0.0001) dir = { x: b.pos.x - hitPoint.x, y: b.pos.y - hitPoint.y };
@@ -270,6 +280,7 @@ export class Enemy extends Entity {
   burst() {
     const { world, body, type } = this;
     this.ai.onDeath();
+    this.lair?.surface();
     if (!this.detonated) {
       world.deathFx.play(this, this.lastHitDir ?? fromAngle(body.rotation));
       world.sound(type.isChaser ? 'bossKill' : 'kill', body.pos, { pitch: type.isChaser ? 1 : type.sfxPitch });

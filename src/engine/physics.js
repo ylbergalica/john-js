@@ -15,6 +15,7 @@ export class Body {
     this.collideWalls = collideWalls;
     this.enabled = true;
     this.ignores = null; // a Set of bodies it passes through (still colliding with walls and the rest)
+    this.ghost = false; // passes through every other body (a Moray in the wall)
   }
 
   addImpulse(ix, iy) {
@@ -103,7 +104,7 @@ export class Physics {
   }
 
   resolvePair(a, b) {
-    if (a.ignores?.has(b) || b.ignores?.has(a)) return;
+    if (a.ghost || b.ghost || a.ignores?.has(b) || b.ignores?.has(a)) return;
     const dx = b.pos.x - a.pos.x, dy = b.pos.y - a.pos.y;
     const r = a.radius + b.radius;
     const d2 = dx * dx + dy * dy;
@@ -213,7 +214,7 @@ export class Physics {
   isCircleFree(x, y, r, ignore = null) {
     if (this.circleHitsWall(x, y, r)) return false;
     for (const b of this.solids) {
-      if (b === ignore || !b.enabled) continue;
+      if (b === ignore || !b.enabled || b.ghost) continue;
       if ((b.pos.x - x) ** 2 + (b.pos.y - y) ** 2 < (b.radius + r) ** 2) return false;
     }
     return true;

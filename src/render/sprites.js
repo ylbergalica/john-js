@@ -73,6 +73,9 @@ export function sprites() {
     tyrant_idle: tyrantOutline(),
     tyrant_idle_void: voidFill(tyrantPath(), VOIDS.tyrant),
     tyrant_barrel: tyrantBarrel(),
+    moray_idle: morayOutline(),
+    moray_idle_void: voidFill(morayPath(), VOIDS.moray),
+    moray_fang: morayFang(),
     binary_idle: binaryOutline(BINARY_ART.rims[0]),
     binary_idle_void: voidFill(binaryPath(), VOIDS.binary),
     binary_twin_idle: binaryOutline(BINARY_ART.rims[1]),
@@ -891,6 +894,7 @@ const VOIDS = {
   corsair: { core: '#33270a', edge: '#090602', clouds: [['#c8961e', 0.22], ['#7a5a12', 0.24]], seed: 71 },
   weaver: { core: '#16151d', edge: '#030304', clouds: [['#5e587e', 0.2], ['#2c2a3c', 0.24]], seed: 79 },
   bulwark: { core: '#1c212a', edge: '#050608', clouds: [['#5f6d82', 0.22], ['#2e3746', 0.26]], seed: 83 },
+  moray: { core: '#2e0a22', edge: '#080208', clouds: [['#ff4fa8', 0.2], ['#6b1a56', 0.28]], seed: 127 },
   tyrant: { core: '#2c2300', edge: '#060500', clouds: [['#e0b400', 0.26], ['#6b4e00', 0.3]], seed: 113 },
   razor: { core: '#868d9a', edge: '#23262d', clouds: [['#f4f7ff', 0.34], ['#aeb8cc', 0.26]], seed: 107 },
   binary: { core: '#16264a', edge: '#03060e', clouds: [['#7ab4ff', 0.26], ['#e8f4ff', 0.12], ['#3a5cff', 0.2]], seed: 101 },
@@ -1694,6 +1698,74 @@ function jetOutline(S = 256) {
 // One of the Binary's stars: a small sun, a disc ringed by `rays` points, long and short in
 // turn (`long`, `short` out from its middle, the notches between them `inner`), its rim
 // lit from a white-hot middle out to its colour (`rims`: the first star's, then its twin's).
+// The Moray's head: a blunt wedge, broadest at its jaws, narrowing to its neck, in orchid
+// (`top`: its upper edge as bezier curves from the tip of its snout, [ahead, out] from its
+// middle), with a slit `eye` in sulphur each side and the line of its `jaw` running back. Its
+// fangs are sprites of their own, `MORAY_ART.fang`, so its rig can spread them: one fang, along
+// +x from `root`, curling toward +y.
+const MORAY_HEAD = {
+  line: 0.032, jawLine: 0.018, eyeLine: 0.03,
+  top: [[0.3, 0.075, 0.2, 0.135, 0.07, 0.165], [-0.06, 0.19, -0.18, 0.16, -0.27, 0.1]],
+  eye: [[0.15, 0.058], [0.05, 0.105]],
+  jaw: [[0.24, 0.05], [0.04, 0.135], [-0.13, 0.13]],
+};
+const MORAY_PALETTE = { stroke: ['#ffd9ee', '#ff4fa8', '#a8145f'], glow: rgba('#ff2f96', 0.7) };
+export const MORAY_ART = { fang: { w: 0.62, h: 0.26, unit: 256, root: 0.04, length: 0.52, gauge: 0.052, line: 0.018 } };
+
+function morayPath() {
+  const { top } = MORAY_HEAD, p = new Path2D(), X = (a) => 0.5 + a;
+  p.moveTo(X(0.31), 0.5);
+  for (const [a, b, c, d, e, f] of top) p.bezierCurveTo(X(a), 0.5 - b, X(c), 0.5 - d, X(e), 0.5 - f);
+  p.lineTo(X(-0.27), 0.5 + 0.1);
+  for (let i = top.length - 1; i >= 0; i--) {
+    const [a, b, c, d] = top[i], [e, f] = i > 0 ? top[i - 1].slice(4) : [0.31, 0];
+    p.bezierCurveTo(X(c), 0.5 + d, X(a), 0.5 + b, X(e), 0.5 + f);
+  }
+  p.closePath();
+  return p;
+}
+
+function morayOutline(S = 256) {
+  const { line, jawLine, eyeLine, eye: [e0, e1], jaw: [j0, j1, j2] } = MORAY_HEAD;
+  return outline(S, MORAY_PALETTE, (ctx) => {
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = line;
+    ctx.stroke(morayPath());
+    for (const side of [-1, 1]) {
+      ctx.lineWidth = jawLine;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0.5 + j0[0], 0.5 + side * j0[1]);
+      ctx.quadraticCurveTo(0.5 + j1[0], 0.5 + side * j1[1], 0.5 + j2[0], 0.5 + side * j2[1]);
+      ctx.stroke();
+      const stroke = ctx.strokeStyle;
+      ctx.strokeStyle = '#ffe45c';
+      ctx.lineWidth = eyeLine;
+      ctx.beginPath();
+      ctx.moveTo(0.5 + e0[0], 0.5 + side * e0[1]);
+      ctx.lineTo(0.5 + e1[0], 0.5 + side * e1[1]);
+      ctx.stroke();
+      ctx.strokeStyle = stroke;
+    }
+  });
+}
+
+function morayFang() {
+  const { w, h, unit, root, length, gauge, line } = MORAY_ART.fang;
+  const { c, ctx, px } = surface(Math.round(w * unit), Math.round(h * unit), unit), y = h * 0.34, tip = root + length;
+  const p = new Path2D();
+  p.moveTo(root, y - gauge);
+  p.quadraticCurveTo(root + length * 0.65, y - gauge, tip, y + h * 0.42);
+  p.quadraticCurveTo(root + length * 0.45, y + gauge, root, y + gauge);
+  p.closePath();
+  ctx.fillStyle = '#fff0f7';
+  ctx.fill(p);
+  ctx.strokeStyle = '#ff4fa8';
+  ctx.lineWidth = line;
+  glow(ctx, MORAY_PALETTE.glow, px * 0.03, () => ctx.stroke(p));
+  return c;
+}
+
 // The Tyrant's hull: a coffin-shaped wedge with two great horns swept back off its shoulders,
 // in hazard yellow. `hull`: the upper half of its outline, [ahead, out] from its middle,
 // from the flat of its nose round to its tail. Two slit `eyes` slant in towards its nose, and

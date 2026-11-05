@@ -713,6 +713,40 @@ const SOUNDS = {
     }
   },
   // the Razor
+  // the Moray
+  morayWake(v) { // moving in the wall: a low rumble and a dry scrape, hardly there
+    tone(v, { type: 'sine', freq: 62, to: 48, dur: 0.5, vol: 0.09, attack: 0.1 });
+    noise(v, { freq: 300, to: 180, q: 0.8, dur: 0.45, vol: 0.05, attack: 0.1 });
+  },
+  morayRise(v) { // looking out: a hiss swelling over a growl
+    noise(v, { filter: 'highpass', freq: 3600, to: 5200, dur: 0.45, vol: 0.09, attack: 0.15 });
+    tone(v, { type: 'sawtooth', freq: 90, to: 130, dur: 0.42, vol: 0.05, attack: 0.1 });
+  },
+  morayBite(v) { // the lunge: a wet rush and a snap of teeth at its end
+    noise(v, { freq: 700, to: 2200, q: 0.9, dur: 0.16, vol: 0.24, attack: 0.008 });
+    noise(v, { filter: 'highpass', freq: 3000, at: 0.1, dur: 0.035, vol: 0.28, attack: 0.001 });
+    tone(v, { type: 'triangle', freq: 1400, to: 600, at: 0.1, dur: 0.05, vol: 0.09 });
+  },
+  morayWhip(v) { // whipping aside: a short thick swish
+    noise(v, { freq: 1300, to: 500, q: 1, dur: 0.2, vol: 0.18, attack: 0.02 });
+  },
+  morayLeap(v) { // hurled across the room: a long tearing rush
+    noise(v, { freq: 500, to: 2800, q: 0.8, dur: 0.5, vol: 0.24, attack: 0.03 });
+    tone(v, { type: 'sawtooth', freq: 110, to: 260, dur: 0.4, vol: 0.05, attack: 0.02 });
+  },
+  moraySpit(v) { // spitting: a wet pop and a hiss
+    noise(v, { freq: 1500, to: 600, q: 1.3, dur: 0.08, vol: 0.24, attack: 0.002 });
+    noise(v, { filter: 'highpass', freq: 3200, at: 0.03, dur: 0.14, vol: 0.06 });
+  },
+  morayPop(v) { // knocked out of the wall: a deep crack and a shriek falling away
+    tone(v, { type: 'sine', freq: 150, to: 45, dur: 0.22, vol: 0.34 });
+    noise(v, { freq: 900, to: 300, q: 0.7, dur: 0.14, vol: 0.32, attack: 0.002 });
+    tone(v, { type: 'sawtooth', freq: 1500, to: 480, at: 0.02, dur: 0.34, vol: 0.06, attack: 0.01 });
+  },
+  morayDive(v) { // back into the wall: a gulp sinking away
+    tone(v, { type: 'sine', freq: 240, to: 60, dur: 0.24, vol: 0.2, attack: 0.01 });
+    noise(v, { freq: 500, to: 160, q: 1, dur: 0.22, vol: 0.12 });
+  },
   razorRev(v) { // its blades winding up: a whine climbing over a thin buzz
     tone(v, { type: 'sawtooth', freq: 500, to: 1500, dur: 0.45, vol: 0.035, attack: 0.08 });
     noise(v, { filter: 'highpass', freq: 3200, dur: 0.42, vol: 0.05, attack: 0.15 });

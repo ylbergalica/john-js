@@ -398,6 +398,42 @@ export const ABILITIES = {
     legs: [0.6, 1, 1, 1], legLength: 4.2, offDeg: 38, steerDeg: 14, legGap: 0.05, speed: 15, launchTime: 0.04, brakeTime: 0.05, carry: 0.15, turnEase: 0.03, skidEase: 0.08,
     hitboxRadius: 0.84, parryKnockback: 10, strikeSound: 'razorDash', legSound: 'razorTurn',
   },
+  // The Moray in the wall, never picked by its AI. It swims the shore (Shore) at its AI's
+  // `moveSpeed` after the player, at `repositionSpeed` to one side of them, looking again every
+  // `routeEvery`; its body follows the way its head went, `bodyLength` long, `peek` past the
+  // outline at `peekSpeed` through an attack's wind-up, and back in after at `retractSpeed`.
+  // Struck in the wall or peeking, it's flung `pop.distance` out onto the floor at `pop.speed`,
+  // toward the blow, and lies stunned `pop.stun`; on the floor it crawls at `crawlSpeed` to the
+  // nearest wall and sinks in at `diveSpeed`.
+  MorayLurk: {
+    type: 'wallLurk', cooldown: 0, range: 0, windUpTime: 0, duration: 0, recoveryTime: 0, damageMultiplier: 0, parryStunTime: 0,
+    routeEvery: 0.3, peek: 0.1, peekSpeed: 5, retractSpeed: 9, crawlSpeed: 3.2, diveSpeed: 5, wakeEvery: 0.6,
+    draw: 7, grow: 4, minLength: 0.5,
+    pop: {
+      distance: 3.2, speed: 15, stun: 1.1, hold: 0.06, shake: { duration: 0.18, strength: 0.14, frequency: 30 },
+      flare: { flash: 2.6, ring: 1.6, time: 0.3, sparks: { count: 16, speed: 8, lifetime: 0.4, size: 0.3, coneDeg: 70 } },
+    },
+    surface: { count: 8, speed: 3.5, lifetime: 0.35, size: 0.26, coneDeg: 80 }, // where it sinks in or lands
+  },
+  // Bite: its head lunges `reach` out at `speed`, its body after it, then `whipDeg` round to the
+  // side the player's on over `whipTime`. Parried, it hangs there stunned, then pulls back in.
+  MorayBite: {
+    type: 'morayBite', tell: 'morayBite', cooldown: 2.6, range: 4.4, windUpTime: 0.55, lockTime: 0.16, duration: 0, recoveryTime: 0.4,
+    damageMultiplier: 1, parryStunTime: 1.6, hitboxRadius: 0.55, hitboxAhead: 0.25, reach: 4.2, speed: 20, whipDeg: 55, whipTime: 0.22,
+    strikeSound: 'morayBite',
+  },
+  // Leap: right across the room at `speed`, through the player and into the wall beyond, if
+  // that's at least `minLeap` away. Parried, it drops to the floor, stunned.
+  MorayLeap: {
+    type: 'morayLeap', tell: 'morayLeap', cooldown: 7, range: 16, minRange: 2, windUpTime: 0.75, lockTime: 0.22, duration: 0, recoveryTime: 0.2,
+    damageMultiplier: 1.2, parryStunTime: 1.4, hitboxRadius: 0.6, hitboxAhead: 0.2, minLeap: 6, speed: 17,
+    strikeSound: 'morayLeap',
+  },
+  // Spit: three shots, `spreadDeg` off its aim.
+  MoraySpit: {
+    type: 'moraySpit', tell: 'moraySpit', cooldown: 4, range: 10, minRange: 2.5, windUpTime: 0.6, lockTime: 0.15, duration: 0, recoveryTime: 0.4,
+    damageMultiplier: 0.8, parryStunTime: 1.2, projectileSpeed: 7.5, projectileLifetime: 2.2, projectileSize: 0.32, chargeSize: 0.4, spawnDistance: 0.7, spreadDeg: [-22, 0, 22],
+  },
   // The Tyrant's guns: `volleys` of shots, one every `salvoInterval`, each straight out its
   // muzzle (`guns`), its barrels lying as `poses` says for each volley (TYRANT.poses). Unlike
   // the Gunner it doesn't always stand still, and it turns after the player as it fires, at up

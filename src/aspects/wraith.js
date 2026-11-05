@@ -77,7 +77,7 @@ export class WraithAspect extends Aspect {
   insideSomething() {
     const b = this.player.body;
     if (this.world.physics.circleHitsWall(b.pos.x, b.pos.y, b.radius)) return true;
-    return [...this.world.enemies, ...this.world.props].some((e) => !e.dead && hurtByCircle(e, b.pos.x, b.pos.y, b.radius));
+    return [...this.world.enemies, ...this.world.props].some((e) => !e.dead && !e.untargetable && hurtByCircle(e, b.pos.x, b.pos.y, b.radius));
   }
 
   // Thrown aside from the dash's line, as if it parted them.

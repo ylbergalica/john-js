@@ -56,7 +56,7 @@ export class PredatorAspect extends Aspect {
   findTarget(from, facing) {
     let best = null, bestScore = -Infinity;
     for (const e of this.world.enemies) {
-      if (e.dead) continue;
+      if (e.dead || e.untargetable) continue;
       const b = e.body;
       if (Math.hypot(b.pos.x - from.x, b.pos.y - from.y) > this.data.targetAcquireDistance + b.radius) continue;
       const cp = e.closestPoint(from);

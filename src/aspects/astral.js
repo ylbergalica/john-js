@@ -90,7 +90,7 @@ export class AstralAspect extends Aspect {
   nearest(from) {
     let best = null, bestD = Infinity;
     for (const e of this.world.enemies) {
-      if (!alive(e)) continue;
+      if (!alive(e) || e.untargetable) continue;
       const d = (e.body.pos.x - from.x) ** 2 + (e.body.pos.y - from.y) ** 2;
       if (d < bestD) { bestD = d; best = e; }
     }

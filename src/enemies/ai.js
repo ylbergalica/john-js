@@ -57,7 +57,7 @@ export class EnemyAI {
       case AIState.Recover: this.decideRecover(); break;
     }
 
-    if (suppressed) return;
+    if (suppressed || (this.enemy.lair && this.state !== AIState.WindUp)) return; // a lair does its moving
     switch (this.state) {
       case AIState.Chase: this.moveChase(dt); break;
       case AIState.Reposition: this.moveOrbit(dt, this.cfg.repositionSpeed, false); break;

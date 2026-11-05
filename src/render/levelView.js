@@ -3,7 +3,7 @@
 // floor in 16×16-tile chunk meshes, and a frame only updates a few uniforms and toggles
 // chunk visibility. Behind it all drifts the nebula; the floor is a lit texture.
 import { Container, Geometry, Mesh, Shader, Sprite } from 'pixi.js';
-import { COLORS, STAR_PULSE as SP, WALL_BLAST as WB, WALL_GUSTS as WG, WALL_IMPACT as WI, WALL_VISUAL as WV, WALL_SPARKLES as WS } from '../data/config.js';
+import { COLORS, MORAY, STAR_PULSE as SP, WALL_BLAST as WB, WALL_GUSTS as WG, WALL_IMPACT as WI, WALL_VISUAL as WV, WALL_SPARKLES as WS } from '../data/config.js';
 import { lerp, pickWeighted, randRange, seededRandom, TAU } from '../engine/math.js';
 import { spawnableOn } from '../level/difficulty.js';
 import { Nebula } from './nebula.js';
@@ -14,6 +14,7 @@ const PULSES = 8; // star rings alive at once; a new one replaces the oldest
 const GUSTS = 24; // wall gusts alive at once; none starts while all are busy
 const IMPACTS = 32; // wall dents alive at once; a new one takes the most died-down's place
 const BLASTS = 12; // explosions shoving walls at once; a new one takes the soonest done's place
+const SWELLS = 12; // places the outline swells out this frame (swell)
 
 const vertex = /* glsl */ `
 in vec2 aPosition;
@@ -86,6 +87,21 @@ float shove(vec2 p, vec2 dir) {
   return o;
 }
 
+uniform vec4 uSwells[${SWELLS}]; // x, y, depth (0 = unused)
+uniform float uSwellRadius;
+
+// How far out the outline at p swells over something moving under it.
+float swell(vec2 p) {
+  float o = 0.0;
+  for (int i = 0; i < ${SWELLS}; i++) {
+    vec4 s = uSwells[i];
+    if (s.z <= 0.0) continue;
+    vec2 off = (p - s.xy) / uSwellRadius;
+    o += s.z * exp(-dot(off, off));
+  }
+  return o;
+}
+
 const float GUST_PI = 3.14159265;
 const float SETTLE_EASE = 0.25; // of the settle time, spent easing into and out of the drift
 
@@ -145,7 +161,7 @@ float flare(vec2 p) {
 void main() {
   vec2 p;
   if (aWave.w == 0.0) {
-    p = aPosition + aWave.xy * (uAmplitude * sway(aPosition, aWave.z) + dent(aPosition) + shove(aPosition, aWave.xy));
+    p = aPosition + aWave.xy * (uAmplitude * sway(aPosition, aWave.z) + dent(aPosition) + shove(aPosition, aWave.xy) - swell(aPosition));
     vColor = vec4(uStrokeColor, 1.0);
   } else {
     float t = 0.5 + 0.5 * sin(uTime * aWave.w + aWave.z);
@@ -170,6 +186,7 @@ const rgb = (c) => [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) /
 export class LevelView {
   constructor() {
     this.root = new Container();
+    this.under = new Container(); // over the sky, under the floor and the wall's stars: seen only through the walls
     this.floor = null;
     this.chunks = [];
     this.nebula = new Nebula();
@@ -180,6 +197,8 @@ export class LevelView {
     this.nextGust = randRange(WG.everyRange.x, WG.everyRange.y);
     this.impacts = new Float32Array(IMPACTS * 4);
     this.blasts = new Float32Array(BLASTS * 4);
+    this.swells = new Float32Array(SWELLS * 4);
+    this.swellCount = 0;
     this.waveTime = 0;
     this.time = 0;
     this.shader = Shader.from({
@@ -206,6 +225,8 @@ export class LevelView {
           uBlast: { value: new Float32Array([Math.max(0.01, WB.speed), Math.max(0.001, WB.rise), WB.frequency, 0]), type: 'vec4<f32>' },
           uBlastSize: { value: new Float32Array([Math.max(0.01, WB.fullReach), WB.depth, WB.curve, WB.facing]), type: 'vec4<f32>' },
           uBlastDecay: { value: new Float32Array([Math.max(0.01, WB.decayRange.x), Math.max(0.01, WB.decayRange.y)]), type: 'vec2<f32>' },
+          uSwells: { value: this.swells, type: 'vec4<f32>', size: SWELLS },
+          uSwellRadius: { value: Math.max(0.01, MORAY.swell.radius), type: 'f32' },
         },
       },
     });
@@ -219,7 +240,7 @@ export class LevelView {
     const { texture, scale } = floorTexture(grid, rooms, floor, palette);
     this.floor = new Sprite(texture);
     this.floor.scale.set(scale);
-    this.root.addChild(this.floor);
+    this.root.addChild(this.under, this.floor);
 
     const builders = new Map();
     const chunkOf = (x, y) => {
@@ -295,6 +316,12 @@ export class LevelView {
     this.impacts.set([x, y, this.time, strength], slot * 4);
   }
 
+  // The outline round (x, y) swells `depth` tiles out this frame, over something moving under it.
+  swell(x, y, depth) {
+    if (this.swellCount >= SWELLS) return;
+    this.swells.set([x, y, depth, 0], this.swellCount++ * 4);
+  }
+
   // An explosion at (x, y) reaching `size` tiles shoves the walls round it back
   // (WALL_BLAST); `pull` (one caving in) draws them out instead. Returns how far it carries.
   blast(x, y, size, pull = false) {
@@ -336,6 +363,8 @@ export class LevelView {
       this.gust(view);
       this.nextGust = randRange(WG.everyRange.x, WG.everyRange.y);
     }
+    this.swells.fill(0, this.swellCount * 4); // only this frame's
+    this.swellCount = 0;
     this.uniforms.uWaveTime = this.waveTime;
     this.uniforms.uTime = this.time;
     this.nebula.update(this.time);
@@ -352,6 +381,7 @@ export class LevelView {
     this.gusts.fill(0);
     this.impacts.fill(0);
     this.blasts.fill(0);
+    this.swells.fill(0);
     for (const c of this.chunks) c.mesh.destroy({ geometry: true }); // shader is shared
     this.chunks = [];
   }

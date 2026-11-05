@@ -258,6 +258,23 @@ export const ENEMY_TYPES = {
       decisionDelayRange: { x: 0.5, y: 1.2 }, recoverDuration: 0.3, repositionDurationRange: { x: 0.8, y: 1.6 },
       attacks: [{ ability: 'MorayBite', weight: 0.5 }, { ability: 'MorayLeap', weight: 0.25 }, { ability: 'MoraySpit', weight: 0.35 }], passives: [{ ability: 'MorayLurk' }] },
   },
+  // A burning racer in ice blue, its head a teardrop streaming a tail that lengthens with its
+  // speed (`rig`, see cometRig.js). It never holds still: it laps the player (`circlesFirst`,
+  // `holdOff` as far off as it attacks from, so it goes on circling with no attack to hand),
+  // slides into its turns (`movementResponsiveness`) and ambles out of the fight (`wander`).
+  // Running fast it lays a wake that burns on the floor (CometWake): it streaks through the
+  // player, glancing off a wall; rings them with it and flares it; or slings round them, spraying
+  // embers. Parried, the whole wake gutters out.
+  comet: {
+    name: 'Comet', maxHealth: 38, damage: 2.8, radius: 0.42, mass: 2.5, linearDamping: 1,
+    knockbackResistance: 0, knockbackMovementPause: 0.12,
+    minAdrenalineDrops: 2, maxAdrenalineDrops: 3, isChaser: false, flashDuration: 0.14, particleOffset: 0.1, hitColor: 0x6fe8ff, sfxPitch: 1.05,
+    visual: { kind: 'sprite', outline: 'comet_idle', void: 'comet_idle_void', size: 1.4, sparkleCount: 10, rig: 'comet' },
+    ai: { ...AI_DEFAULTS, aggroRange: 16, orbitRadius: 4, holdOff: 8, circlesFirst: true, attackEngageRange: 8, moveSpeed: 7.5, orbitSpeed: 5, repositionSpeed: 6.5,
+      movementResponsiveness: 0.1, maxTurnSpeed: 8, orbitPreference: 1, recoverDuration: 0.15,
+      decisionDelayRange: { x: 0.4, y: 0.9 }, repositionDurationRange: { x: 0.5, y: 1.1 }, wander: { reach: 9, speed: 5, pause: [0, 0.25] },
+      attacks: [{ ability: 'CometStreak', weight: 0.5 }, { ability: 'CometNoose', weight: 0.5 }, { ability: 'CometSling', weight: 0.35 }], passives: [{ ability: 'CometWake' }] },
+  },
   warden: {
     name: 'Warden', maxHealth: 700, damage: 6.5, radius: 0.49 * 2, mass: 100, linearDamping: 1,
     knockbackResistance: 0, knockbackMovementPause: 0.12,

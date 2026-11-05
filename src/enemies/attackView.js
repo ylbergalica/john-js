@@ -15,9 +15,10 @@
 //   SilkLook       the same for the Weaver's anchors and balls of web.
 //   BoltLook       the same for the Tyrant's tracers.
 //   ShellLook      the same for its shells.
+//   EmberLook      the same for the Comet's embers.
 //   CueFlash       one parry cue star (EnemyAttackFx's, or one an attack shows on its own).
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { ATTACK_FX, BLOB as BL, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
+import { ATTACK_FX, BLOB as BL, COMET as CO, CRESCENT as CR, FIXED_DT, MIST_BALL as M, TYRANT as TY, WEB as WB } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } from '../engine/math.js';
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
@@ -970,6 +971,41 @@ export class ShellLook {
   destroy() { this.container.destroy({ children: true }); }
 }
 
-export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook };
+// One of the Comet's embers (COMET.ember): a white-hot sliver along its flight in an ice-blue
+// halo. Drawn like ProjectileLook.
+export class EmberLook {
+  get color() { return CO.ember.color; }
+  get maxTrail() { return CO.ember.trail; }
+
+  constructor(parent, { trail = true } = {}) {
+    const E = CO.ember;
+    this.container = new Container();
+    this.halo = sprite(tex.mist, this.container, { blendMode: 'add', tint: E.color });
+    this.trail = trail ? sprite(tex.comet, this.container, { blendMode: 'add', tint: E.color }) : null;
+    this.trail?.anchor.set(COMET_HEAD, 0.5);
+    this.core = sprite(tex.orb, this.container, { tint: E.bright });
+    for (const s of this.container.children) s.visible = true;
+    parent.addChild(this.container);
+  }
+
+  render(now, x, y, rot, size, { glow = 1, trailLength = 0 } = {}) {
+    const E = CO.ember, pulse = 0.5 + 0.5 * Math.sin(now * E.pulseSpeed * TAU);
+    this.container.position.set(x, y);
+    this.halo.width = this.halo.height = size * E.halo.size * lerp(0.85, 1.15, pulse);
+    this.halo.alpha = E.halo.alpha * glow;
+    this.core.rotation = rot;
+    this.core.width = size * E.length * ORB_PAD;
+    this.core.height = size * E.width * ORB_PAD;
+    if (!this.trail) return;
+    this.trail.visible = trailLength > 0.01;
+    this.trail.rotation = rot;
+    this.trail.width = trailLength / COMET_HEAD;
+    this.trail.height = size * E.trailWidth;
+  }
+
+  destroy() { this.container.destroy({ children: true }); }
+}
+
+export const PROJECTILE_LOOKS = { orb: ProjectileLook, mist: MistBallLook, crescent: CrescentLook, blob: BlobLook, canister: CanisterLook, silk: SilkLook, bolt: BoltLook, shell: ShellLook, ember: EmberLook };
 // The colour a look bursts into, by an ability's `look`.
-export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color })[look] ?? X.color;
+export const lookColor = (look) => ({ mist: M.color, blob: BL.color, canister: BL.color, bolt: TY.bolt.color, shell: TY.shell.color, ember: CO.ember.color })[look] ?? X.color;

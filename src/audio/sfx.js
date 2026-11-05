@@ -747,6 +747,66 @@ const SOUNDS = {
     tone(v, { type: 'sine', freq: 240, to: 60, dur: 0.24, vol: 0.2, attack: 0.01 });
     noise(v, { freq: 500, to: 160, q: 1, dur: 0.22, vol: 0.12 });
   },
+  // the Comet
+  cometRev(v) { // burning up to run: a breathy roar climbing under a thin glassy whine
+    noise(v, { freq: 500, to: 2600, q: 0.8, dur: 0.5, vol: 0.11, attack: 0.12 });
+    tone(v, { type: 'sine', freq: 620, to: 1900, dur: 0.5, vol: 0.05, attack: 0.15 });
+  },
+  cometStreak(v) { // gone: a bright tearing whoosh falling away
+    noise(v, { freq: 4200, to: 900, q: 0.7, dur: 0.42, vol: 0.26, attack: 0.006 });
+    tone(v, { type: 'sine', freq: 1900, to: 420, dur: 0.3, vol: 0.07, attack: 0.004 });
+  },
+  cometGlance(v) { // off a wall: a glassy skip and a spit of sparks
+    tone(v, { type: 'triangle', freq: 2300, to: 1250, dur: 0.14, vol: 0.13 });
+    noise(v, { filter: 'highpass', freq: 3000, dur: 0.12, vol: 0.2, attack: 0.001 });
+    tone(v, { type: 'sine', freq: 180, to: 80, dur: 0.1, vol: 0.2 });
+  },
+  cometIgnite(v) { // the ring catching as it goes: a soft whump and a long rushing draw
+    tone(v, { type: 'sine', freq: 150, to: 60, dur: 0.18, vol: 0.24 });
+    noise(v, { freq: 700, to: 3000, q: 0.6, dur: 1.2, vol: 0.14, attack: 0.25 });
+  },
+  cometFlare(v) { // the ring going up: a deep gust, a sheet of hiss and a glassy shimmer on top
+    tone(v, { type: 'sine', freq: 110, to: 42, dur: 0.4, vol: 0.32, attack: 0.008 });
+    noise(v, { freq: 1500, to: 5200, q: 0.5, dur: 0.5, vol: 0.28, attack: 0.02 });
+    for (const [at, freq] of [[0, 1760], [0.03, 2640], [0.06, 3520]]) tone(v, { type: 'sine', freq, to: freq * 1.05, at, dur: 0.3, vol: 0.035, attack: 0.02 });
+  },
+  cometSling(v) { // diving in: an airy rush rising fast
+    noise(v, { freq: 900, to: 3600, q: 0.8, dur: 0.3, vol: 0.2, attack: 0.03 });
+    tone(v, { type: 'sine', freq: 500, to: 1200, dur: 0.26, vol: 0.05, attack: 0.02 });
+  },
+  cometTurn(v) { // leaning into the turn: a tight whistling bend
+    tone(v, { type: 'sine', freq: 1500, to: 2300, dur: 0.14, vol: 0.05, attack: 0.02 });
+    tone(v, { type: 'sine', freq: 2300, to: 1300, at: 0.14, dur: 0.22, vol: 0.05 });
+    noise(v, { freq: 2600, q: 1.2, dur: 0.36, vol: 0.09, attack: 0.05 });
+  },
+  cometEmber(v) { // an ember spat: a small hot tick
+    noise(v, { filter: 'highpass', freq: 3600, dur: 0.05, vol: 0.13, attack: 0.001 });
+    tone(v, { type: 'triangle', freq: 1500, to: 800, dur: 0.06, vol: 0.06 });
+  },
+  cometFling(v) { // flung out: a whip crack and a roar rushing off
+    noise(v, { filter: 'highpass', freq: 2400, dur: 0.05, vol: 0.24, attack: 0.001 });
+    noise(v, { freq: 3400, to: 700, q: 0.7, dur: 0.4, vol: 0.24, attack: 0.006 });
+  },
+  cometHiss(v) { // fire laid as it goes: a low sizzle
+    noise(v, { filter: 'highpass', freq: 3800, dur: 0.3, vol: 0.022, attack: 0.05 });
+  },
+  cometSear(v) { // touching its wake: a sharp sizzle
+    noise(v, { filter: 'highpass', freq: 2600, dur: 0.22, vol: 0.2, attack: 0.002 });
+    tone(v, { type: 'sawtooth', freq: 420, to: 180, dur: 0.1, vol: 0.05 });
+  },
+  cometGutter(v) { // parried, its fire dying all at once: a long hiss choking off, a sigh under it
+    noise(v, { filter: 'highpass', freq: 5000, to: 1100, dur: 0.55, vol: 0.2, attack: 0.004 });
+    noise(v, { freq: 700, to: 180, q: 0.7, dur: 0.5, vol: 0.16 });
+    tone(v, { type: 'sine', freq: 520, to: 110, dur: 0.45, vol: 0.06 });
+  },
+  cometPop(v) { // one stretch of tail bursting: a short soft thud and a spit
+    tone(v, { type: 'sine', freq: 240, to: 90, dur: 0.09, vol: 0.18 });
+    noise(v, { freq: 2600, q: 0.8, dur: 0.06, vol: 0.11, attack: 0.001 });
+  },
+  cometDeath(v) { // its head going out: a glassy ring breaking into a falling rush
+    for (const [at, freq] of [[0, 2093], [0.02, 3136], [0.05, 1568]]) tone(v, { type: 'triangle', freq, to: freq * 0.55, at, dur: 0.32, vol: 0.06 });
+    noise(v, { freq: 3200, to: 500, q: 0.6, dur: 0.6, vol: 0.2, attack: 0.004 });
+  },
   razorRev(v) { // its blades winding up: a whine climbing over a thin buzz
     tone(v, { type: 'sawtooth', freq: 500, to: 1500, dur: 0.45, vol: 0.035, attack: 0.08 });
     noise(v, { filter: 'highpass', freq: 3200, dur: 0.42, vol: 0.05, attack: 0.15 });

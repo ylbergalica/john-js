@@ -622,4 +622,46 @@ export const ABILITIES = {
     damageMultiplier: 1.2, parryStunTime: 1.2, ...clearPath({ x: 0.6, y: 0.6 }, 0.5),
     beamFrom: 0.85, beamWidth: 0.7, maxLength: 40, orbSize: 0.55, parryKnockback: 0,
   },
+  // The Comet's wake (COMET.wake says how it burns), never picked by its AI: running at
+  // `layFrom` or more it lays fire on the floor, `damageMultiplier` of its damage to touch,
+  // `flareMultiplier` while it flares. It can't be parried; parrying any of the Comet's attacks
+  // gutters all of it.
+  CometWake: {
+    type: 'cometWake', cooldown: 0, range: 0, windUpTime: 0, duration: 0, recoveryTime: 0,
+    damageMultiplier: 0.5, flareMultiplier: 1, parryStunTime: 0, hissEvery: 0.3,
+  },
+  // Its attacks all run: it keeps circling through the wind-up at `strafeSpeed`, flies through
+  // the player and whatever else is in its way but walls, gathering speed over `launchTime`, and
+  // skids out over the recovery (`skidEase`), its one slow moment. The floor shows the way it will go.
+  // Streak: straight through where the player stood when its aim locked and `past` on, within
+  // [`minLength`, `maxLength`]. A wall in the way turns it aside, once, for what it had left to
+  // run, at least `minGlance`.
+  CometStreak: {
+    type: 'cometStreak', tell: 'cometStreak', cooldown: 3, range: 10, minRange: 2, windUpTime: 0.6, lockTime: 0.16, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 1.2, ...clearPath({ x: 0.8, y: 0.8 }, 0.3), strafeSpeed: 5,
+    speed: 18, launchTime: 0.07, past: 7, minLength: 9, maxLength: 17, minGlance: 3.5, skidEase: 0.25,
+    hitboxRadius: 0.6, parryKnockback: 12, strikeSound: 'cometStreak',
+  },
+  // Noose: a ring round where the player stood when its aim locked, `radii` (the widest with room
+  // for it) out, settling onto it over its first `settleDeg`, `sweepDeg` [min, max] of the way
+  // round the way with more room, or none if there's no room for `minSweepDeg`. `flareDelay` after
+  // it's done the ring flares (COMET.wake.flare), a `shots` ember every `spacing` tiles of it
+  // flying in to the middle and `reach` × the ring's radius on.
+  CometNoose: {
+    type: 'cometNoose', tell: 'cometNoose', cooldown: 6, range: 9, windUpTime: 0.8, lockTime: 0.2, duration: 0, recoveryTime: 0.7,
+    damageMultiplier: 1, parryStunTime: 1.2, strafeSpeed: 5,
+    radii: [4.5, 3.6], sweepDeg: [270, 320], minSweepDeg: 170, settleDeg: 70, speed: 16, launchTime: 0.1, flareDelay: 0.25, skidEase: 0.3,
+    shots: { spacing: 1.7, speed: 7.5, reach: 1.5, size: 0.3, damageMultiplier: 0.6 },
+    hitboxRadius: 0.6, parryKnockback: 12, strikeSound: 'cometIgnite',
+  },
+  // Sling: in along the tangent to a circle `pivot` round the player, giving up on that after
+  // `inTime`, round it `sweepDeg`, an `embers` shot at them every `everyDeg` from `fromDeg` on,
+  // then flung out along the tangent at `flingSpeed` for `outLength`.
+  CometSling: {
+    type: 'cometSling', tell: 'cometSling', cooldown: 4.5, range: 9, minRange: 3.4, windUpTime: 0.6, lockTime: 0.15, duration: 0, recoveryTime: 0.5,
+    damageMultiplier: 1, parryStunTime: 1.2, strafeSpeed: 5,
+    pivot: 2, sweepDeg: 205, speed: 15, launchTime: 0.08, inTime: 0.9, flingSpeed: 20, outLength: 6, skidEase: 0.25,
+    embers: { everyDeg: 36, fromDeg: 20, jitterDeg: 5, speed: 9, lifetime: 1.2, size: 0.28, damageMultiplier: 0.6 },
+    hitboxRadius: 0.6, parryKnockback: 12, strikeSound: 'cometSling',
+  },
 };

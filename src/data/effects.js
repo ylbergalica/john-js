@@ -168,6 +168,9 @@ export const ATTACK_FX = {
     morayBite: { shape: 'arc', arcDeg: 60, lines: 2, reach: 0.7, to: 1.15, lean: 0.22, squash: 0.08, swell: 0.06 }, // its fangs spreading show the rest
     morayLeap: { shape: 'chevrons', count: 5, spacing: 0.5, size: 0.36, lean: 0.3, squash: 0.16, swell: 0 },
     moraySpit: { shape: 'none', lean: 0.1, squash: 0.04, swell: 0.08 },
+    cometStreak: { shape: 'chevrons', count: 4, spacing: 0.55, size: 0.36, lean: 0.24, squash: 0.12, swell: 0, stretchIn: 0.05 }, // the floor shows the rest (PathTell)
+    cometNoose: { shape: 'ring', reach: 1.5, to: 1.1, lean: 0.06, squash: 0, swell: 0.1, stretchIn: 0.05 },
+    cometSling: { shape: 'arc', arcDeg: 150, lines: 2, reach: 0.8, to: 1.2, lean: 0.16, squash: 0.06, swell: 0.05, stretchIn: 0.05 },
     razor: { shape: 'chevrons', count: 4, spacing: 0.6, size: 0.42, lean: 0.2, squash: 0.1, swell: 0, stretchIn: 0.05 }, // out past its disc
     snap: { shape: 'chevrons', count: 3, spacing: 0.38, size: 0.26, lean: 0.16, squash: 0.06, swell: 0.03 }, // its barrels bunching show the rest
     splay: { shape: 'arc', arcDeg: 120, lines: 3, reach: 1.5, to: 1.95, lean: 0.1, squash: 0.06, swell: 0.07 }, // the fan about to go off
@@ -661,6 +664,47 @@ export const JET = {
   },
   glow: { size: [0.34, 0.83, 1], alpha: [0.3, 0.7, 0.85], color: 0xff4a20 },
   sparks: { rate: 40, windup: 0.4, count: 1, speed: 3, lifetime: 0.25, size: 0.22, coneDeg: 14, color: 0xff7a2a },
+};
+
+// The Comet (src/enemies/cometRig.js, wake.js; its art in src/render/sprites.js).
+// `wake`: a point every `spacing` tiles it runs, `points` at most, burning `life` seconds and
+// dying away over the last `fade`, hurting from `armAfter` after it's laid until only `dying` of
+// the fade is left, within `hurtRadius` of its line (at most once in `hurtEvery`). Drawn `width`
+// to each side, its heat falling to `cool` with age; its edges waver by `flicker` and it sheds
+// `sparks` at `sparks.rate` a second. `flare`: a ring flaring, running back along it over `sweep`,
+// each point `width` × as wide and hurting `hurtRadius` out for `time`. `gutter`: parried, all of
+// it dying over `time` at most. `pops`: the Comet dead, its tail and wake burst one after another
+// back along the line, `every` seconds apart and at most `total` in all.
+// `tail`: `points` along a rope behind its head, each `seg` [idle, fullSpeed] apart and `width`
+// wide at the root, swaying by `wave` when it's slow, shedding `sparks` the faster it goes. Its look
+// eases (`ease`) between `idle`, `windup`, `run` and `still` (stunned, guttering).
+// `ember`: its shots (EmberLook). `hairpin`: the sparks thrown as it's flung out of a Sling.
+export const COMET = {
+  wake: {
+    points: 200, spacing: 0.36, layFrom: 8.5, life: 3.6, fade: 0.9, dying: 0.3, armAfter: 0.14, hurtRadius: 0.3, hurtEvery: 1.3,
+    width: 0.85, cool: 0.55, flicker: 0.14, flickerSpeed: [9, 17], flickerAlong: 0.75,
+    sparks: { rate: 34, count: 1, speed: 2.4, lifetime: 0.55, size: 0.2, coneDeg: 180, color: 0x9ff0ff },
+    sear: { count: 10, speed: 5, lifetime: 0.35, size: 0.26, coneDeg: 180, color: 0xdffaff },
+    flare: { sweep: 0.18, time: 0.45, width: 1.75, hurtRadius: 0.6, sparks: { count: 3, speed: 6.5, lifetime: 0.4, size: 0.28, coneDeg: 180, color: 0xdffaff }, shake: { duration: 0.25, strength: 0.14, frequency: 28 } },
+    gutter: { time: 0.4, heat: 0.45, sparks: { count: 2, speed: 3, lifetime: 0.5, size: 0.2, coneDeg: 180, color: 0x6fe8ff } },
+    pops: { every: 0.028, total: 0.95, flash: { time: 0.26, from: 0.8, to: 3, alpha: 1, color: 0x6fe8ff }, star: { time: 0.18, size: 1.5 }, sparks: { count: 5, speed: 7, lifetime: 0.35, size: 0.26, coneDeg: 180, color: 0xbff6ff } },
+  },
+  tail: {
+    points: 16, seg: [0.07, 0.32], fullSpeed: 18, width: 0.36, relax: 0.14, faceEase: 0.06, root: 0.32,
+    wave: { amount: 0.1, speed: 2.2, along: 0.7 }, flicker: { amount: 0.12, speed: 15 },
+    sparks: { rate: 46, count: 1, speed: 2.8, lifetime: 0.34, size: 0.2, coneDeg: 26, color: 0xbff6ff },
+  },
+  ease: 0.1, glowColor: 0x6fe8ff, glowSize: 3, star: { size: 0.9, at: 0.14, spin: 1.2 },
+  idle: { width: 0.85, alpha: 0.9, glow: 0.3, star: 0.5 },
+  windup: { width: 1.4, alpha: 1, glow: 0.65, star: 1 },
+  run: { width: 1.5, alpha: 1, glow: 0.6, star: 1 },
+  still: { width: 0.5, alpha: 0.3, glow: 0.1, star: 0.15 },
+  ember: { color: 0x6fe8ff, bright: 0xf0fdff, trail: 1.1, length: 1.6, width: 0.8, trailWidth: 0.9, pulseSpeed: 11, halo: { size: 3.2, alpha: 0.85 } },
+  glance: { sparks: { count: 18, speed: 8, lifetime: 0.35, size: 0.3, coneDeg: 70, color: 0xdffaff }, shake: { duration: 0.16, strength: 0.1, frequency: 30 } },
+  hairpin: { count: 14, speed: 9, lifetime: 0.35, size: 0.28, coneDeg: 24, color: 0xdffaff },
+  // The way an attack will go, on the floor (PathTell): a faint line, a brighter one running along
+  // it as the wind-up closes, a bead at its head, and a mark at the end, fading after the strike.
+  path: { faint: 0.28, line: 0.06, halo: 3, bead: 0.13, arrow: 0.3, releaseTime: 0.3 },
 };
 
 // The Razor's disc (src/enemies/razorRig.js; its art in src/render/sprites.js). A disc of

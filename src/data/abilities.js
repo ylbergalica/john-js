@@ -434,43 +434,39 @@ export const ABILITIES = {
     type: 'moraySpit', tell: 'moraySpit', cooldown: 4, range: 10, minRange: 2.5, windUpTime: 0.6, lockTime: 0.15, duration: 0, recoveryTime: 0.4,
     damageMultiplier: 0.8, parryStunTime: 1.2, projectileSpeed: 7.5, projectileLifetime: 2.2, projectileSize: 0.32, chargeSize: 0.4, spawnDistance: 0.7, spreadDeg: [-22, 0, 22],
   },
-  // The Collapsar's gravity, never picked by its AI: a pull on the player, `near` tiles a second
-  // right by it falling to nothing `reach` tiles out as (1 - d / reach) ^ `curve`, with no wall
-  // between them. Stunned it lets go; `ease` seconds to let go or take hold again. It hums every
-  // `humEvery` seconds with the player in reach.
-  CollapsarGravity: {
-    type: 'gravity', cooldown: 0, range: 0, windUpTime: 0, duration: 0, recoveryTime: 0, damageMultiplier: 0,
-    reach: 7, near: 1.8, curve: 1.2, ease: 0.25, humEvery: 2.6,
-  },
-  // Inhale: over its wind-up it hauls the player in (`pull`, on top of its gravity, gathering
-  // over the first `pullRise` of it), then crushes all round. Walking away from close by only
-  // about holds them level (PLAYER.gravityLimit); from a few tiles off it gets them clear, and
-  // standing still it reaches them from anywhere it would start this. A dash outruns it.
+  // The Collapsar's attacks all say what they'll do on the floor (COLLAPSAR.marks, drawn by its
+  // rig): a ring as far as anything pulls, a disc filling up to where it will crush, and a line
+  // down each lane a shot will fly. Nothing of it pulls but what's ringed.
+  // Maw: over its wind-up it hauls the player in (`pull`, gathering over the first `pullRise`),
+  // its reach ringed, the crush filling in up to `hitboxRadius`; then it crushes all round.
+  // Walking straight out gets clear from its outer part; from nearer the middle only a dash does,
+  // and standing still it drags them in from anywhere it would start this.
   CollapsarInhale: {
-    type: 'inhale', tell: 'inhale', pose: 'inhale', cooldown: 6, range: 7, windUpTime: 1.3, lockTime: 0, duration: 0.14, recoveryTime: 0.9,
+    type: 'inhale', tell: 'inhale', pose: 'inhale', cooldown: 6, range: 6, windUpTime: 1.2, lockTime: 0, duration: 0.14, recoveryTime: 0.9,
     damageMultiplier: 1, parryStunTime: 2.4, ...clearPath({ x: 1, y: 1 }, 0.7), cueAt: 1.6,
-    hitboxRadius: 2.6, parryKnockback: 16, pull: { reach: 10, near: 6, curve: 0.5 }, pullRise: 0.2, crushShake: { duration: 0.2, strength: 0.28, frequency: 18 },
+    hitboxRadius: 2.4, parryKnockback: 16, pull: { reach: 6.5, near: 6.5, curve: 0.6 }, pullRise: 0.25, crushShake: { duration: 0.2, strength: 0.28, frequency: 18 },
   },
   // Well: lobs a slow dark orb at where the player stands, which settles there into a gravity
   // well (`well`: at most `max` on a floor at once, their orbs in flight included) `time` seconds
-  // long, pulling as gravity does, harder (`hard`) over its last `warn` seconds, as it caves in,
-  // to burst in a ring of `shards`. Its maker stunned, it lets go too; its maker dead, it caves
-  // in at once, harmlessly (`fizzle` seconds). Parried, the orb's gone and its maker stunned.
+  // long, pulling within its ring. Over its last `warn` seconds the lanes of its `shards` show,
+  // `count` of them, and it caves in, flinging one down each. Its maker stunned, it lets go too;
+  // its maker dead, it caves in at once, harmlessly (`fizzle` seconds). Parried, the orb's gone
+  // and its maker stunned.
   CollapsarWell: {
     type: 'well', tell: 'lob', pose: 'gather', cooldown: 7, range: 11, minRange: 3, windUpTime: 0.9, lockTime: 0.15, duration: 0, recoveryTime: 0.6,
     damageMultiplier: 0.8, parryStunTime: 1.2, ...clearPath({ x: 0.8, y: 0.8 }, 0.7),
     look: 'darkOrb', projectileSpeed: 5, projectileSize: 0.56, spawnDistance: 1.3,
-    well: { max: 2, time: 4, form: 0.35, warn: 0.6, fizzle: 0.25, reach: 3.5, near: 2.8, curve: 0.8, hard: 1.5, ease: 0.2,
-      shards: { count: 12, look: 'coal', variant: 'violet', speed: 5, lifetime: 1.8, size: 0.3, damageMultiplier: 0.7, wallClear: 0.6 } },
+    well: { max: 2, time: 3.6, form: 0.35, warn: 0.9, fizzle: 0.25, reach: 3.5, near: 2.4, curve: 0.8, hard: 1, ease: 0.2,
+      shards: { count: 6, look: 'coal', variant: 'violet', speed: 6.5, lifetime: 1.6, size: 0.32, damageMultiplier: 0.7, wallClear: 0.6 } },
   },
-  // Ejecta: `slots` shots form round its disc `radius` out, orbiting it at `orbitSpeed` (rad/s),
-  // `gaps` runs of them left out, one each side of it, and it throws them off along their orbits.
-  // They swing in round it on a tighter circle (`swing` across) for `curveTime` seconds, at
-  // `projectileSpeed`, then fly straight on out at `flingSpeed`. Any of them parried stuns it.
+  // Ejecta: `waves` of shots flung straight out all round, `waveGap` apart, each `count` of them
+  // evenly spaced, the first lanes either side of the player, the next filling in between them
+  // (`offset`: in lanes). Each wave's lanes show on the floor before it goes. Any shot parried
+  // stuns it, and whatever wave's still to come never does.
   CollapsarEjecta: {
-    type: 'ejecta', tell: 'flare', pose: 'ejecta', cooldown: 5.5, range: 8, windUpTime: 0.9, lockTime: 0, duration: 0, recoveryTime: 0.7,
+    type: 'ejecta', tell: 'flare', pose: 'ejecta', cooldown: 5.5, range: 8, windUpTime: 0.9, lockTime: 0, duration: 0, recoveryTime: 1.1,
     damageMultiplier: 0.8, parryStunTime: 1, ...clearPath({ x: 1, y: 1 }, 0.7), look: 'coal', projectileSize: 0.34, chargeSize: 0.34,
-    slots: 18, gaps: [2, 2], radius: 1.4, orbitSpeed: 1.5, projectileSpeed: 3.4, swing: 1.15, curveTime: 1.1, flingSpeed: 4.8, projectileLifetime: 3.7,
+    waves: [{ count: 8, offset: 0.5 }, { count: 8, offset: 0 }], waveGap: 0.55, radius: 1.1, projectileSpeed: 6.5, projectileLifetime: 1.8,
   },
   // The Revenant's afterimage: a passive, replaying the Revenant `delay` seconds behind, its
   // hitboxes and all, each for `damageMultiplier` of its damage (whatever isn't `noEcho`).
@@ -490,14 +486,17 @@ export const ABILITIES = {
     length: 4.8, speed: 22, launchTime: 0.04, carry: 0.25, skidEase: 0.07, hitbox: { from: 0.1, length: 2.25, r: 0.17 },
     followUp: { ability: 'RevenantRecall', chance: 0.4 }, parryKnockback: 9, strikeSound: 'revenantThrust', echoSound: 'revenantThrustEcho',
   },
-  // Cross: two slashes of its needle, from either side by turns, `swingTime` each, the second
+  // Cross: two slashes of its needle, one side then the other, `swingTime` each, the second
   // `gap` after the first, half its afterimage's delay so all four land on an even beat, its
-  // own two then its echo's. It steps `stepDistance` into each, the second turned after the
-  // player by up to `turnDeg`, and the second has its cue `cueLead` ahead of it.
+  // own two then its echo's. It steps `stepDistance` [first, second] into them, the second
+  // lunging well on, turned after the player by up to `turnDeg`, with its cue `cueLead` ahead
+  // of it. `unstunned`: a parry turns a slash aside (its damage and all) but doesn't stop it:
+  // no stun, no knockback, its afterimage left whole to repeat it all. Its cue and tell are red
+  // for it.
   RevenantCross: {
     type: 'revenantCross', tell: 'revenantCross', ready: 'slashReady', cooldown: 3.4, range: 3.1, windUpTime: 0.48, lockTime: 0.12, duration: 0.5, recoveryTime: 0.3,
-    damageMultiplier: 1, parryStunTime: 1, ...clearPath({ x: 0.6, y: 0.6 }, 0.3),
-    gap: 0.35, swingTime: 0.15, stepDistance: 0.95, skidEase: 0.05, turnDeg: 28, cueLead: 0.2, bladeHit: { reach: [0.3, 2.05], radius: 0.14, samples: 4 },
+    damageMultiplier: 1, parryStunTime: 0, unstunned: true, ...clearPath({ x: 0.6, y: 0.6 }, 0.3),
+    gap: 0.35, swingTime: 0.15, stepDistance: [0.95, 2], skidEase: 0.05, turnDeg: 28, cueLead: 0.2, bladeHit: { reach: [0.3, 2.05], radius: 0.14, samples: 4 },
     parryKnockback: 7, strikeSound: 'revenantSlash', echoSound: 'revenantSlashEcho',
   },
   // Recall: it blinks back to where its afterimage stands, at least `minGap` off with nothing
@@ -721,23 +720,23 @@ export const ABILITIES = {
   // Noose: a ring round where the player stood when its aim locked, `radii` (the widest with room
   // for it) out, settling onto it over its first `settleDeg`, `sweepDeg` [min, max] of the way
   // round the way with more room, or none if there's no room for `minSweepDeg`. `flareDelay` after
-  // it's done the ring flares (COMET.wake.flare), a `shots` ember every `spacing` tiles of it
+  // it's done the ring flares (COMET.wake.flare), `shots.count` embers spaced evenly along it
   // flying in to the middle and `reach` × the ring's radius on.
   CometNoose: {
     type: 'cometNoose', tell: 'cometNoose', cooldown: 6, range: 9, windUpTime: 0.8, lockTime: 0.2, duration: 0, recoveryTime: 0.7,
     damageMultiplier: 1, parryStunTime: 1.2, strafeSpeed: 5,
     radii: [4.5, 3.6], sweepDeg: [270, 320], minSweepDeg: 170, settleDeg: 70, speed: 16, launchTime: 0.1, flareDelay: 0.25, skidEase: 0.3,
-    shots: { spacing: 1.7, speed: 7.5, reach: 1.5, size: 0.3, damageMultiplier: 0.6 },
+    shots: { count: 3, speed: 7.5, reach: 1.5, size: 0.3, damageMultiplier: 0.6 },
     hitboxRadius: 0.6, parryKnockback: 12, strikeSound: 'cometIgnite',
   },
   // Sling: in along the tangent to a circle `pivot` round the player, giving up on that after
-  // `inTime`, round it `sweepDeg`, an `embers` shot at them every `everyDeg` from `fromDeg` on,
+  // `inTime`, round it `sweepDeg`, an `embers` shot at them every `everyDeg` from `fromDeg` on (`count` in all),
   // then flung out along the tangent at `flingSpeed` for `outLength`.
   CometSling: {
     type: 'cometSling', tell: 'cometSling', cooldown: 4.5, range: 9, minRange: 3.4, windUpTime: 0.6, lockTime: 0.15, duration: 0, recoveryTime: 0.5,
     damageMultiplier: 1, parryStunTime: 1.2, strafeSpeed: 5,
     pivot: 2, sweepDeg: 205, speed: 15, launchTime: 0.08, inTime: 0.9, flingSpeed: 20, outLength: 6, skidEase: 0.25,
-    embers: { everyDeg: 36, fromDeg: 20, jitterDeg: 5, speed: 9, lifetime: 1.2, size: 0.28, damageMultiplier: 0.6 },
+    embers: { count: 3, everyDeg: 65, fromDeg: 35, jitterDeg: 5, speed: 9, lifetime: 1.2, size: 0.28, damageMultiplier: 0.6 },
     hitboxRadius: 0.6, parryKnockback: 12, strikeSound: 'cometSling',
   },
 };

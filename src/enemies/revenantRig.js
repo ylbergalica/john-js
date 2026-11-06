@@ -339,7 +339,7 @@ export class AfterimageView {
     }
     if (!(k >= 0 && k < 1)) { this.cue.render(null, 0, 1); return; }
     const q = needleOf(s, R.needle.cue);
-    this.cue.render({ x: q.ax, y: q.ay }, k, Math.sqrt(a.enemy.body.radius / 0.5));
+    this.cue.render({ x: q.ax, y: q.ay }, k, Math.sqrt(a.enemy.body.radius / 0.5), a.echoCueUnstunned ? X.cue.unstunned : X.cue);
   }
 
   // Motes of light drifting off it.

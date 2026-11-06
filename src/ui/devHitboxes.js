@@ -26,6 +26,11 @@ export class DevHitboxes {
     g.visible = on;
     if (!on) { this.recent.clear(); return; }
     for (const a of w.hostileAttacks) this.recent.set(a, { shape: a.worldShape(), at: w.time });
+    // Hurtful ground (a Comet's wake), which isn't an attack to be parried, as it is now.
+    for (const e of w.entities) {
+      const s = !e.dead && e.hazardShape?.();
+      if (s) this.draw(s, ATTACK, 0.3, 1);
+    }
 
     for (const e of w.enemies) this.draw(hurtShape(e), BODY, 0, 0.5);
     for (const p of w.props) if (!p.dead && p.body) this.draw(hurtShape(p), BODY, 0, 0.3);

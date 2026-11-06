@@ -2234,8 +2234,8 @@ function cometWake(W = 128, H = 64) {
   for (let y = 0; y < H; y++) {
     const across = Math.abs((y + 0.5) / H - 0.5) * 2;
     for (let x = 0; x < W; x++) {
-      const h = x / (W - 1), i = (y * W + x) * 4, reach = lerp(0.45, 1, h);
-      const soft = clamp01(1 - across / reach) ** 1.7, core = smoothStep01(clamp01(1 - across / (reach * 0.42)));
+      const h = x / (W - 1), i = (y * W + x) * 4, reach = lerp(0.8, 1, h); // nearly as wide however hot, so how wide it looks is how wide it hurts (Wake.halfWidth)
+      const soft = clamp01(1 - across / reach) ** 1, core = smoothStep01(clamp01(1 - across / (reach * 0.55)));
       const a = soft * lerp(0, 0.72, smoothStep01(clamp01(h * 2.2))) + core * h ** 1.2 * 0.85;
       const [r, g, b] = cometHeat(clamp01(core * h * 1.1 + h * 0.45));
       img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = b;

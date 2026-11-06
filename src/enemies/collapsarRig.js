@@ -2,15 +2,18 @@
 // wisps turning round its body, the outer slower, easing to the look its attack names (its
 // data's `pose`), so the faster it spins the nearer the blow. Inhaling it tightens and burns
 // brightest, streaks rushing in. Stunned, its disc unravels into strands and goes dim, shedding
-// embers, all its gravity let go. Streaks fall in on it as long as its gravity has hold, and it
-// flares as it throws something. When it dies, it leaves a CollapsarImplosion, which is its
-// death's whole look (`detonated`). Cosmetic.
-import { Sprite } from 'pixi.js';
+// embers, all its gravity let go. A few streaks always fall in on it, and it flares as it
+// throws something. On the floor it shows what its attacks will do (COLLAPSAR.marks): its
+// Maw's reach ringed and the crush filling in, its Ejecta's lanes. When it dies, it leaves a
+// CollapsarImplosion, which is its death's whole look (`detonated`). Cosmetic, but for a hum
+// now and then with the player near.
+import { Graphics, Sprite } from 'pixi.js';
 import { COLLAPSAR as C } from '../data/config.js';
-import { clamp01, lerp, TAU } from '../engine/math.js';
+import { clamp01, dist, lerp, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
+import { clearGraphics } from '../render/fx.js';
 import { COLLAPSAR_ART } from '../render/sprites.js';
-import { CollapsarImplosion, Infall } from './gravity.js';
+import { CollapsarImplosion, Infall, drawLanes } from './gravity.js';
 
 const KEYS = ['spin', 'disc', 'scale', 'glow', 'strands'];
 
@@ -43,8 +46,12 @@ export class CollapsarRig {
     this.wasStunned = false;
     this.sheds = 0; // embers owed
     this.infall = new Infall(enemy.world);
-    this.gravity = [...enemy.abilities.values()].find((a) => a.data.type === 'gravity');
+    this.marks = new Graphics();
+    this.marks.blendMode = 'add';
+    enemy.world.layers.zones.addChild(this.marks);
+    this.humAt = 0;
     this.inhale = [...enemy.abilities.values()].find((a) => a.data.type === 'inhale');
+    this.ejecta = [...enemy.abilities.values()].find((a) => a.data.type === 'ejecta');
   }
 
   get world() { return this.enemy.world; }
@@ -81,6 +88,32 @@ export class CollapsarRig {
     this.unravel();
     if (step > 0 && e.view.visible) this.shed(step);
     this.fall(step);
+    this.mark(now);
+    this.hum();
+  }
+
+  // What its attack will do, on the floor: the Maw's reach ringed and its crush filling in to
+  // the edge it'll reach as the wind-up runs out; the Ejecta's lanes for the wave to come.
+  mark(now) {
+    const g = this.marks, M = C.marks, p = this.enemy.view.position, a = this.inhale, j = this.ejecta;
+    clearGraphics(g);
+    if (!this.enemy.view.visible || this.enemy.stunned) return;
+    if (a?.phase === 'windup') {
+      const t = clamp01((now - a.phaseStartedAt) / a.data.windUpTime), shown = smoothStep01(clamp01(t / M.fadeIn)), R = a.data.hitboxRadius;
+      g.circle(p.x, p.y, a.data.pull.reach).stroke({ width: M.pull.width, color: M.pull.color, alpha: M.pull.alpha * shown });
+      g.circle(p.x, p.y, R).stroke({ width: M.crush.width, color: M.crush.color, alpha: M.crush.alpha * shown });
+      g.circle(p.x, p.y, R * smoothStep01(t)).fill({ color: M.crush.color, alpha: M.crush.fill * shown });
+    }
+    const lanes = j?.lanes(now);
+    if (lanes) drawLanes(g, this.world.physics, p.x, p.y, lanes.angles, lanes.t, C.disc.outer * 0.7, M.lanes, M.laneColor);
+  }
+
+  // Its weight: a deep hum now and then with the player near.
+  hum() {
+    const e = this.enemy, p = this.world.livePlayer, H = C.hum;
+    if (this.world.time < this.humAt || e.stunned || !p || dist(e.body.pos, p.body.pos) > H.reach) return;
+    this.humAt = this.world.time + H.every;
+    this.world.sound('collapsarHum', e.body.pos, { pitch: e.type.sfxPitch });
   }
 
   // Its gravity let go: its disc comes apart, once, all at once.
@@ -104,15 +137,15 @@ export class CollapsarRig {
     }
   }
 
-  // Dust falling in on it, a rush of it as it inhales, none once it has let go.
+  // Dust falling in on it, close by, a rush of it from as far as it pulls as it inhales, none
+  // once it has let go.
   fall(step) {
     const I = C.infall, a = this.inhale, p = this.enemy.view.position;
     if (!this.enemy.view.visible) { this.infall.clear(); return; }
     const t = a?.phase === 'windup' ? clamp01((a.world.time - a.phaseStartedAt) / a.data.windUpTime) : 0, h = t > 0 ? lerp(0.35, 1, t) : 0;
     const S = {};
     for (const key of Object.keys(I.calm)) S[key] = lerp(I.calm[key], I.hard[key], h);
-    const reach = lerp(this.gravity.data.reach, a.data.pull.reach, h);
-    this.infall.render(p.x, p.y, step, S, this.gravity.pull, reach, I.inner);
+    this.infall.render(p.x, p.y, step, S, this.enemy.stunned ? 0 : 1, lerp(I.reach, a.data.pull.reach, h), I.inner);
   }
 
   // Struck: its disc flashes white with the rest of it.
@@ -126,5 +159,8 @@ export class CollapsarRig {
     this.world.add(new CollapsarImplosion(this.world, this.enemy, this.angle));
   }
 
-  destroy() { this.infall.destroy(); }
+  destroy() {
+    this.infall.destroy();
+    this.marks.destroy();
+  }
 }

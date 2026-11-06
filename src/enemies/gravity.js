@@ -4,8 +4,9 @@
 //   gravityPull        the pull toward a point: falling off with distance, cut off by walls.
 //   Infall             the streaks falling in on what pulls.
 //   WellOrb            the dark orb: flies to where the player stood, and settles there.
-//   GravityWell        what it settles into: pulls for a while, then caves in, bursting in shards.
-//   EjectaShot         one of the shots thrown off its disc: swings in round it, then flies out.
+//   GravityWell        what it settles into: pulls for a while, then caves in, flinging shards
+//                      down the lanes it shows.
+//   drawLanes          lines on the floor down which shots will fly.
 //   CollapsarImplosion its death: all of it dropping inward, then blasting back out.
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
@@ -28,6 +29,19 @@ export function gravityPull(world, from, body, { reach, near, curve }, k = 1) {
   if (world.physics.rayLength(from.x, from.y, -dx / d, -dy / d, d, 0.25) < d) return NONE;
   const v = near * (1 - d / reach) ** curve * k;
   return { x: (dx / d) * v, y: (dy / d) * v };
+}
+
+// Lines on the floor out from (x, y) along `angles`, from `inner` out to `length` or the first
+// wall: where shots will fly. `t`, 0 → 1 till they go: they draw out and brighten (`L`, one of
+// COLLAPSAR.marks' lanes).
+export function drawLanes(g, physics, x, y, angles, t, inner, L, color) {
+  const reach = lerp(inner, L.length, smoothStep01(clamp01(t / L.drawIn))), alpha = L.alpha * lerp(0.45, 1, t);
+  for (const a of angles) {
+    const c = Math.cos(a), s = Math.sin(a), far = Math.min(reach, physics.rayLength(x, y, c, s, reach, 0.1));
+    if (far <= inner) continue;
+    g.moveTo(x + c * inner, y + s * inner).lineTo(x + c * far, y + s * far).stroke({ width: L.width, color, alpha });
+    g.circle(x + c * far, y + s * far, L.width * 1.6).fill({ color, alpha });
+  }
 }
 
 // Streaks of dust falling in on a point, spawned with a clear line to it, so none comes
@@ -117,9 +131,10 @@ export class WellOrb extends Projectile {
   }
 }
 
-// The well: pulling (well.reach, near, curve) for its `time`, harder as it caves in over its
-// last `warn`, then gone in a ring of shards. It answers to its maker: stunned it lets go, and
-// dead it caves in at once with no shards, so a kill ends what it left behind.
+// The well: pulling (well.reach, near, curve) for its `time`, its reach ringed, then gone in
+// shards, one down each of the lanes it shows over its last `warn`. It answers to its maker:
+// stunned it lets go, and dead it caves in at once with no shards, so a kill ends what it left
+// behind.
 export class GravityWell extends Entity {
   constructor(world, sourceAbility, x, y, well) {
     super(world);
@@ -147,6 +162,10 @@ export class GravityWell extends Entity {
       s.position.set(x, y);
       layer.addChild(s);
     }
+    this.lanes = new Graphics();
+    this.lanes.blendMode = 'add';
+    world.layers.zones.addChild(this.lanes);
+    this.turn = Math.random() * TAU; // its shards' lanes, from here
     this.angle = Math.random() * TAU;
     this.lastNow = null;
     world.effects.burst(x, y, 0, W.settle);
@@ -155,6 +174,9 @@ export class GravityWell extends Entity {
   }
 
   get pos() { return { x: this.x, y: this.y }; }
+
+  // Its shards' lanes.
+  angles() { return Array.from({ length: this.well.shards.count }, (_, i) => this.turn + (TAU * i) / this.well.shards.count); }
 
   pullOn(player) { return gravityPull(this.world, this.pos, player.body, this.well, this.hold); }
 
@@ -177,9 +199,9 @@ export class GravityWell extends Entity {
   implode() {
     const w = this.world, { x, y } = this, W = C.well, S = this.well.shards, color = C.ember.violet.color;
     if (!this.fizzling) {
-      const turn = Math.random() * TAU, damage = this.maker.damage * this.sourceAbility.data.damageMultiplier * S.damageMultiplier;
-      for (let i = 0; i < S.count; i++) {
-        const dir = fromAngle(turn + (TAU * i) / S.count);
+      const damage = this.maker.damage * this.sourceAbility.data.damageMultiplier * S.damageMultiplier;
+      for (const a of this.angles()) {
+        const dir = fromAngle(a);
         if (w.physics.circleHitsWall(x + dir.x * S.wallClear, y + dir.y * S.wallClear, S.size / 2)) continue; // straight into a wall beside it
         w.add(new Projectile(w, this.sourceAbility, x, y, { dir, speed: S.speed, lifetime: S.lifetime, damage, size: S.size, look: S.look, variant: S.variant }));
       }
@@ -209,6 +231,8 @@ export class GravityWell extends Entity {
     this.glow.alpha = W.glowAlpha * slack * lerp(1, 1.6, cave);
     this.reach.width = this.reach.height = (V.reach * opened * (1 - 0.86 * cave)) / RING_RADIUS;
     this.reach.alpha = W.ringAlpha * slack * lerp(1, 3.5, cave);
+    clearGraphics(this.lanes);
+    if (cave > 0 && !this.fizzling && !this.maker.stunned) drawLanes(this.lanes, this.world.physics, this.x, this.y, this.angles(), cave, W.inner, C.marks.lanes, C.marks.shardColor);
     if (!rectContainsCircle(view, this.x, this.y, V.reach)) { this.infall.clear(); return; }
     const S = {};
     for (const key of Object.keys(W.infall.calm)) S[key] = lerp(W.infall.calm[key], W.infall.hard[key], cave);
@@ -221,26 +245,7 @@ export class GravityWell extends Entity {
     this.glow.destroy();
     this.reach.destroy();
     this.pit.destroy();
-  }
-}
-
-// A shot off its disc: swinging round (`curve`, `curveTime`, as any Projectile), still in
-// orbit, then flying straight on at `flingSpeed`, its trail only starting there.
-export class EjectaShot extends Projectile {
-  constructor(world, sourceAbility, x, y, opts) {
-    super(world, sourceAbility, x, y, opts);
-    this.flingSpeed = opts.flingSpeed;
-  }
-
-  step(dt) {
-    if (this.speed !== this.flingSpeed && this.world.time >= this.curveUntil) this.speed = this.flingSpeed;
-    super.step(dt);
-  }
-
-  render(alpha) {
-    const p = this.body.lerpPos(alpha), now = renderTime(this.world, alpha);
-    const trail = Math.min(this.look.maxTrail, Math.max(0, now - this.curveUntil) * this.flingSpeed);
-    this.look.render(now, p.x, p.y, this.body.rotation, this.size, { trailLength: trail });
+    this.lanes.destroy();
   }
 }
 

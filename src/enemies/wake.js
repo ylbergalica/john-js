@@ -3,12 +3,14 @@
 // dead stretch just collapses, its heat kept in the texture's u (comet_wake) so it can fade along
 // its length without a shader. It's an entity of its own: it outlives the Comet to burst back
 // along its line (burstBack), and goes with the floor like any entity. It hurts like poison:
-// whenever the player touches it and hasn't been hurt lately, past any parry.
+// whenever the player touches it and hasn't been hurt lately, past any parry. Where it hurts is
+// what's drawn (halfWidth), `hurtShare` of the flame's half-width either side of its line: laid,
+// it's a thin dim fuse that can't hurt yet, then it ignites, flaring up; dying, it stops
+// hurting as it gutters down to embers.
 // A PathTell is the way an attack will go, shown on the floor through its wind-up.
 import { Graphics, MeshSimple } from 'pixi.js';
 import { ATTACK_FX as X, COMET } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, smoothStep01, TAU } from '../engine/math.js';
-import { segmentPointDistSq } from '../engine/physics.js';
 import { Entity } from '../game/entity.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
@@ -166,23 +168,68 @@ export class Wake extends Entity {
     this.popping = { queue: [], next: Infinity, i: -1, stride: 1, done: 0 };
   }
 
-  // Whether the point can hurt, and how far out: 0 if it can't.
-  reach(p, now) {
-    if (p.doused || now < p.at + W.armAfter) return 0;
-    if (now >= p.flareAt && now < p.flareAt + W.flare.time) return W.flare.hurtRadius;
-    return p.endsAt - now > W.fade * W.dying ? W.hurtRadius : 0;
+  // How far through its flare point `p` is, as a swell 0 → 1 → 0, or 0 if it isn't flaring.
+  flaring(p, now) {
+    const f = (now - p.flareAt) / W.flare.time;
+    return f >= 0 && f < 1 ? (1 - f) * Math.min(1, f * 8) : 0;
   }
 
-  // The stretch of it the circle (x, y, r) touches, if any: its later point.
+  // Whether point `p` can hurt: ignited, not doused, and not yet guttering out.
+  live(p, now) { return !p.doused && now - p.at >= W.armAfter && p.endsAt - now > W.fade * W.dying; }
+
+  // How wide point `i` burns to either side of its line at `now`, before its flicker: the fuse
+  // thin, swelling as it ignites, narrowing as it dies, wider as it flares, tapering at the
+  // ends of its stretch (measure first).
+  halfWidth(i, now) {
+    const p = this.at(i), left = p.endsAt - now, age = now - p.at;
+    if (left <= 0) return 0;
+    let w;
+    if (p.doused) w = W.width * lerp(0.35, 0.8, clamp01(left / W.gutter.time));
+    else {
+      w = W.width * lerp(0.55, 1, clamp01(left / W.fade));
+      if (age < W.armAfter) w *= W.fuse.width;
+      else w *= 1 + W.ignite.swell * clamp01(1 - (age - W.armAfter) / W.ignite.time);
+      w *= lerp(1, W.flare.width, this.flaring(p, now));
+    }
+    return w * lerp(0.35, 1, this.fromEnd[i] / TAPER);
+  }
+
+  // How far out of its line point `i` hurts at `now`: 0 if it can't.
+  hurtWidth(i, now) { return this.live(this.at(i), now) ? this.halfWidth(i, now) * W.hurtShare : 0; }
+
+  // The stretch of it the circle (x, y, r) touches, if any: its later point. Along a stretch
+  // its reach runs from one point's to the next.
   touching(x, y, r) {
     const now = this.world.time;
+    this.measure();
     for (let i = this.count - 1; i > 0; i--) {
       const b = this.at(i);
       if (!b.joined) continue;
-      const a = this.at(i - 1), R = Math.max(this.reach(a, now), this.reach(b, now));
-      if (R > 0 && segmentPointDistSq(a.x, a.y, b.x, b.y, x, y) <= (R + r) ** 2) return b;
+      const a = this.at(i - 1), Ra = this.hurtWidth(i - 1, now), Rb = this.hurtWidth(i, now);
+      if (Ra <= 0 && Rb <= 0) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy || 1;
+      const t = clamp01(((x - a.x) * dx + (y - a.y) * dy) / l2), R = lerp(Ra, Rb, t);
+      if (R > 0 && (a.x + dx * t - x) ** 2 + (a.y + dy * t - y) ** 2 <= (R + r) ** 2) return b;
     }
     return null;
+  }
+
+  // Where it can hurt just now, for the dev hitbox view: each live stretch as a band from one
+  // point's reach to the next, rounded at its points.
+  hazardShape() {
+    const now = this.world.time, parts = [];
+    if (this.popping || this.count < 2) return null;
+    this.measure();
+    for (let i = 1; i < this.count; i++) {
+      const b = this.at(i);
+      if (!b.joined) continue;
+      const a = this.at(i - 1), Ra = this.hurtWidth(i - 1, now), Rb = this.hurtWidth(i, now);
+      if (Ra <= 0 && Rb <= 0) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      parts.push({ type: 'poly', points: [{ x: a.x + nx * Ra, y: a.y + ny * Ra }, { x: b.x + nx * Rb, y: b.y + ny * Rb }, { x: b.x - nx * Rb, y: b.y - ny * Rb }, { x: a.x - nx * Ra, y: a.y - ny * Ra }] });
+      if (Rb > 0) parts.push({ type: 'circle', x: b.x, y: b.y, r: Rb });
+    }
+    return parts.length ? { type: 'group', parts } : null;
   }
 
   afterPhysics() {
@@ -190,7 +237,7 @@ export class Wake extends Entity {
     if (!p || this.popping || this.count < 2 || now < this.nextHurtAt || now < p.invincibleUntil || p.pendingHit) return;
     const { x, y } = p.body.pos, hit = this.touching(x, y, p.body.radius);
     if (!hit) return;
-    const a = this.sourceAbility, D = a.data, flaring = now >= hit.flareAt && now < hit.flareAt + W.flare.time;
+    const a = this.sourceAbility, D = a.data, flaring = this.flaring(hit, now) > 0;
     this.nextHurtAt = now + W.hurtEvery;
     p.hitBy(this, a.enemy.damage * (flaring ? D.flareMultiplier : D.damageMultiplier), { x, y }, { x: hit.x, y: hit.y });
     w.effects.burst(x, y, 0, W.sear);
@@ -215,31 +262,27 @@ export class Wake extends Entity {
     }
   }
 
-  // How hot point `p` burns just now, 0…1, and how wide, into `edges[5i…]`. Its flicker runs along
-  // the line (`serial`), so flames lick along it rather than each point jumping on its own.
+  // How hot point `p` burns just now, 0…1, and how wide (halfWidth), into `edges[5i…]`. Its
+  // flicker runs along the line (`serial`), so flames lick along it rather than each point
+  // jumping on its own. A fuse is dim, a fresh ignition white-hot, and once it can't hurt any
+  // more it's down to embers (`spent`).
   place(p, i, now) {
     const left = p.endsAt - now, age = now - p.at, e = this.edges, j = i * 5;
-    let heat = 0, width = 0;
+    let heat = 0;
+    const width = this.halfWidth(i, now);
     if (left > 0) {
       const [f0, f1] = W.flickerSpeed, s = p.serial * W.flickerAlong;
       const wob = (a) => 0.6 * Math.sin(now * f0 + s + a) + 0.4 * Math.sin(now * f1 - s * 2.3 + 2 * a);
-      const dying = clamp01(left / W.fade);
-      if (p.doused) {
-        heat = W.gutter.heat * clamp01(left / W.gutter.time);
-        width = W.width * lerp(0.35, 0.8, heat / W.gutter.heat);
-      } else {
-        heat = lerp(1, W.cool, clamp01(age / W.life)) * smoothStep01(dying) * (1 + W.flicker * 0.5 * wob(1));
-        width = W.width * lerp(0.5, 1, clamp01(age / 0.12)) * lerp(0.55, 1, dying);
+      if (p.doused) heat = W.gutter.heat * clamp01(left / W.gutter.time);
+      else if (age < W.armAfter) heat = W.fuse.heat;
+      else {
+        heat = lerp(1, W.cool, clamp01(age / W.life)) * smoothStep01(clamp01(left / W.fade)) * (1 + W.flicker * 0.5 * wob(1));
+        heat = Math.max(heat, clamp01(1 - (age - W.armAfter) / W.ignite.time)); // igniting
+        if (!this.live(p, now)) heat *= W.spent;
       }
-      const f = (now - p.flareAt) / W.flare.time;
-      if (f >= 0 && f < 1) {
-        const k = (1 - f) * Math.min(1, f * 8);
-        heat = Math.max(heat, lerp(0.75, 1, k));
-        width *= lerp(1, W.flare.width, k);
-      }
-      const end = this.fromEnd[i] / TAPER;
-      heat *= end;
-      width *= lerp(0.35, 1, end);
+      const k = this.flaring(p, now);
+      if (k > 0) heat = Math.max(heat, lerp(0.75, 1, k));
+      heat *= this.fromEnd[i] / TAPER;
       e[j] = p.x - p.nx * width * (1 + W.flicker * wob(3));
       e[j + 1] = p.y - p.ny * width * (1 + W.flicker * wob(3));
       e[j + 2] = p.x + p.nx * width * (1 + W.flicker * wob(5));

@@ -172,7 +172,7 @@ export const ATTACK_FX = {
     cometNoose: { shape: 'ring', reach: 1.5, to: 1.1, lean: 0.06, squash: 0, swell: 0.1, stretchIn: 0.05 },
     cometSling: { shape: 'arc', arcDeg: 150, lines: 2, reach: 0.8, to: 1.2, lean: 0.16, squash: 0.06, swell: 0.05, stretchIn: 0.05 },
     revenantThrust: { shape: 'chevrons', count: 5, spacing: 0.72, size: 0.2, lean: 0.3, squash: 0.1, swell: 0, stretchIn: 0.04 }, // down a thin strip
-    revenantCross: { shape: 'arc', arcDeg: 130, lines: 2, reach: 5.2, to: 4.6, lean: 0.1, squash: 0.04, swell: 0.05 }, // out where its needle will sweep
+    revenantCross: { shape: 'arc', arcDeg: 130, lines: 2, reach: 5.2, to: 4.6, lean: 0.1, squash: 0.04, swell: 0.05, color: 0xff3a48, hot: 0xff8a90 }, // out where its needle will sweep, in red: a parry won't stop it
     revenantRecall: { shape: 'ring', reach: 1.4, to: 0.95, lean: 0, squash: 0.12, swell: -0.06 }, // gathering in on itself; RecallView shows the rest
     razor: { shape: 'chevrons', count: 4, spacing: 0.6, size: 0.42, lean: 0.2, squash: 0.1, swell: 0, stretchIn: 0.05 }, // out past its disc
     snap: { shape: 'chevrons', count: 3, spacing: 0.38, size: 0.26, lean: 0.16, squash: 0.06, swell: 0.03 }, // its barrels bunching show the rest
@@ -197,6 +197,11 @@ export const ATTACK_FX = {
     haloSize: 2.6, haloAlpha: 0.9, haloColor: 0xff9a1f,
     ring: { from: 0.2, to: 0.9, alpha: 0.9 },
     sparks: { count: 8, speed: 5, lifetime: 0.22, size: 0.2, coneDeg: 180, color: 0xffa020 },
+    // The same in red, for an attack a parry won't stun (its ability's `unstunned`).
+    unstunned: {
+      color: 0xff2a3a, coreColor: 0xffe0e0, haloColor: 0xff1a2a,
+      sparks: { count: 10, speed: 5.5, lifetime: 0.24, size: 0.22, coneDeg: 180, color: 0xff2a3a },
+    },
   },
   strike: {
     pop: 0.1, popTime: 0.14, // the body swells by this fraction and settles
@@ -674,11 +679,13 @@ export const JET = {
 
 // The Comet (src/enemies/cometRig.js, wake.js; its art in src/render/sprites.js).
 // `wake`: a point every `spacing` tiles it runs, `points` at most, burning `life` seconds and
-// dying away over the last `fade`, hurting from `armAfter` after it's laid until only `dying` of
-// the fade is left, within `hurtRadius` of its line (at most once in `hurtEvery`). Drawn `width`
-// to each side, its heat falling to `cool` with age; its edges waver by `flicker` and it sheds
-// `sparks` at `sparks.rate` a second. `flare`: a ring flaring, running back along it over `sweep`,
-// each point `width` × as wide and hurting `hurtRadius` out for `time`. `gutter`: parried, all of
+// dying away over the last `fade`. Drawn `width` to each side, its heat falling to `cool` with
+// age; its edges waver by `flicker` and it sheds `sparks` at `sparks.rate` a second. It hurts
+// (at most once in `hurtEvery`) within `hurtShare` of however wide it's drawn just then, from
+// `armAfter` after it's laid until only `dying` of the fade is left: till then a `fuse`, that
+// much as wide and as hot, igniting white-hot and `ignite.swell` wider over `ignite.time`; after,
+// embers, `spent` as hot. `flare`: a ring flaring, running back along it over `sweep`, each
+// point `width` × as wide (so hurting as far out) for `time`. `gutter`: parried, all of
 // it dying over `time` at most. `pops`: the Comet dead, its tail and wake burst one after another
 // back along the line, `every` seconds apart and at most `total` in all.
 // `tail`: `points` along a rope behind its head, each `seg` [idle, fullSpeed] apart and `width`
@@ -687,11 +694,12 @@ export const JET = {
 // `ember`: its shots (EmberLook). `hairpin`: the sparks thrown as it's flung out of a Sling.
 export const COMET = {
   wake: {
-    points: 200, spacing: 0.36, layFrom: 8.5, life: 3.6, fade: 0.9, dying: 0.3, armAfter: 0.14, hurtRadius: 0.3, hurtEvery: 1.3,
-    width: 0.85, cool: 0.55, flicker: 0.14, flickerSpeed: [9, 17], flickerAlong: 0.75,
+    points: 200, spacing: 0.36, layFrom: 8.5, life: 3.6, fade: 0.9, dying: 0.3, armAfter: 0.18, hurtShare: 0.6, hurtEvery: 1.3,
+    fuse: { width: 0.3, heat: 0.3 }, ignite: { time: 0.14, swell: 0.3 }, spent: 0.4,
+    width: 0.6, cool: 0.55, flicker: 0.14, flickerSpeed: [9, 17], flickerAlong: 0.75,
     sparks: { rate: 34, count: 1, speed: 2.4, lifetime: 0.55, size: 0.2, coneDeg: 180, color: 0x9ff0ff },
     sear: { count: 10, speed: 5, lifetime: 0.35, size: 0.26, coneDeg: 180, color: 0xdffaff },
-    flare: { sweep: 0.18, time: 0.45, width: 1.75, hurtRadius: 0.6, sparks: { count: 3, speed: 6.5, lifetime: 0.4, size: 0.28, coneDeg: 180, color: 0xdffaff }, shake: { duration: 0.25, strength: 0.14, frequency: 28 } },
+    flare: { sweep: 0.18, time: 0.45, width: 1.75, sparks: { count: 3, speed: 6.5, lifetime: 0.4, size: 0.28, coneDeg: 180, color: 0xdffaff }, shake: { duration: 0.25, strength: 0.14, frequency: 28 } },
     gutter: { time: 0.4, heat: 0.45, sparks: { count: 2, speed: 3, lifetime: 0.5, size: 0.2, coneDeg: 180, color: 0x6fe8ff } },
     pops: { every: 0.028, total: 0.95, flash: { time: 0.26, from: 0.8, to: 3, alpha: 1, color: 0x6fe8ff }, star: { time: 0.18, size: 1.5 }, sparks: { count: 5, speed: 7, lifetime: 0.35, size: 0.26, coneDeg: 180, color: 0xbff6ff } },
   },
@@ -971,6 +979,12 @@ export const BLOB = {
 // `infall`: the streaks falling in on what pulls (`calm` to `hard`): `rate` a second, from within
 // `reach`, `speed` and `accel` (tiles a second, and that a second), `length`, `width`, `alpha`,
 // going from `far` to `near` as they fall. Their last `inner` tiles are hidden in what they fall on.
+// On the Collapsar itself they come from within `reach` but while it inhales.
+// `marks`: what its attacks will do, on the floor, showing over their first `fadeIn` (of the
+// wind-up): its Maw's `pull` ringed at its reach and its `crush` edge ringed, a disc filling in
+// up to it (`fill`); `lanes` where shots will fly (`laneColor` its Ejecta's, `shardColor` a
+// well's), drawn out to `length` over their first `drawIn`. `hum`: every `every` seconds with
+// the player within `reach`.
 // `well`: a gravity well, `size` across, its rim ring `ringAlpha` at the edge of its reach.
 // `darkOrb` and `ember`: the looks of its orb and shots. `death`: `time` seconds shrinking to
 // `end` of its size, pulling the player in (`pull`) and the walls round it (`wall`, tiles), then
@@ -989,8 +1003,16 @@ export const COLLAPSAR = {
   crushSparks: { count: 34, speed: 11, lifetime: 0.32, size: 0.36, coneDeg: 180, color: 0xffb060 },
   unravel: { count: 26, speed: 6.5, lifetime: 0.7, size: 0.32, coneDeg: 180, color: 0xc070ff },
   shed: { rate: 16, count: 1, speed: 2.4, lifetime: 0.6, size: 0.24, coneDeg: 30, color: 0xb060ff },
+  marks: {
+    fadeIn: 0.2,
+    pull: { color: 0x9a5cff, width: 0.06, alpha: 0.55 },
+    crush: { color: 0xff7a30, width: 0.09, alpha: 0.9, fill: 0.2 },
+    lanes: { width: 0.08, alpha: 0.75, length: 7, drawIn: 0.35 },
+    laneColor: 0xff8a3c, shardColor: 0xb070ff,
+  },
+  hum: { every: 2.6, reach: 7 },
   infall: {
-    far: 0x7a3cff, near: 0xffa050, inner: 1.2,
+    far: 0x7a3cff, near: 0xffa050, inner: 1.2, reach: 3,
     calm: { rate: 10, speed: 1.1, accel: 2.4, length: 0.32, width: 0.035, alpha: 0.34 },
     hard: { rate: 75, speed: 6, accel: 15, length: 1.15, width: 0.055, alpha: 0.85 },
   },

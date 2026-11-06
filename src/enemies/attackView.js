@@ -258,15 +258,15 @@ export class EnemyAttackFx {
       this.sparkedCueAt = cued.cueAt;
       for (const cue of this.cues) cue.sparked = false;
     }
-    const scale = Math.sqrt(this.radius / 0.5);
-    this.cues.forEach((cue, i) => cue.render(points[i] ?? null, k, scale));
+    const scale = Math.sqrt(this.radius / 0.5), look = cued?.data.unstunned ? C.unstunned : C;
+    this.cues.forEach((cue, i) => cue.render(points[i] ?? null, k, scale, look));
   }
 
   // Draws a tell in the enemy's frame (+x forward). `t`: wind-up progress, the tell tightening
   // to land at 1; `out`: how far it has burst outward since the strike.
   drawTell(tell, r, elapsed, t, alpha, out, side = 1) {
     if (alpha <= 0) return;
-    const g = this.tell, color = lerpColor(X.color, X.hot, 0.3 * t);
+    const g = this.tell, color = lerpColor(tell.color ?? X.color, tell.hot ?? X.hot, 0.3 * t);
     const radius = () => lerp(r * (1 + tell.reach), r * tell.to, t) + out;
     switch (tell.shape) {
       case 'ring': {
@@ -372,16 +372,29 @@ export class CueFlash {
       core: sprite(tex.glint, fx, { blendMode: 'add', tint: C.coreColor }),
     };
     this.sparked = false;
+    this.look = C;
+  }
+
+  // In `look`'s colours: the usual amber, or ATTACK_FX.cue.unstunned's red for an attack a
+  // parry won't stun.
+  paint(look) {
+    if (look === this.look) return;
+    this.look = look;
+    const { halo, ring, star, core } = this.sprites;
+    halo.tint = look.haloColor;
+    ring.tint = star.tint = look.color;
+    core.tint = look.coreColor;
   }
 
   // `p`: where, or null to hide; `k`: 0 → 1 through the cue's time; `scale`: its size.
-  render(p, k, scale) {
+  render(p, k, scale, look = C) {
     const { halo, ring, star, core } = this.sprites, on = !!p && k >= 0 && k < 1;
     for (const sp of Object.values(this.sprites)) sp.visible = on;
     if (!on) return;
+    this.paint(look);
     if (!this.sparked) {
       this.sparked = true;
-      this.world.effects.burst(p.x, p.y, 0, C.sparks);
+      this.world.effects.burst(p.x, p.y, 0, look.sparks);
     }
     const s = k < C.rise ? easeOut(k / C.rise) : 1 - smoothStep01((k - C.rise) / (1 - C.rise));
     const size = scale * s, R = lerp(C.ring.from, C.ring.to, easeOut(k)) * scale;

@@ -27,7 +27,7 @@ import { LashView } from './tether.js';
 import { PathTell, Wake } from './wake.js';
 import { AfterimageView, EchoTape, RecallView, crossPose, needlePose, onNeedle, mixPose } from './revenantRig.js';
 import { blightMuzzle, blightParts } from '../render/sprites.js';
-import { EjectaShot, WellOrb, gravityPull, wellsIn } from './gravity.js';
+import { WellOrb, gravityPull, wellsIn } from './gravity.js';
 
 const DEG = Math.PI / 180;
 
@@ -3954,7 +3954,7 @@ class CometNooseAbility extends CometRunAbility {
     const w = this.world, e = this.enemy, d = this.data, S = d.shots, c = this.center, { R, side } = this.ring, F = COMET.wake.flare;
     this.flareAt = null;
     this.wake.flare(this.laidTo);
-    const start = this.theta - side * this.swept, n = Math.max(3, Math.round((this.swept * R) / S.spacing));
+    const start = this.theta - side * this.swept, n = S.count;
     for (let i = 0; i < n; i++) {
       const a = start + side * this.swept * ((i + 0.5) / n), x = c.x + Math.cos(a) * R, y = c.y + Math.sin(a) * R;
       if (w.physics.circleHitsWall(x, y, S.size / 2)) continue;
@@ -4077,6 +4077,7 @@ class CometSlingAbility extends CometRunAbility {
     this.theta = Math.atan2(b.pos.y - c.y, b.pos.x - c.x);
     this.swept = 0;
     this.nextEmber = this.data.embers.fromDeg * DEG;
+    this.embersLeft = this.data.embers.count;
     this.stage = 'round';
     this.heldFor = 0;
     this.sound('cometTurn');
@@ -4088,7 +4089,8 @@ class CometSlingAbility extends CometRunAbility {
     this.swept += turn;
     this.theta += this.side * turn;
     this.toward(c.x + Math.cos(this.theta) * d.pivot, c.y + Math.sin(this.theta) * d.pivot, d.speed * 1.5);
-    if (this.swept >= this.nextEmber) {
+    if (this.embersLeft > 0 && this.swept >= this.nextEmber) {
+      this.embersLeft--;
       this.nextEmber += d.embers.everyDeg * DEG;
       this.ember();
     }
@@ -4124,37 +4126,8 @@ class CometSlingAbility extends CometRunAbility {
 }
 
 // ── the Collapsar ──────────────────────────────────────────────────
-// Its gravity (CollapsarGravity), never picked by its AI. It lives in World.gravities, which
-// the player answers to as they walk. Its rig reads `pull`, how hard it has hold, 0 → 1.
-class GravityAbility extends Ability {
-  constructor(enemy, data) {
-    super(enemy, data);
-    this.pull = 1;
-    this.humAt = 0;
-    this.world.gravities.add(this);
-  }
-
-  shouldExecute() { return false; }
-
-  step(dt) {
-    super.step();
-    const d = this.data, e = this.enemy, w = this.world;
-    this.pull = lerp(this.pull, e.stunned ? 0 : 1, 1 - Math.exp(-dt / d.ease));
-    const p = w.livePlayer;
-    if (w.time < this.humAt || e.stunned || !p || dist(e.body.pos, p.body.pos) > d.reach) return;
-    this.humAt = w.time + d.humEvery;
-    this.sound('collapsarHum');
-  }
-
-  pullOn(player) { return gravityPull(this.world, this.enemy.body.pos, player.body, this.data, this.pull); }
-
-  dispose() {
-    super.dispose();
-    this.world.gravities.delete(this);
-  }
-}
-
-// Zone: its Inhale, hauling the player in through the wind-up, then the crush all round it.
+// Zone: its Maw, hauling the player in through the wind-up, then the crush all round it. Its
+// pull lives in World.gravities, which the player answers to as they walk.
 class InhaleAbility extends HitboxAbility {
   constructor(enemy, data) {
     const area = { type: 'circle', r: data.hitboxRadius };
@@ -4210,50 +4183,61 @@ class WellAbility extends ThrowAbility {
   }
 }
 
-// Projectile: its Ejecta (EjectaShot), the shots showing all round its disc as they form,
-// gaps and all, orbiting it the way they'll be thrown.
+// Projectile: its Ejecta, waves of shots straight out all round it, the first forming round
+// its disc through the wind-up, the rest thrown `waveGap` after each other. Its rig draws the
+// lanes of the wave to come (lanes()).
 class EjectaAbility extends ThrowAbility {
   constructor(enemy, data) {
     super(enemy, data);
-    this.side = 1;
-    this.turn = 0;
-    this.open = []; // the slots with a shot in them
+    this.turn = 0; // the angle its lanes are laid out from: at the player as it starts
+    this.wave = 0; // the next wave to go
   }
 
   get armDelay() { return Infinity; }
 
   execute() {
-    const d = this.data, n = d.slots, gaps = new Set();
-    this.side = randSign();
-    this.turn = Math.random() * TAU;
-    d.gaps.forEach((size, g) => {
-      const at = Math.round(((g + randRange(-0.12, 0.12)) * n) / d.gaps.length);
-      for (let i = 0; i < size; i++) gaps.add((at + i + n) % n);
-    });
-    this.open = Array.from({ length: n }, (_, i) => i).filter((i) => !gaps.has(i));
+    const p = this.player, b = this.enemy.body;
+    this.turn = p ? Math.atan2(p.body.pos.y - b.pos.y, p.body.pos.x - b.pos.x) : b.rotation;
+    this.wave = 0;
     super.execute();
     this.sound('collapsarGather');
   }
 
-  angleOf(i, now) { return this.turn + (TAU * i) / this.data.slots + this.side * this.data.orbitSpeed * (now - this.phaseStartedAt); }
-
-  chargePoints(alpha, now = this.world.time) {
-    const p = this.enemy.body.lerpPos(alpha), R = this.data.radius;
-    return this.open.map((i) => {
-      const a = this.angleOf(i, now);
-      return { x: p.x + Math.cos(a) * R, y: p.y + Math.sin(a) * R, rot: a + (this.side * Math.PI) / 2 };
-    });
+  // The angles of wave `i`'s lanes.
+  angles(i) {
+    const W = this.data.waves[i];
+    return Array.from({ length: W.count }, (_, j) => this.turn + (TAU * (j + W.offset)) / W.count);
   }
 
-  release() {
-    const e = this.enemy, d = this.data, w = this.world;
-    for (const { x, y, rot } of this.chargePoints(1)) {
+  // The lanes of the wave to come, for its rig: { angles, t: 0 → 1 till it goes }, or null.
+  lanes(now) {
+    const d = this.data;
+    if (this.phase === 'windup') return { angles: this.angles(0), t: clamp01((now - this.phaseStartedAt) / d.windUpTime) };
+    if (this.phase !== 'recovery' || this.wave >= d.waves.length) return null;
+    return { angles: this.angles(this.wave), t: clamp01((now - this.strikeAt - (this.wave - 1) * d.waveGap) / d.waveGap) };
+  }
+
+  chargePoints(alpha) {
+    const p = this.enemy.body.lerpPos(alpha), R = this.data.radius;
+    return this.angles(0).map((a) => ({ x: p.x + Math.cos(a) * R, y: p.y + Math.sin(a) * R, rot: a }));
+  }
+
+  step(dt) {
+    super.step(dt);
+    const d = this.data;
+    if (this.phase === 'recovery' && this.wave < d.waves.length && this.world.time >= this.strikeAt + this.wave * d.waveGap) this.throwWave();
+  }
+
+  release() { this.throwWave(); }
+
+  throwWave() {
+    const e = this.enemy, d = this.data, w = this.world, p = e.body.pos, R = d.radius;
+    for (const a of this.angles(this.wave)) {
+      const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
       if (w.physics.circleHitsWall(x, y, d.projectileSize / 2)) continue; // into a wall right beside it
-      w.add(new EjectaShot(w, this, x, y, {
-        dir: fromAngle(rot), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier, size: d.projectileSize,
-        look: d.look, curve: (this.side * d.projectileSpeed) / d.swing, curveTime: d.curveTime, flingSpeed: d.flingSpeed,
-      }));
+      w.add(new Projectile(w, this, x, y, { dir: fromAngle(a), speed: d.projectileSpeed, lifetime: d.projectileLifetime, damage: e.damage * d.damageMultiplier, size: d.projectileSize, look: d.look }));
     }
+    this.wave++;
     this.sound('collapsarEjecta');
   }
 }
@@ -4279,6 +4263,8 @@ class AfterimageAbility extends Ability {
     this.reformAt = 0;
     this.formedAt = this.world.time; // when it last started fading in
     this.echoCueAt = -Infinity; // when its parry cue last flashed
+    this.echoCueUnstunned = false; // and whether in red (for a strike a parry won't stop)
+    this.glanced = false; // the strike it's repeating turned aside by a parry
     this.nextSound = null; // the sound its echo makes, for the next frame recorded
     this.seenWindup = -Infinity; // the latest wind-up and cue on the tape
     this.seenCue = -Infinity;
@@ -4323,7 +4309,7 @@ class AfterimageAbility extends Ability {
     f.prot = pose.rot;
     f.charge = 0;
     f.strike = null;
-    f.cue = f.gather = false;
+    f.cue = f.gather = f.unstunned = false;
     f.sound = this.nextSound;
     this.nextSound = null;
     for (const a of e.abilities.values()) {
@@ -4338,9 +4324,10 @@ class AfterimageAbility extends Ability {
       if (a.cueAt > this.seenCue) {
         this.seenCue = a.cueAt;
         f.cue = true;
+        f.unstunned = !!a.data.unstunned;
       }
       // Copied, as an attack can change its shape from step to step (not its parts: it replaces those).
-      if (a.hitbox?.active) f.strike = { shape: { ...a.hitbox.shape }, anchor: a.hitbox.anchor ?? { x: f.x, y: f.y, rotation: f.rot } };
+      if (a.hitbox?.active) f.strike = { shape: { ...a.hitbox.shape }, anchor: a.hitbox.anchor ?? { x: f.x, y: f.y, rotation: f.rot }, unstunned: !!a.data.unstunned };
     }
   }
 
@@ -4352,9 +4339,15 @@ class AfterimageAbility extends Ability {
     this.tape.playTo(this.playhead(now), (f) => {
       if (f.gather) this.world.sound('revenantEchoGather', f, { pitch });
       if (f.sound) this.world.sound(f.sound, f, { pitch });
-      if (f.cue) this.echoCueAt = now;
+      if (f.cue) {
+        this.echoCueAt = now;
+        this.echoCueUnstunned = f.unstunned;
+      }
     });
-    const strike = held ? null : this.tape.current?.strike;
+    let strike = held ? null : this.tape.current?.strike;
+    // A strike turned aside (onParry) stays off until it's over.
+    if (!strike) this.glanced = false;
+    else if (this.glanced) strike = null;
     if (strike) {
       this.hitbox.shape = strike.shape;
       this.hitbox.anchor = strike.anchor;
@@ -4363,11 +4356,18 @@ class AfterimageAbility extends Ability {
   }
 
   // Parried: it shatters and the blow comes home to the Revenant, a parry's damage and a stagger.
+  // The echo of a strike a parry won't stop (`unstunned`) is only turned aside, the damage still
+  // coming home, the afterimage carrying on.
   onParry() {
     const e = this.enemy, d = this.data;
     if (this.down) return;
     e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
     if (e.dead || e.dying) return;
+    if (this.tape.current?.strike?.unstunned) {
+      this.glanced = true;
+      this.hitbox.setActive(false);
+      return;
+    }
     this.shatter(true);
     e.stun(d.staggerTime);
     const k = this.awayFromPlayer();
@@ -4546,13 +4546,21 @@ class RevenantCrossAbility extends RevenantStrikeAbility {
     const u = t - this.slash * d.gap;
     if (u < d.swingTime) {
       this.sweep(t);
-      const speed = d.stepDistance / d.swingTime;
+      const speed = d.stepDistance[this.slash] / d.swingTime;
       b.vel.x = this.dir.x * speed;
       b.vel.y = this.dir.y * speed;
     } else {
       this.hitbox.setActive(false);
       this.skid(dt);
     }
+  }
+
+  // A parry turns the slash aside, its damage and all, but it carries on: no stun, no knockback,
+  // and its afterimage left to repeat it.
+  onParry() {
+    const e = this.enemy;
+    this.hitbox.setActive(false);
+    e.takeDamage(this.parryDamage(), null, null, DamageCause.Parry);
   }
 
   // Turned after the player, within reason.
@@ -4647,7 +4655,7 @@ const TYPES = {
   swoop: SwoopAbility, binaryOrbit: OrbitPairAbility, binaryLash: LashAbility, bladeDisc: BladeDiscAbility, bladeDash: BladeDashAbility, tyrantGuns: TyrantGunsAbility,
   wallLurk: WallLurkAbility, morayBite: MorayBiteAbility, morayLeap: MorayLeapAbility, moraySpit: MoraySpitAbility,
   cometWake: WakeAbility, cometStreak: CometStreakAbility, cometNoose: CometNooseAbility, cometSling: CometSlingAbility,
-  gravity: GravityAbility, inhale: InhaleAbility, well: WellAbility, ejecta: EjectaAbility,
+  inhale: InhaleAbility, well: WellAbility, ejecta: EjectaAbility,
   afterimage: AfterimageAbility, revenantThrust: RevenantThrustAbility, revenantCross: RevenantCrossAbility, revenantRecall: RevenantRecallAbility,
 };
 

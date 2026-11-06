@@ -1,18 +1,17 @@
-// Needle: every few hits on enemies send a small grey spike out of the player, off to one side,
-// homing in on the enemy hit last at full speed, in a flash and a puff of glints, streaking pale
+// Needle: every few hits on enemies send a small white spike straight out of the player's back,
+// wheeling round to home in on the enemy hit last, in a flash and a puff of glints, streaking pale
 // light and shedding motes. It breaks, in a brighter flash and a spray of sparks, on the first
 // enemy it meets or on a wall; if its enemy dies first it flies on straight for a moment, then
 // goes out in a smaller one.
 import { Graphics, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
-import { clamp, deltaAngle, lerp, randRange, randSign } from '../engine/math.js';
+import { clamp, deltaAngle, lerp, randRange } from '../engine/math.js';
 import { FX, WALL_IMPACT } from '../data/config.js';
 import { anims, tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
 import { hurtBySegment } from '../game/hurtbox.js';
 
-const DEG = Math.PI / 180;
 const U = 32; // the spike is drawn at this many units to the world unit, then scaled back down
 const alive = (e) => !!e && !e.dead && !e.dying;
 const pick = ([min, max]) => randRange(min, max);
@@ -35,13 +34,13 @@ export class NeedleAspect extends Aspect {
     this.lastHitAt = this.now;
     if (++this.count < this.data.everyHits) return;
     this.count = 0;
-    const d = this.data, p = this.player.body.pos, t = enemy.body.pos;
-    const toward = Math.atan2(t.y - p.y, t.x - p.x), side = randSign();
-    // Out of the player's side or back, on the side it launches toward (or its centre, by a wall).
-    const at = toward + side * pick(d.spawnDeg) * DEG;
+    const d = this.data, p = this.player.body.pos, t = enemy.body.pos, f = this.player.facing;
+    const aim = f.x * f.x + f.y * f.y > 1e-6 ? Math.atan2(f.y, f.x) : Math.atan2(t.y - p.y, t.x - p.x);
+    // Somewhere across the player's back, heading straight out of them (from their centre, by a wall).
+    const at = aim + Math.PI + randRange(-0.5, 0.5) * d.backShare * Math.PI;
     let from = { x: p.x + Math.cos(at) * d.spawnDistance, y: p.y + Math.sin(at) * d.spawnDistance };
     if (this.world.physics.circleHitsWall(from.x, from.y, d.hitRadius)) from = p;
-    this.world.add(new Needle(this, from, toward + side * pick(d.launchDeg) * DEG, enemy));
+    this.world.add(new Needle(this, from, at, enemy));
     this.world.sound('needle', p);
     this.used();
   }
@@ -61,6 +60,7 @@ class Needle extends Entity {
     this.prev = { ...from };
     this.angle = this.prevAngle = angle;
     this.target = target;
+    this.bornAt = world.time;
     this.diesAt = world.time + this.data.lifetime; // brought forward to orphanTime once its enemy dies
     // A thin spike pointing along +x, centred on its middle, with a white edge down to its tip.
     const L = (F.length / 2) * U, W = (F.width / 2) * U;
@@ -93,11 +93,10 @@ class Needle extends Entity {
     this.prev.y = this.pos.y;
     this.prevAngle = this.angle;
     if (alive(this.target)) {
-      // Along the circle that leaves at its heading and runs through the target: an even turn the
-      // whole way there, re-fitted every step as the target moves.
+      // Turning toward the target, quicker the longer it's flown, so it can't circle round it.
       const dx = this.target.body.pos.x - this.pos.x, dy = this.target.body.pos.y - this.pos.y;
-      const off = deltaAngle(this.angle, Math.atan2(dy, dx)), rate = (2 * d.speed * Math.sin(off)) / (Math.hypot(dx, dy) || 1e-6);
-      this.angle += clamp(rate, -d.maxTurnRate, d.maxTurnRate) * dt;
+      const off = deltaAngle(this.angle, Math.atan2(dy, dx)), turn = (d.turnRate + d.turnRamp * (w.time - this.bornAt)) * dt;
+      this.angle += clamp(off, -turn, turn);
     } else if (this.target) {
       this.target = null; // never picks another
       this.diesAt = Math.min(this.diesAt, w.time + d.orphanTime);

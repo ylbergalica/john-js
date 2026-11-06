@@ -8,17 +8,26 @@ export const RING_RADIUS = 0.4;
 
 // ---------------------------------------------------------------- blades
 
-// A horn-shaped blade along a quadratic curve, sharp at the tip (t = 0) and blunt at
-// the base (t = 1). Returns the outline of the part between t0 and t1, plus a point
-// sampler. `skew` slants the base cut.
+// A horn-shaped blade along a quadratic curve (cubic, given a second control point `ctrl2`
+// on the base's side), sharp at the tip (t = 0) and blunt at the base (t = 1). Returns the
+// outline of the part between t0 and t1, plus a point sampler. `skew` slants the base cut.
 function blade(def, t0 = 0, t1 = 1, n = 48) {
-  const { tip, ctrl, base, width, skew = 0, power = 0.55 } = def;
+  const { tip, ctrl, ctrl2, base, width, skew = 0, power = 0.55 } = def;
   const at = (t) => {
     const u = 1 - t;
-    const x = u * u * tip[0] + 2 * u * t * ctrl[0] + t * t * base[0];
-    const y = u * u * tip[1] + 2 * u * t * ctrl[1] + t * t * base[1];
-    let tx = 2 * u * (ctrl[0] - tip[0]) + 2 * t * (base[0] - ctrl[0]);
-    let ty = 2 * u * (ctrl[1] - tip[1]) + 2 * t * (base[1] - ctrl[1]);
+    let x, y, tx, ty;
+    if (ctrl2) {
+      const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+      x = a * tip[0] + b * ctrl[0] + c * ctrl2[0] + d * base[0];
+      y = a * tip[1] + b * ctrl[1] + c * ctrl2[1] + d * base[1];
+      tx = 3 * u * u * (ctrl[0] - tip[0]) + 6 * u * t * (ctrl2[0] - ctrl[0]) + 3 * t * t * (base[0] - ctrl2[0]);
+      ty = 3 * u * u * (ctrl[1] - tip[1]) + 6 * u * t * (ctrl2[1] - ctrl[1]) + 3 * t * t * (base[1] - ctrl2[1]);
+    } else {
+      x = u * u * tip[0] + 2 * u * t * ctrl[0] + t * t * base[0];
+      y = u * u * tip[1] + 2 * u * t * ctrl[1] + t * t * base[1];
+      tx = 2 * u * (ctrl[0] - tip[0]) + 2 * t * (base[0] - ctrl[0]);
+      ty = 2 * u * (ctrl[1] - tip[1]) + 2 * t * (base[1] - ctrl[1]);
+    }
     const len = Math.hypot(tx, ty) || 1;
     tx /= len; ty /= len;
     return { x, y, tx, ty, w: (width * Math.max(0, t) ** power) / 2 };
@@ -73,12 +82,18 @@ export function arcBlade({ cx, cy, r, from, to, width, profile }, n = 56) {
 // Player slashes share one palette: white cores over a periwinkle glow.
 const SLASH = { glow: rgba('#8a9cff', 0.95), body: '#dfe5ff', tipColor: '#b4c2ff' };
 
-function paintSlash(ctx, px, path, from, to, intensity = 1) {
+// `stops`: [offset, colour] along the line from `from` (the tip) to `to`, in place of the
+// usual pale tip fading to white.
+function paintSlash(ctx, px, path, from, to, intensity = 1, stops = null) {
   glow(ctx, SLASH.glow, px * 0.05 * intensity, () => {
     ctx.fillStyle = SLASH.body;
     ctx.fill(path);
   });
-  ctx.fillStyle = linear(ctx, ...from, ...to, [SLASH.tipColor, '#ffffff', '#ffffff']);
+  if (stops) {
+    const g = ctx.createLinearGradient(...from, ...to);
+    for (const [at, color] of stops) g.addColorStop(at, color);
+    ctx.fillStyle = g;
+  } else ctx.fillStyle = linear(ctx, ...from, ...to, [SLASH.tipColor, '#ffffff', '#ffffff']);
   ctx.fill(path);
 }
 
@@ -125,6 +140,55 @@ export function swingFrames(def, S = 256) {
       if (mo.t > p) continue;
       const q = at(mo.t);
       const d = side * (q.w + mo.off);
+      const tw = 0.5 + 0.5 * Math.sin(mo.phase + i * 1.9);
+      sparkle(ctx, q.x + q.ty * d, q.y - q.tx * d, mo.r * lerp(0.6, 1, tw), '#ffffff', lerp(0.35, 1, tw), mo.rot);
+    }
+    return c;
+  });
+}
+
+// Momentum's empowered swing (src/aspects/momentum.js): the swings' blade, thicker and
+// brighter, brought down from over the player's shoulder, across the outer half of their body,
+// nearly straight at first, then hooking hard round into its point on the far edge of the
+// hitbox. Laid out in world units about the attack point, aiming along +x, the player's centre
+// at x = -attackRange and the shoulder at +y (the sprite is mirrored for the other one); the
+// hitbox's far edge is at x = hitboxDepth / 2. The art is a square `size` across centred
+// `center` along the aim from the attack point. The blade's point is `tip`, its thick back
+// by the shoulder `base`, `width` across there; it's a cubic curve, `ctrl` (close by the
+// point, off to the side: the hook) and `ctrl2` (the long, gently bowed back). Its frames: `draw` (fractions of the blade, from the point, still to come) shoots it out
+// from the back to the point, turning the last `spin` into place; then `follow` (fractions
+// still shown, from the point) wipes it away from the back toward the point, as if it
+// carried on down into the floor.
+export const CHOP = {
+  size: 2.6, center: -0.45,
+  tip: [PLAYER.attack.hitboxDepth / 2, 0], ctrl: [0.38, 0.42], ctrl2: [-0.3, 0.5], base: [-1.0, 0.18],
+  width: 0.48, power: 0.7, skew: 0.3, spin: 0.25, seed: 21,
+  colors: [[0, '#ff7a2e'], [0.04, '#ff7a2e'], [0.15, '#ffffff'], [1, '#ffffff']], // along it from the point: orange, then white
+  draw: [0.6, 0.25, 0],
+  follow: [0.88, 0.74, 0.6, 0.47, 0.35, 0.24, 0.14, 0.06],
+};
+export const CHOP_DRAW_FRAMES = CHOP.draw.length; // the frames shooting out; the next lands it on the spot
+
+export function chopFrames(S = 384) {
+  const D = CHOP, x0 = D.center - D.size / 2, y0 = -D.size / 2;
+  const uv = ([x, y]) => [(x - x0) / D.size, (y - y0) / D.size];
+  const def = { tip: uv(D.tip), ctrl: uv(D.ctrl), ctrl2: uv(D.ctrl2), base: uv(D.base), width: D.width / D.size, power: D.power, skew: D.skew };
+  const rand = seededRandom(D.seed * 7919);
+  const motes = Array.from({ length: 8 }, () => ({
+    t: lerp(0.15, 0.95, rand()), off: lerp(0.01, 0.04, rand()),
+    r: lerp(0.012, 0.022, rand()), phase: rand() * TAU, rot: rand() * 0.6,
+  }));
+  const { at } = blade(def);
+  // [from, to] of the blade shown, each frame: shooting out, whole, then wiped from the back.
+  const spans = [...D.draw.map((a) => [a, 1]), [0, 1], ...D.follow.map((b) => [0, b])];
+  return spans.map(([a, b], i) => {
+    const { c, ctx, px } = surface(S);
+    const turn = (angle) => { ctx.translate(0.5, 0.5); ctx.rotate(angle); ctx.translate(-0.5, -0.5); };
+    if (i < D.draw.length) turn(D.spin * a);
+    paintSlash(ctx, px, blade(def, a, b).path, def.tip, def.base, 1.15, D.colors);
+    for (const mo of motes) {
+      if (mo.t < a || mo.t > b) continue;
+      const q = at(mo.t), d = q.w + mo.off; // on its outer edge
       const tw = 0.5 + 0.5 * Math.sin(mo.phase + i * 1.9);
       sparkle(ctx, q.x + q.ty * d, q.y - q.tx * d, mo.r * lerp(0.6, 1, tw), '#ffffff', lerp(0.35, 1, tw), mo.rot);
     }

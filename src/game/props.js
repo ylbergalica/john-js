@@ -7,14 +7,13 @@ import { Container, Sprite } from 'pixi.js';
 import { Entity } from './entity.js';
 import { Body } from '../engine/physics.js';
 import { lerp, norm, pickWeighted, randInt, randRange, TAU } from '../engine/math.js';
-import { FIXED_DT, LOOT, PICKUPS, PROPS, PROP_SPAWN } from '../data/config.js';
+import { FIXED_DT, LOOT, PROPS, PROP_SPAWN } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { propStageCount } from '../render/sprites/props.js';
 import { spawnableOn } from '../level/difficulty.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { AdrenalineOrb, BuffPickup, MendOrb } from './pickups.js';
 
-const LOOT_DAMPING = 6; // flung loot slows at this rate (PICKUPS.launch)
 const FLASH_TIME = 0.08;
 
 export class Prop extends Entity {
@@ -122,7 +121,7 @@ export class Prop extends Entity {
     this.destroy();
   }
 
-  // Each of its loot's rolls may drop something, plus one pick from each of its `always`
+  // Each of its loot's rolls may drop something, plus maybe a pick from each of its `bonus`
   // tables, all of it flung out evenly around it.
   dropLoot() {
     const L = this.type.loot, w = this.world, { x, y } = this.body.pos;
@@ -133,16 +132,12 @@ export class Prop extends Entity {
       for (let k = 0; k < n; k++) drops.push(e.drop);
     };
     for (let i = 0; i < L.rolls; i++) if (Math.random() < L.chance) pick(L.table);
-    for (const table of L.always ?? []) pick(table);
+    for (const b of L.bonus ?? []) if (Math.random() < b.chance) pick(b.table);
     if (!drops.length) return;
     w.sound('lootPop', this.body.pos);
     const offset = Math.random() * TAU;
     drops.forEach((drop, i) => {
-      const a = offset + ((i + randRange(-0.3, 0.3)) / drops.length) * TAU;
-      const c = Math.cos(a), s = Math.sin(a);
-      // Short of any wall in the way, since loot doesn't collide with walls.
-      const d = Math.max(0, Math.min(randRange(...PICKUPS.launch.distance), w.physics.rayLength(x, y, c, s, 3) - 0.35));
-      w.add(makeDrop(w, drop, x, y)).launch(c * d * LOOT_DAMPING, s * d * LOOT_DAMPING, LOOT_DAMPING);
+      w.add(makeDrop(w, drop, x, y)).launch(offset + ((i + randRange(-0.3, 0.3)) / drops.length) * TAU);
     });
   }
 

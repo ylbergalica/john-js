@@ -3,7 +3,7 @@
 // a little astral: crisp shapes over soft glows, deep-space fills and four-point
 // star glints, each keeping its original silhouette and colour.
 // Drawing happens in normalised units (1 = canvas width) unless noted otherwise.
-import { SWINGS, swingFrames, parryFrames, parryConnectFrames, hitImpactFrames, spark, glint, ring, wardRing, mistRing } from './combat.js';
+import { SWINGS, swingFrames, chopFrames, parryFrames, parryConnectFrames, hitImpactFrames, spark, glint, ring, wardRing, mistRing } from './combat.js';
 import { cleaveSlash, cleaveIcon } from './aspects/cleave.js';
 import { mist, flame, ribbon, feathers, feather } from './exalted.js';
 import { riftFrames, riftIcon } from './aspects/rift.js';
@@ -60,6 +60,7 @@ export function animations() {
     second_swing: swingFrames(SWINGS.second),
     third_swing: swingFrames(SWINGS.third),
     fourth_swing: swingFrames(SWINGS.fourth),
+    momentum_chop: chopFrames(),
     parry: parryFrames(),
     parry_connect: parryConnectFrames(),
     hit_impact: hitImpactFrames(),

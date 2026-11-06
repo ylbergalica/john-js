@@ -1,5 +1,5 @@
 // Flash: blink toward the cursor, landing in a star of light that strikes whatever it
-// touches. Kills and parries shave time off the cooldown.
+// touches. Hits and parries shave time off the cooldown; a kill refreshes it.
 import { Aspect } from './aspect.js';
 import { clamp01, clampLength, fromAngle } from '../engine/math.js';
 import { TeleportResolver } from '../level/teleport.js';
@@ -97,8 +97,10 @@ export class FlashAspect extends Aspect {
     }
   }
 
-  onEnemyKilled() { this.reduce(); }
+  // A hit or a parry shaves time off the cooldown; a kill (not by its own star) ends it.
+  onHitEnemy() { this.reduce(); }
   onParry() { this.reduce(); }
+  onEnemyKilled() { this.refreshCooldown(); }
   refreshCooldown() { this.remaining = 0; }
   reduce() { this.remaining = Math.max(0, this.remaining - this.data.cooldownReductionPerTrigger); }
 }

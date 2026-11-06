@@ -29,8 +29,8 @@ export const BASE_LEVEL_CONFIG = {
     enemies: [
       { type: 'goblin', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 3, toFloor: 5 },
       { type: 'striker', weight: { min: 0.8, max: 1 }, fromFloor: 1, peakFloor: 3, toFloor: 5 },
-      { type: 'mauler', weight: { min: 0.5, max: 1 }, fromFloor: 3, peakFloor: 4, toFloor: 9 },
-      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 5, peakFloor: 7, toFloor: 11 },
+      { type: 'mauler', weight: { min: 0.5, max: 1 }, fromFloor: 2, peakFloor: 4, toFloor: 7 },
+      { type: 'shade', weight: { min: 0.3, max: 1 }, fromFloor: 4, peakFloor: 7, toFloor: 11 },
       { type: 'seer', weight: { min: 0.6, max: 1 }, fromFloor: 6, peakFloor: 7, toFloor: 9 },
       { type: 'lemur', weight: { min: 0.6, max: 1 }, fromFloor: 8, peakFloor: 10, toFloor: 13 },
       { type: 'boxer', weight: { min: 0.5, max: 1 }, fromFloor: 10, peakFloor: 12, toFloor: 15 },

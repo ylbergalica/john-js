@@ -35,6 +35,7 @@ export class Aspect {
 
   tryActivate() { return false; } // slot key, only for `data.activatable` aspects
   beforeAttack() {}
+  onSwing() {} // a swing has just started, its look shown (Player.tryStartAttack)
   onDash(_dir) {} // the player set off on a dash along unit `dir`
   onHitEnemy(_enemy, _hitPoint) {} // the player's attack landed
   onHitProp(_prop, _hitPoint) {} // the player's attack landed on a prop (a crate and the like)

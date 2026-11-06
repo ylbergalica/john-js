@@ -4,7 +4,7 @@ import { Container, Sprite } from 'pixi.js';
 import { Entity } from '../game/entity.js';
 import { Body, swapRemove } from '../engine/physics.js';
 import { clamp01, lerp, lerpColor, randInt, randInsideUnitCircle, norm, fromAngle, TAU } from '../engine/math.js';
-import { ENEMY_TYPES, ABILITIES, DEATH_FX, ENEMY_HIT, GUARDIAN_RAGE, PARTICLES, PICKUPS, SHIELD } from '../data/config.js';
+import { ENEMY_TYPES, ABILITIES, DEATH_FX, ENEMY_HIT, GUARDIAN_RAGE, PARTICLES, SHIELD } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
@@ -293,10 +293,9 @@ export class Enemy extends Entity {
     if (type.isChaser) world.shove(body.pos, DEATH_FX.guardian.push, this);
     if (type.isChaser && !this.summoned) world.guardianBurst(this);
     const drops = randInt(type.minAdrenalineDrops, type.maxAdrenalineDrops + 1);
+    const offset = Math.random() * TAU; // popped out evenly around it (PICKUPS.launch)
     for (let i = 0; i < drops; i++) {
-      const o = randInsideUnitCircle();
-      const s = PICKUPS.adrenalineOrb.scatter;
-      world.add(new AdrenalineOrb(world, body.pos.x + o.x * s, body.pos.y + o.y * s));
+      world.add(new AdrenalineOrb(world, body.pos.x, body.pos.y)).launch(offset + ((i + Math.random() * 0.6 - 0.3) / drops) * TAU);
     }
     if (type.isChaser) world.add(new ChaserCore(world, body.pos.x, body.pos.y));
     this.destroy();

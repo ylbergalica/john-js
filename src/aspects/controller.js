@@ -42,6 +42,7 @@ export class AspectController {
   render(alpha, dt) { for (const a of this.aspects) a.render(alpha, dt); }
 
   beforeAttack() { for (const a of this.aspects) a.beforeAttack(); }
+  onSwing() { for (const a of this.aspects) a.onSwing(); }
   onDash(dir) { for (const a of this.aspects) a.onDash(dir); }
   onHitEnemy(enemy, hitPoint) { for (const a of this.aspects) a.onHitEnemy(enemy, hitPoint); }
   onHitProp(prop, hitPoint) { for (const a of this.aspects) a.onHitProp(prop, hitPoint); }

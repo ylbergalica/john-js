@@ -2,7 +2,7 @@
 // rooms, rooted to the spot, that birth the floor's foes now and then, so a floor never runs
 // dry of adrenaline. A prop like any other to the player's attacks, only tougher: it
 // throbs like a heart, quickening as it births, bleeds light from all round it as it's
-// struck, and struck down it blows apart at once, spilling adrenaline or mends and always
+// struck, and struck down it blows apart at once, spilling adrenaline or mends and sometimes
 // a boon, and angering the floor's guardians (GuardianRage.spawnerBroken).
 import { Sprite } from 'pixi.js';
 import { Prop, shuffle } from './props.js';

@@ -1,16 +1,23 @@
 // Things the player picks up: adrenaline orbs, chaser cores, mend orbs and buffs (from
 // broken props) and the floor exit.
+// adrenalineOrb: a `color` orb `size` across, breathing (× 1 ± breathe.amount at breathe.hz)
+//   in a soft halo `halo.size` × its size, a `hot` core glowing in it (core.size × the orb),
+//   both brightening on the in-breath ([min, max] alpha); a white star of light (glint.size ×
+//   its size) flares over it for glint.time every glint.every seconds or so.
 // mendOrb: heals `heal`; it ignores the player at full health, so it waits for them.
 // buff: a boon's glyph (BUFFS) in a breathing halo, bobbing `bob` units at `bobHz`.
-// launch: loot pops out of a broken prop, flung `distance` units (picked in range) and
-//   hopping `hop` units high over `time`; it can't be picked up until it has landed.
+// launch: drops (a broken prop's loot, a slain enemy's adrenaline) pop out, flung `distance`
+//   units (picked in range) and hopping `hop` units high over `time`; they can't be drawn in
+//   or picked up until `settle` seconds after they've landed.
 
 export const PICKUPS = {
-  adrenalineOrb: { adrenalineValue: 1, radius: 0.5 * 0.2, magneticRange: 3, magneticSpeed: 10, size: 0.2, color: 0xa60000, scatter: 0.5 },
+  adrenalineOrb: { adrenalineValue: 1, radius: 0.5 * 0.2, magneticRange: 3, magneticSpeed: 10, size: 0.2, color: 0xe82020,
+    hot: 0xff9a80, breathe: { hz: 1.5, amount: 0.12 }, halo: { size: 3.4, alpha: [0.3, 0.6] },
+    core: { size: 0.55, alpha: [0.35, 0.85] }, glint: { size: 2.2, time: 0.22, every: [4, 9] } },
   chaserCore: { radius: 0.2 * 0.8, magneticRange: 1, magneticSpeed: 10, width: 0.8, height: 1.0 },
   mendOrb: { heal: 2, radius: 0.16, magneticRange: 2.5, magneticSpeed: 10, size: 0.34, color: 0x6dff9a, pulse: 1.4 },
   buff: { radius: 0.22, magneticRange: 1.8, magneticSpeed: 9, size: 0.62, halo: 1.9, bob: 0.06, bobHz: 0.9 },
-  launch: { distance: [0.7, 1.6], hop: 0.45, time: 0.38 },
+  launch: { distance: [1.4, 2.6], hop: 0.6, time: 0.45, settle: 0.2 },
   exit: { radius: 0.5, width: 0.89, height: 1, color: 0x606060 },
 };
 

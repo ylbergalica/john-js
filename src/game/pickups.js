@@ -13,6 +13,7 @@ import { Plume } from '../render/fx.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const easeOutBack = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2; // overshoots, then settles
+const LAUNCH_DAMPING = 6; // a launched drop slows at this rate (PICKUPS.launch)
 
 class MagnetPickup extends Entity {
   // `view`: a sprite (anchored at its centre here) or a container drawn about its origin.
@@ -29,16 +30,18 @@ class MagnetPickup extends Entity {
     world.layers.pickups.addChild(view);
   }
 
-  // Pops it out of a broken prop: flung at (vx, vy), slowing at `damping`, and hopping as it
-  // goes (PICKUPS.launch). It can't be picked up until it lands.
-  launch(vx, vy, damping) {
-    const L = PICKUPS.launch;
-    this.body.vel.x = vx; this.body.vel.y = vy;
-    this.body.damping = damping;
+  // Pops it out of what dropped it, flung off toward `angle` and hopping as it goes
+  // (PICKUPS.launch), stopping short of any wall in the way, since it doesn't collide with
+  // walls. It can't be drawn in or picked up until it has landed and settled.
+  launch(angle) {
+    const L = PICKUPS.launch, { x, y } = this.body.pos, c = Math.cos(angle), s = Math.sin(angle);
+    const d = Math.max(0, Math.min(randRange(...L.distance), this.world.physics.rayLength(x, y, c, s, L.distance[1] + 1) - 0.35));
+    this.body.vel.x = c * d * LAUNCH_DAMPING; this.body.vel.y = s * d * LAUNCH_DAMPING;
+    this.body.damping = LAUNCH_DAMPING;
     this.hop = { at: this.world.time, time: L.time, height: L.hop };
   }
 
-  get landed() { return !this.hop || this.world.time >= this.hop.at + this.hop.time; }
+  get landed() { return !this.hop || this.world.time >= this.hop.at + this.hop.time + PICKUPS.launch.settle; }
 
   // Whether the player has a use for it now: it's only drawn in and picked up then.
   wanted(_player) { return true; }
@@ -100,12 +103,46 @@ class MagnetPickup extends Entity {
 }
 
 export class AdrenalineOrb extends MagnetPickup {
+  // A red orb breathing in a soft halo, a hot core glowing in it, glinting now and then.
   constructor(world, x, y) {
     const c = PICKUPS.adrenalineOrb;
-    const sprite = new Sprite(tex.orb);
-    sprite.width = sprite.height = c.size * ORB_PAD;
-    sprite.tint = c.color;
-    super(world, x, y, c, sprite);
+    const view = new Container();
+    const part = (texture, tint, size, add) => {
+      const s = new Sprite(texture);
+      s.anchor.set(0.5);
+      if (add) s.blendMode = 'add';
+      s.tint = tint;
+      s.width = s.height = size;
+      return s;
+    };
+    const halo = part(tex.mist, c.color, c.size * c.halo.size, true);
+    const body = part(tex.orb, c.color, c.size * ORB_PAD, false);
+    const core = part(tex.orb, c.hot, c.size * ORB_PAD * c.core.size, true);
+    const glint = part(tex.glint, 0xffffff, c.size * c.glint.size, true);
+    glint.alpha = 0;
+    view.addChild(halo, body, core, glint);
+    super(world, x, y, c, view);
+    this.parts = { halo, core, glint };
+    this.phase = Math.random() * TAU;
+    this.glintAt = randRange(0, c.glint.every[1]); // seconds until the next glint
+    this.glintT = Infinity; // seconds into the current one
+  }
+  pulse(dt) {
+    const c = this.cfg, { halo, core, glint } = this.parts;
+    this.phase += dt * c.breathe.hz * TAU;
+    const beat = 0.5 + 0.5 * Math.sin(this.phase);
+    halo.alpha = lerp(c.halo.alpha[0], c.halo.alpha[1], beat);
+    core.alpha = lerp(c.core.alpha[0], c.core.alpha[1], beat);
+    // A quick star of light flaring and turning over it, every so often.
+    if ((this.glintAt -= dt) <= 0) {
+      this.glintAt = randRange(...c.glint.every);
+      this.glintT = 0;
+      glint.rotation = Math.random() * TAU;
+    }
+    const g = (this.glintT += dt) / c.glint.time;
+    glint.alpha = g < 1 ? Math.sin(g * Math.PI) : 0;
+    glint.rotation += dt * 3;
+    return 1 + c.breathe.amount * (beat - 0.5) * 2;
   }
   // The blip rises in pitch as the meter fills.
   collect() {

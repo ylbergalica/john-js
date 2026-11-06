@@ -23,7 +23,8 @@
 // `break`: as an enemy death (DEATH_FX.enemy; flash/rings sized in body radii) plus shards of
 //   its shell flung out, mostly along the blow (`shards`: speeds in units/s, `spin` rad/s,
 //   `colors` picked at random, settling on the floor and fading over `life`).
-// `loot`: `rolls` tries, each dropping something with `chance`, picked from LOOT[`table`].
+// `loot`: `rolls` tries, each dropping something with `chance`, picked from LOOT[`table`];
+//   then each of its `bonus` picks from its own table with its own chance.
 export const PROPS = {
   starPod: {
     health: 1, radius: 0.34, size: 0.82, mass: 2, damping: 14,
@@ -51,7 +52,7 @@ export const PROPS = {
       shake: { duration: 0.14, strength: 0.1, frequency: 26 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.07, table: 'common' },
+    loot: { rolls: 1, chance: 0.05, table: 'common' },
   },
   cagedStar: {
     health: 1, radius: 0.34, size: 0.86, mass: 2, damping: 14, spin: 0.35,
@@ -79,7 +80,7 @@ export const PROPS = {
       shake: { duration: 0.14, strength: 0.1, frequency: 26 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.1, table: 'common' },
+    loot: { rolls: 1, chance: 0.07, table: 'common' },
   },
   starEgg: {
     health: 2, radius: 0.34, size: 0.84, mass: 3, damping: 14,
@@ -107,7 +108,7 @@ export const PROPS = {
       shake: { duration: 0.16, strength: 0.12, frequency: 24 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.2, table: 'common' },
+    loot: { rolls: 1, chance: 0.13, table: 'common' },
   },
   geode: {
     health: 3, radius: 0.42, size: 1.05, mass: 4, damping: 14,
@@ -135,7 +136,7 @@ export const PROPS = {
       shake: { duration: 0.18, strength: 0.14, frequency: 24 },
       ripple: null,
     },
-    loot: { rolls: 1, chance: 0.3, table: 'common' },
+    loot: { rolls: 1, chance: 0.2, table: 'common' },
   },
   druse: {
     health: 4, radius: 0.44, size: 1.32, mass: 5, damping: 14,
@@ -164,7 +165,7 @@ export const PROPS = {
       shake: { duration: 0.24, strength: 0.18, frequency: 22 },
       ripple: null,
     },
-    loot: { rolls: 2, chance: 0.25, table: 'common' },
+    loot: { rolls: 2, chance: 0.17, table: 'common' },
   },
   reliquary: {
     health: 5, radius: 0.48, size: 1.12, mass: 6, damping: 14,
@@ -196,13 +197,13 @@ export const PROPS = {
       shake: { duration: 0.3, strength: 0.22, frequency: 20 },
       ripple: { duration: 0.9, strength: 0.025, width: 0.07, glow: 0.4, grade: [1, 1, 1] },
     },
-    loot: { rolls: 1, chance: 0.5, table: 'rich' },
+    loot: { rolls: 1, chance: 0.35, table: 'rich' },
   },
   // A spawner (src/game/spawner.js, SPAWNERS): a festering wound in the void, rooted to the
   // floor, a slit of an eye in a crown of thorns, red veins throbbing out to them. It births
   // the floor's foes now and then. It takes a beating, bleeding light from all round it and
   // cracking wide open, and struck down it blows apart at once, a dark, wrong-sounding blast.
-  // Never empty: an armful of adrenaline or a few mends, and always a boon on top (`always`).
+  // Most often a handful of adrenaline or a mend, and sometimes a boon on top (`bonus`).
   spawner: {
     health: 14, radius: 0.82, size: 2.3, mass: 1e6, damping: 30,
     color: 0xff2a1a,
@@ -249,31 +250,31 @@ export const PROPS = {
       hold: 0.1,
       aftershocks: { count: 5, over: [0.04, 0.32], reach: 1.6, flash: 4, ring: 5 },
     },
-    loot: { rolls: 1, chance: 1, table: 'spawner', always: ['boon'] },
+    loot: { rolls: 1, chance: 0.7, table: 'spawner', bonus: [{ table: 'boon', chance: 0.4 }] },
   },
 };
 
 // What a broken prop can hold, weighted. `count`: how many of it drop at once.
 export const LOOT = {
   common: [
-    { drop: 'adrenaline', weight: 5, count: [2, 4] },
-    { drop: 'mend', weight: 3 },
-    { drop: 'swift', weight: 1 },
-    { drop: 'ward', weight: 1 },
-    { drop: 'fury', weight: 1 },
-    { drop: 'haste', weight: 1 },
+    { drop: 'adrenaline', weight: 5, count: [1, 2] },
+    { drop: 'mend', weight: 1 },
+    { drop: 'swift', weight: 0.4 },
+    { drop: 'ward', weight: 0.4 },
+    { drop: 'fury', weight: 0.4 },
+    { drop: 'haste', weight: 0.4 },
   ],
   rich: [
-    { drop: 'adrenaline', weight: 2, count: [4, 6] },
-    { drop: 'mend', weight: 2 },
-    { drop: 'swift', weight: 2 },
-    { drop: 'ward', weight: 2 },
-    { drop: 'fury', weight: 2 },
-    { drop: 'haste', weight: 2 },
+    { drop: 'adrenaline', weight: 2, count: [2, 3] },
+    { drop: 'mend', weight: 1 },
+    { drop: 'swift', weight: 0.75 },
+    { drop: 'ward', weight: 0.75 },
+    { drop: 'fury', weight: 0.75 },
+    { drop: 'haste', weight: 0.75 },
   ],
   spawner: [
-    { drop: 'adrenaline', weight: 3, count: [7, 10] },
-    { drop: 'mend', weight: 2, count: [2, 3] },
+    { drop: 'adrenaline', weight: 3, count: [3, 5] },
+    { drop: 'mend', weight: 1 },
   ],
   boon: [
     { drop: 'swift', weight: 1 },

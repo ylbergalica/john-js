@@ -24,7 +24,7 @@ export const PLAYER = {
     visualSize: 2 * 0.8,
   },
   parry: {
-    parryDuration: 0.17,
+    parryDuration: 0.13,
     parryCooldown: 1,
     // The hitbox and its look reach `size` times as far from the player's centre, covering
     // the same angle.
@@ -48,7 +48,7 @@ export const PLAYER = {
     fadeTime: 0.12,
     // Successful parries within comboWindow seconds of each other build a streak (capped
     // at comboMax); each level adds bonus damage and grows the shake, sound and sparks.
-    comboWindow: 5,
+    comboWindow: 3,
     comboMax: 5,
     comboDamageFraction: 0.3, // bonus damage per level, as a fraction of the parried attack's base damage
     comboShakeStep: 0.45, // extra shake strength per level, as a fraction of the base

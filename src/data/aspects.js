@@ -98,8 +98,10 @@ export const ASPECTS = [
   {
     id: 'flash', displayName: 'Flash', tier: AspectTier.Gift, icon: 'flash_icon', activatable: true, stat: AspectStat.Uses,
     quote: 'F for flash.',
-    description: 'Blink a short distance, flashing damage at the destination. Parries and kills reduce the active cooldown.',
-    maxBlinkDistance: 6, baseCooldown: 5, cooldownReductionPerTrigger: 1,
+    description: 'Blink a short distance, flashing damage at the destination.',
+    // Each of your attacks landing on an enemy, and each parry, takes cooldownReductionPerTrigger
+    // seconds off the cooldown; a kill (not by its own star) ends it.
+    maxBlinkDistance: 6, baseCooldown: 7, cooldownReductionPerTrigger: 1,
     // Where you land, a star of light flashes out (arrive.star and its fainter twin, `cross`),
     // striking every enemy and prop its points or its middle touch, once, as it flashes:
     // within armWidth of a point's line, or `core` of its centre.
@@ -192,59 +194,83 @@ export const ASPECTS = [
     quote: 'Death by a thousand pricks.',
     description: 'Every third hit sends a needle homing in on the enemy struck.',
     // Counts any damage to enemies but its own. Every everyHits-th hit sends a needle out of the
-    // player's side or back (spawnDistance from its centre, spawnDeg round from the line to the
-    // enemy hit), heading launchDeg off that line on the same side, flying at
-    // `speed` and curving round to that enemy in one smooth arc (an even turn all the way, re-fitted
-    // as the enemy moves), turning at no more than maxTurnRate radians a second. It breaks on
-    // the first enemy it meets (within hitRadius of its tip) or on a wall. If its enemy dies it
-    // never picks another, flying on straight for orphanTime; it gives up after `lifetime`.
-    // comboTime without a hit loses the count. The HUD fills its icon toward the next one.
-    everyHits: 3, comboTime: 30, damage: 2, speed: 24, maxTurnRate: 30, launchDeg: [20, 35], spawnDeg: [100, 150], spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
-    // The look (src/aspects/needle.js): a small pale grey spike, white along one edge to its tip,
-    // trailing a streak of pale light `length` long back from its tip and shedding grey motes. It
+    // player's back: from anywhere across the middle backShare of the half of them facing away
+    // from their aim, spawnDistance from their centre, heading straight out from it. Flying at
+    // `speed`, it turns toward that enemy at turnRate radians a second, quickening by turnRamp
+    // every second it flies so it can't circle round it. It breaks on the first enemy it meets
+    // (within hitRadius of its tip) or on a wall. If its enemy dies it never picks another,
+    // flying on straight for orphanTime; it gives up after `lifetime`. comboTime without a
+    // hit loses the count. The HUD fills its icon toward the next one.
+    everyHits: 3, comboTime: 30, damage: 2, speed: 24, turnRate: 20, turnRamp: 20, backShare: 0.6, spawnDistance: 0.5, hitRadius: 0.1, orphanTime: 1, lifetime: 3,
+    // The look (src/aspects/needle.js): a small near-white spike, white along one edge to its tip,
+    // trailing a streak of bright white light `length` long back from its tip and shedding white motes. It
     // leaves in a flash, a ring and a puff of glints along its flight; it breaks on an enemy or a
     // wall (`hit`) in a brighter flash and a spray of sparks, with the usual hit impact shown at
     // `impact` of its size; giving out in the air (`fizzle`) is a smaller one. World units and
     // seconds, [min, max] picks at random.
     fx: {
-      length: 0.42, width: 0.07, color: 0xb8bcc6, tip: 0xffffff,
-      streak: { length: 1.6, width: 0.3, anchor: 0.92, color: 0xc8ccd8, alpha: 0.55 },
-      motes: { rate: 90, size: [0.07, 0.14], life: [0.15, 0.3], spread: 0.6, color: 0xe4e6ec, fade: 0x50535c, alpha: 0.7 },
+      length: 0.42, width: 0.07, color: 0xeef1f8, tip: 0xffffff,
+      streak: { length: 1.8, width: 0.34, anchor: 0.92, color: 0xffffff, alpha: 0.85 },
+      motes: { rate: 90, size: [0.07, 0.14], life: [0.15, 0.3], spread: 0.6, color: 0xffffff, fade: 0xa8b0c0, alpha: 0.95 },
       spawn: {
         flash: { size: 0.7, grow: 1.6, time: 0.16, alpha: 0.8 },
         ring: { from: 0.2, to: 0.9, time: 0.18, alpha: 0.6 },
-        glints: { count: 6, speed: 5, lifetime: 0.18, size: 0.2, coneDeg: 30, color: 0xe4e6ec },
+        glints: { count: 6, speed: 5, lifetime: 0.18, size: 0.2, coneDeg: 30, color: 0xffffff },
       },
       hit: {
         flash: { size: 0.9, grow: 1.8, time: 0.2, alpha: 0.9 },
-        sparks: { count: 10, speed: 8, lifetime: 0.2, size: 0.24, coneDeg: 45, color: 0xe2e4ea },
+        sparks: { count: 10, speed: 8, lifetime: 0.2, size: 0.24, coneDeg: 45, color: 0xffffff },
         impact: 0.6,
       },
       fizzle: {
         flash: { size: 0.5, grow: 1.4, time: 0.15, alpha: 0.6 },
-        sparks: { count: 5, speed: 4, lifetime: 0.15, size: 0.18, coneDeg: 60, color: 0xc8ccd8 },
+        sparks: { count: 5, speed: 4, lifetime: 0.15, size: 0.18, coneDeg: 60, color: 0xf0f2f8 },
       },
     },
   },
   {
     id: 'momentum', displayName: 'Momentum', tier: AspectTier.Gift, icon: 'momentum_icon', activatable: false, stat: AspectStat.Uses,
     quote: 'Never let them see you stop.',
-    description: 'Dashing empowers your next attack.',
-    // Charged the moment a dash starts; the next swing to land on an enemy or a prop strikes
-    // everything it hits for `multiplier` times the damage (src/aspects/momentum.js).
-    multiplier: 2.5,
+    description: 'Strikes during a dash are empowered.',
+    // Charged the moment a dash starts, until `window` seconds after it ends; the next swing to
+    // land on an enemy or a prop strikes everything it hits for `multiplier` times the damage
+    // (src/aspects/momentum.js). A swing started while charged counts even if it lands later.
+    multiplier: 2.5, window: 0.5,
     // The look: while charged the player sheds embers (`motes`, `rate` a second, `spread` from its
     // centre, drifting outward at `drift`); a charged hit lands in a flash, a ring, the hit impact
-    // at `impact` times its size in `hot`, a spray of sparks and a shake. World units and seconds,
-    // [min, max] at random.
+    // at `impact` times its size in `hot`, a spray of sparks, a `stream` of short red sparks
+    // thrown the way the blade came down (coneDeg either side), and a shake.
+    // A charged swing that lands on an enemy is drawn as an empowered chop (`strike`), the hitbox unchanged:
+    // its shape and frames are CHOP's (src/render/sprites/combat.js), over alternate shoulders.
+    // It shoots out to its point on the far edge of the hitbox over `draw`, slamming there in
+    // a flash and chips kicked back off it (`colors`: from, to); holds whole for `hold`; then
+    // is wiped away from its thick back toward the point over `follow`, as if carrying on
+    // down into the floor.
+    // World units and seconds, [min, max] at random.
     fx: {
       color: 0xff7a2e, hot: 0xffd9a8,
       motes: { rate: 45, size: [0.14, 0.26], life: [0.3, 0.5], spread: [0.3, 0.6], drift: [0.6, 1.4], alpha: 0.9 },
+      strike: {
+        draw: 0.03, hold: 0.02, follow: 0.11,
+        land: {
+          colors: [0xffffff, 0x8a9cff],
+          flash: { size: 1.3, grow: 1.6, time: 0.16, alpha: 0.85 },
+          chips: { count: 8, speed: 6, lifetime: 0.25, size: 0.24, coneDeg: 70 },
+        },
+      },
       hit: {
         flash: { size: 1.2, grow: 2, time: 0.22, alpha: 0.9 },
         ring: { from: 0.4, to: 3.2, time: 0.25, alpha: 0.7 },
         impact: 1.8,
         sparks: { count: 16, speed: 10, lifetime: 0.3, size: 0.35, coneDeg: 50 },
+        stream: { count: 30, speed: 20, lifetime: 0.13, size: 0.13, coneDeg: 8, color: 0xff2a14 },
+        // Piercing it (an enemy, not a prop): sparks out of its far side along the blow (`exit`, and
+        // hot white ones straighter, `exitHot`) and back out of where it went in (`entry`).
+        pierce: {
+          exit: { count: 28, speed: 16, lifetime: 0.32, size: 0.32, coneDeg: 24, color: 0xff6a2a },
+          exitHot: { count: 14, speed: 22, lifetime: 0.22, size: 0.22, coneDeg: 10, color: 0xffffff },
+          entry: { count: 20, speed: 11, lifetime: 0.26, size: 0.3, coneDeg: 40, color: 0xffb070 },
+        },
         shake: { duration: 0.14, strength: 0.12, frequency: 28 },
       },
     },
@@ -257,7 +283,7 @@ export const ASPECTS = [
     // enemy hunts it instead of the player meanwhile (src/aspects/afterimage.js). Their blows
     // still hurt the player if they happen to land. `cooldown` from when it's left; each kill
     // takes cooldownReductionPerKill off.
-    lifetime: 3, cooldown: 10, cooldownReductionPerKill: 2,
+    lifetime: 5, cooldown: 10, cooldownReductionPerKill: 10,
     // The look: the copy is the player's body and tail exactly, wobbling and breathing on, its
     // tail settling in behind it. Meanwhile the real player is drawn see-through (`unseen`),
     // easing there over `time`. Left behind, a ring closes onto it in a faint flash and a few
@@ -290,7 +316,7 @@ export const ASPECTS = [
     // lost, from 1x at full up to `multiplier` at `threshold` of their health and below
     // (src/aspects/cornered.js). Driven that low counts as a use. The HUD fills its icon
     // as health is lost, full at `threshold`.
-    multiplier: 2.5, threshold: 0.3,
+    multiplier: 2.5, threshold: 0.5,
     // The look, only while it's at its height: the player burns with a dark red light, a wide
     // soft `halo`, a brighter `core` close round the body and a `rim` of light hugging its
     // edge, all swelling with a heartbeat (`beat` seconds apart, a second softer beat `second`

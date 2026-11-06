@@ -195,6 +195,7 @@ export class Player extends Entity {
     const angle = Math.atan2(this.facing.y, this.facing.x);
     this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.swingTint });
     this.buffs.view.swung(p, angle);
+    this.aspects.onSwing();
     this.swingAtWall();
     return true;
   }
@@ -358,10 +359,12 @@ export class Player extends Entity {
     return this.parrying && this.parryCovers(attack) && this.tryParry(attack);
   }
 
-  // The attack that hurt the player passes through their parries.
+  // The attack that hurt the player passes through their parries. A parry that connects
+  // takes only what reaches it in that same instant, then it's over: no cover after.
   tryParry(attack) {
     if (attack === this.hurtBy) return false;
     if (this.parriedThisWindow.has(attack)) return true;
+    if (this.parrySucceeded && this.now > this.lastParryAt) return false;
     const b = this.body.pos;
     const contact = attack.closestPoint(this.parryCapsuleHit(attack) ?? { ax: b.x, ay: b.y, bx: b.x, by: b.y, r: 0, cx: b.x, cy: b.y });
     // The window's first connect extends the streak before attack.parry() reads the bonus damage.
@@ -372,6 +375,7 @@ export class Player extends Entity {
     if (first) {
       this.parrySucceeded = true;
       this.lastParryAt = this.now;
+      this.parryEndsAt = this.now; // ends on the next step (see tryParry)
       const level = this.parryStreak - 1, maxed = this.parryStreak === P.comboMax;
       this.view.hideParry();
       this.world.camera.shake(P.shakeDuration * (1 + 0.25 * level), P.shakeStrength * (1 + P.comboShakeStep * level), P.shakeFrequency);

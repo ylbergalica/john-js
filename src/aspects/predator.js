@@ -1,14 +1,17 @@
-// Predator: an attack aimed at an enemy first blinks the player into melee range.
+// Predator: an attack aimed at an enemy first blinks the player into melee range, unless
+// the swing would already land on something (an enemy or a prop) where they stand.
 import { Aspect } from './aspect.js';
 import { dot, norm, randRange } from '../engine/math.js';
 import { PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
+import { hurtBySegment } from '../game/hurtbox.js';
 
 export class PredatorAspect extends Aspect {
   beforeAttack() {
     const player = this.player;
     const facing = player.facing;
     if (facing.x * facing.x + facing.y * facing.y <= 0.0001) return;
+    if (this.swingWouldLand()) return;
     const from = { ...player.body.pos };
     const target = this.findTarget(from, facing);
     if (!target) return;
@@ -22,7 +25,7 @@ export class PredatorAspect extends Aspect {
     player.body.stop();
     this.blinkFx(from, dest);
     this.used();
-    this.world.sound('blink', null, { pitch: 1.4, volume: 0.6 });
+    this.world.sound('predator', null, { jitter: 0.05 });
   }
 
   // Where the player left, a few glints and a little mist blown back the way they came; where
@@ -50,6 +53,13 @@ export class PredatorAspect extends Aspect {
       time: A.star.time, w0: A.star.size, h0: A.star.size, w1: A.star.size * 0.2, h1: A.star.size * 0.2, fade: 1.5, color0: hot, color1: color,
     });
     fx.scatter(fx.stars, A.glints, to.x, to.y, 0.2, hot, { fade: color });
+  }
+
+  // Whether the swing about to start reaches any enemy or prop from where the player stands.
+  swingWouldLand() {
+    const cap = this.player.attackCapsule();
+    const struck = (e) => !e.dead && hurtBySegment(e, cap.ax, cap.ay, cap.bx, cap.by, cap.r);
+    return this.world.enemies.some(struck) || this.world.props.some(struck);
   }
 
   // Closest point on the enemy the player is aiming at best (aim weighted over distance).

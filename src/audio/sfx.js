@@ -1352,9 +1352,10 @@ const SOUNDS = {
     arp(v, [4186, 3520, 2794, 2349], 0.022, { at: 0.09, dur: 0.22, vol: 0.045 });
     tone(v, { type: 'triangle', freq: 1175, to: 1245, at: 0.09, dur: 0.3, vol: 0.05, attack: 0.01 });
   },
-  blink(v) {
-    tone(v, { freq: 2000, to: 300, dur: 0.14, vol: 0.14 });
-    noise(v, { filter: 'highpass', freq: 4000, to: 1500, dur: 0.1, vol: 0.15 });
+  // Predator: a short gust of wind, swelling in and falling away as the player is carried.
+  predator(v) {
+    noise(v, { freq: 450, to: 1400, q: 0.7, dur: 0.2, vol: 0.2, attack: 0.07 });
+    noise(v, { filter: 'highpass', freq: 2400, to: 1600, at: 0.02, dur: 0.16, vol: 0.04, attack: 0.05 });
   },
   // Cleave: a low, dark whoosh under a thin edge of air, a faint blade ring and a soft thump,
   // kept quiet since it rides on top of every hit.

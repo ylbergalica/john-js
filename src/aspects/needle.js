@@ -34,7 +34,7 @@ export class NeedleAspect extends Aspect {
     this.lastHitAt = this.now;
     if (++this.count < this.data.everyHits) return;
     this.count = 0;
-    const d = this.data, p = this.player.body.pos, t = enemy.body.pos, f = this.player.facing;
+    const d = this.data, p = this.player.body.pos, t = enemy.body.pos, f = this.player.swingFacing;
     const aim = f.x * f.x + f.y * f.y > 1e-6 ? Math.atan2(f.y, f.x) : Math.atan2(t.y - p.y, t.x - p.x);
     // Somewhere across the player's back, heading straight out of them (from their centre, by a wall).
     const at = aim + Math.PI + randRange(-0.5, 0.5) * d.backShare * Math.PI;

@@ -69,7 +69,7 @@ export class GravebloomAspect extends Aspect {
 
   // The player's own swing sends a lotus off along the swing.
   onHitProp(prop) {
-    if (prop.aspect === this && prop.struck) prop.struck.angle = Math.atan2(this.player.facing.y, this.player.facing.x);
+    if (prop.aspect === this && prop.struck) prop.struck.angle = Math.atan2(this.player.swingFacing.y, this.player.swingFacing.x);
   }
 
   // Bursts at `at`, in a wave along `angle`, or all round if it's null.

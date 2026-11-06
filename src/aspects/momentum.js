@@ -8,7 +8,7 @@
 // of red sparks like a grinder's and a shake. Only the look changes, never the hitbox.
 import { Container, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
-import { isZero, randRange } from '../engine/math.js';
+import { randRange } from '../engine/math.js';
 import { FX } from '../data/config.js';
 import { anims, tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
@@ -67,7 +67,7 @@ export class MomentumAspect extends Aspect {
     s.scale.set(k, k * this.side); // mirrored for the other shoulder
     s.tint = p.view.swingTint;
     this.mount.visible = true;
-    const f = isZero(p.facing) ? { x: 1, y: 0 } : p.facing;
+    const f = p.attackFacing;
     this.strike = { t: 0, landed: false, dir: Math.atan2(f.y, f.x) };
   }
 
@@ -100,7 +100,7 @@ export class MomentumAspect extends Aspect {
   }
 
   impactFx({ x, y }) {
-    const F = this.data.fx, I = F.hit, fx = this.world.deathFx, f = this.player.facing;
+    const F = this.data.fx, I = F.hit, fx = this.world.deathFx, f = this.player.swingFacing;
     const angle = Math.atan2(f.y, f.x);
     fx.flare(tex.mist, x, y, 0, {
       time: I.flash.time, w0: I.flash.size, h0: I.flash.size, w1: I.flash.size * I.flash.grow, h1: I.flash.size * I.flash.grow,

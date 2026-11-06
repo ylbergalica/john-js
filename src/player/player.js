@@ -21,6 +21,10 @@ export class Player extends Entity {
     super(world);
     this.body = world.physics.add(new Body({ x, y, radius: PLAYER.radius, mass: PLAYER.mass, damping: PLAYER.linearDamping }));
     this.facing = { x: 0, y: 0 };
+    // Where the last swing and parry were aimed: fixed as each starts, so it stays at that angle
+    // round the player however they turn while it plays (see swingFacing, guardFacing).
+    this.attackFacing = { x: 1, y: 0 };
+    this.parryFacing = { x: 1, y: 0 };
     this.movement = { x: 0, y: 0 };
     this.sizeScale = 1; // shrunk by the Anchor teleport
     this.bodyScale = 1; // the drawn body's size alone (not its reach), eased by aspects re-forming it
@@ -71,6 +75,11 @@ export class Player extends Entity {
   }
 
   get now() { return this.world.time; }
+  get aim() { return isZero(this.facing) ? { x: 1, y: 0 } : { ...this.facing }; }
+  // The swing's direction while it plays, else where it would go: the aim.
+  get swingFacing() { return this.attacking ? this.attackFacing : this.aim; }
+  // The parry's, likewise.
+  get guardFacing() { return this.parrying ? this.parryFacing : this.aim; }
   get healthFraction() { return this.maxHealth > 0 ? this.health / this.maxHealth : 0; }
 
   cursorWorld() {
@@ -170,14 +179,16 @@ export class Player extends Entity {
 
   // Recoil opposite the aim direction.
   applyRecoil(force) {
-    if (isZero(this.facing) || force <= 0) return;
+    const f = this.swingFacing;
+    if (force <= 0) return;
     const k = force * (1 - PLAYER.knockbackResistance);
-    this.body.addImpulse(-this.facing.x * k, -this.facing.y * k);
+    this.body.addImpulse(-f.x * k, -f.y * k);
   }
 
   // ── attack ───────────────────────────────────────────────────────
   get attackPoint() {
-    return { x: this.body.pos.x + this.facing.x * A.attackRange, y: this.body.pos.y + this.facing.y * A.attackRange };
+    const f = this.swingFacing;
+    return { x: this.body.pos.x + f.x * A.attackRange, y: this.body.pos.y + f.y * A.attackRange };
   }
 
   tryStartAttack() {
@@ -187,12 +198,13 @@ export class Player extends Entity {
     this.aspects.beforeAttack();
     this.attackReadyAt = now + A.cooldown * this.buffs.cooldownMultiplier;
     this.attacking = true;
+    this.attackFacing = this.aim; // after beforeAttack, which may have moved them
     this.attackEndsAt = now + A.attackDuration;
     this.attackContacts.clear();
     this.view.playSwing();
     this.world.sound('swing');
     const p = this.attackPoint;
-    const angle = Math.atan2(this.facing.y, this.facing.x);
+    const angle = Math.atan2(this.attackFacing.y, this.attackFacing.x);
     this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.swingTint });
     this.buffs.view.swung(p, angle);
     this.aspects.onSwing();
@@ -230,7 +242,7 @@ export class Player extends Entity {
     this.world.holdStill(enemy.dead ? ENEMY_HIT.killHitstop : ENEMY_HIT.hitstop);
     this.world.camera.shakeAtLeast(ENEMY_HIT.shake);
     this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
-    if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src, this.facing);
+    if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src, this.swingFacing);
     this.applyRecoil(A.playerKnockbackForce);
     this.aspects.onHitEnemy(enemy, hitPoint);
   }
@@ -248,9 +260,9 @@ export class Player extends Entity {
     this.aspects.onHitProp(prop, hitPoint);
   }
 
-  // Capsule `forward` ahead of the player, long axis perpendicular to facing.
+  // Capsule `forward` ahead of the player along the swing, long axis across it.
   capsuleAt(forward, depth, width) {
-    const f = isZero(this.facing) ? { x: 1, y: 0 } : this.facing;
+    const f = this.swingFacing;
     const s = this.sizeScale;
     const cx = this.body.pos.x + f.x * forward, cy = this.body.pos.y + f.y * forward;
     const r = (depth * s) / 2;
@@ -263,7 +275,7 @@ export class Player extends Entity {
   // PLAYER.parry.look), placed as the look is, scaled about the attack point.
   parryCapsules(segments = 8) {
     const L = P.look, { cx, cy, r } = L.arc, s = this.sizeScale;
-    const f = isZero(this.facing) ? { x: 1, y: 0 } : this.facing;
+    const f = this.guardFacing;
     const a = r * L.width * P.size, b = r * L.height * P.size; // the ellipse's radii, ahead and across
     const x0 = (L.forward + (cx - 0.5) * L.width) * P.size, y0 = (cy - 0.5) * L.height * P.size;
     const points = Array.from({ length: segments + 1 }, (_, i) => {
@@ -285,7 +297,7 @@ export class Player extends Entity {
 
   // Whether `point` lies ahead of the player, within the angle the parry's band wraps round to.
   inParryArc(point) {
-    const b = this.body.pos, f = isZero(this.facing) ? { x: 1, y: 0 } : this.facing;
+    const b = this.body.pos, f = this.guardFacing;
     const caps = this.parryCapsules(1), end = { x: caps[0].ax - b.x, y: caps[0].ay - b.y };
     const dx = point.x - b.x, dy = point.y - b.y, l = Math.hypot(dx, dy);
     return l < 1e-6 || (dx * f.x + dy * f.y) / l >= (end.x * f.x + end.y * f.y) / Math.hypot(end.x, end.y);
@@ -329,6 +341,7 @@ export class Player extends Entity {
     // No parrying while still inside the attack that hurt the player.
     if (this.hurtBy?.overlapsCircle(b.pos.x, b.pos.y, b.radius)) return false;
     this.parrying = true;
+    this.parryFacing = this.aim;
     this.parryEndsAt = now + this.parryDuration;
     this.parrySucceeded = false;
     this.parriedThisWindow.clear();

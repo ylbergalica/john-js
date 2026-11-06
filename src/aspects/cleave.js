@@ -27,7 +27,7 @@ export class CleaveAspect extends Aspect {
   onHitEnemy(_enemy, hitPoint) {
     if (this.now < this.readyAt) return;
     const origin = { ...this.player.body.pos };
-    let dir = this.player.facing;
+    let dir = this.player.swingFacing;
     if (dir.x * dir.x + dir.y * dir.y <= 0.0001) dir = { x: hitPoint.x - origin.x, y: hitPoint.y - origin.y };
     if (dir.x * dir.x + dir.y * dir.y <= 0.0001) return;
     dir = norm(dir);

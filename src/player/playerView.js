@@ -4,7 +4,7 @@
 // the body trembling, buckling and caving in as the player dies (PlayerDeath.posed).
 import { AlphaFilter, BlurFilter, Container, MeshSimple, Sprite, Texture } from 'pixi.js';
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
-import { lerp, lerpColor, smoothDamp, smoothStep01, isZero, TAU } from '../engine/math.js';
+import { lerp, lerpColor, smoothDamp, smoothStep01, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { PARRY_PAD } from '../render/sprites/combat.js';
 import { FrameAnim } from '../render/fx.js';
@@ -49,7 +49,8 @@ export class PlayerView {
     this.breathingTime = 0;
     this.flashing = false;
 
-    // Swing + parry sprites ride on the attack point and rotate with the aim.
+    // Swing sprites ride on the attack point, the parry's on its own, each turned the way it
+    // was aimed as it started (Player.attackFacing, parryFacing), not with the live aim.
     this.attackPoint = new Container();
     layers.player.addChild(this.attackPoint);
     this.swings = SWINGS.map((name) => {
@@ -68,7 +69,9 @@ export class PlayerView {
     parry.width = P.look.width * P.size * (1 + 2 * PARRY_PAD);
     parry.height = P.look.height * P.size * (1 + 2 * PARRY_PAD);
     parry.visible = false;
-    this.attackPoint.addChild(parry);
+    this.parryPoint = new Container();
+    layers.player.addChild(this.parryPoint);
+    this.parryPoint.addChild(parry);
     this.parryAnim = new FrameAnim(parry, anims.parry, { fps: anims.parry.length / P.clipLength });
     this.parryFade = null; // seconds into fading out, once the parry has run out (see fadeParry)
     // Soft glows under the swings and parry, the same frames blurred and added, shown only
@@ -80,7 +83,7 @@ export class PlayerView {
       g.blendMode = 'add';
       g.filters = [this.glowBlur];
       g.visible = false;
-      this.attackPoint.addChildAt(g, 0);
+      s.parent.addChildAt(g, 0);
       return [s, g];
     };
     this.glows = [...this.swings.map((a) => glowUnder(a.sprite)), glowUnder(parry)];
@@ -126,7 +129,7 @@ export class PlayerView {
   // `level` is the parry streak beyond the first (0 … comboMax - 1); each one grows the flash
   // and sparks and warms their colour, and the top of the streak adds a backward flash and a nova.
   playParryConnect(pos, level = 0) {
-    const f = this.player.facing;
+    const f = this.player.parryFacing;
     const fx = this.player.world.effects;
     const angle = Math.atan2(f.y, f.x);
     const g = 1 + FX.parryComboGrowth * level, warmth = level / (P.comboMax - 1);
@@ -143,7 +146,7 @@ export class PlayerView {
   }
 
   playHitImpact(pos) {
-    const f = this.player.facing;
+    const f = this.player.swingFacing;
     const angle = Math.atan2(f.y, f.x) + (Math.random() * 2 - 1) * FX.hitImpactJitter;
     this.player.world.effects.playOnce(anims.hit_impact, pos.x, pos.y, angle, FX.hitImpactSize);
   }
@@ -179,10 +182,11 @@ export class PlayerView {
     for (const a of this.swings) a.sprite.tint = this.swingTint;
     this.parryAnim.sprite.tint = this.swingTint;
 
-    const f = isZero(player.facing) ? { x: 1, y: 0 } : player.facing;
-    this.attackPoint.position.set(p.x + f.x * A.attackRange, p.y + f.y * A.attackRange);
-    this.attackPoint.rotation = Math.atan2(f.y, f.x);
-    this.attackPoint.scale.set(player.sizeScale);
+    for (const [point, f] of [[this.attackPoint, player.attackFacing], [this.parryPoint, player.parryFacing]]) {
+      point.position.set(p.x + f.x * A.attackRange, p.y + f.y * A.attackRange);
+      point.rotation = Math.atan2(f.y, f.x);
+      point.scale.set(player.sizeScale);
+    }
     for (const a of this.swings) a.update(dt);
     this.parryAnim.update(dt);
     if (this.parryFade !== null) {
@@ -247,6 +251,7 @@ export class PlayerView {
     this.body.destroy({ children: true });
     this.fade.destroy();
     this.attackPoint.destroy({ children: true });
+    this.parryPoint.destroy({ children: true });
     this.exalted.destroy();
     this.dash.destroy();
     for (const fl of this.followers) fl.sprite.destroy();

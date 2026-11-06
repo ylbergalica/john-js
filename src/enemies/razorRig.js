@@ -7,7 +7,7 @@ import { Sprite } from 'pixi.js';
 import { RAZOR as R } from '../data/config.js';
 import { lerp, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { RAZOR_ART } from '../render/sprites.js';
+import { RAZOR_ART } from '../render/sprites/enemies/razor.js';
 import { wallContacts } from './hitbox.js';
 
 function discSprite(texture, parent) {

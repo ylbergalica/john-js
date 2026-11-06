@@ -8,7 +8,7 @@ import { ENEMY_TYPES, ABILITIES, DEATH_FX, ENEMY_HIT, GUARDIAN_RAGE, PARTICLES, 
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { StarField } from '../render/starField.js';
-import { createAbility } from './abilities.js';
+import { createAbility } from './abilities/index.js';
 import { EnemyAI } from './ai.js';
 import { EnemyAttackFx, renderTime } from './attackView.js';
 import { MaulerRig } from './maulerRig.js';

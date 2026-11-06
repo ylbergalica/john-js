@@ -9,7 +9,7 @@ import { Body } from '../engine/physics.js';
 import { lerp, norm, pickWeighted, randInt, randRange, TAU } from '../engine/math.js';
 import { FIXED_DT, LOOT, PICKUPS, PROPS, PROP_SPAWN } from '../data/config.js';
 import { tex } from '../render/assets.js';
-import { propStageCount } from '../render/sprites.js';
+import { propStageCount } from '../render/sprites/props.js';
 import { spawnableOn } from '../level/difficulty.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { AdrenalineOrb, BuffPickup, MendOrb } from './pickups.js';

@@ -10,7 +10,8 @@ import { clamp01, deltaAngle, dist, lerp, norm, randRange, TAU } from '../engine
 import { FX } from '../data/config.js';
 import { anims, tex } from '../render/assets.js';
 import { Plume, Strand } from '../render/fx.js';
-import { BLOOM_WAVE, LOTUS_CORE, LOTUS_PETAL, LOTUS_RINGS, RING_RADIUS } from '../render/sprites.js';
+import { BLOOM_WAVE, LOTUS_CORE, LOTUS_PETAL, LOTUS_RINGS } from '../render/sprites/aspects/gravebloom.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { hurtDistance } from '../game/hurtbox.js';
 
 const DEG = Math.PI / 180;

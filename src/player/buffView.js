@@ -8,7 +8,7 @@ import { BUFF_FX, BUFFS, PLAYER } from '../data/config.js';
 import { clamp01, deltaAngle, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 
 const pick = ([min, max]) => randRange(min, max);
 const easeOut = (t) => 1 - (1 - t) ** 3;

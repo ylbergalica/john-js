@@ -9,7 +9,7 @@ import { MORAY as M } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { MORAY_ART } from '../render/sprites.js';
+import { MORAY_ART } from '../render/sprites/enemies/moray.js';
 
 const MARGIN = 1.5; // tiles round it that the mask covers
 const progress = (a, now) => clamp01((now - a.phaseStartedAt) / Math.max(1e-3, a.phaseEndsAt - a.phaseStartedAt));

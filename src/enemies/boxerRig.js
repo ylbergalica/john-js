@@ -15,7 +15,8 @@ import { ATTACK_FX as X, DEATH_FX, FISTS as F } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { FIST_ART, RING_RADIUS } from '../render/sprites.js';
+import { FIST_ART } from '../render/sprites/enemies/boxer.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 
 const SIDES = [1, -1]; // right fist, left fist
 const easeOut = (t) => 1 - (1 - t) ** 2;

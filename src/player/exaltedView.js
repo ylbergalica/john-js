@@ -8,7 +8,7 @@ import { Container, Sprite } from 'pixi.js';
 import { EXALTED_FX as X, PLAYER_DEATH } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, seededRandom, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { FEATHER_ROWS } from '../render/sprites.js';
+import { FEATHER_ROWS } from '../render/sprites/exalted.js';
 import { Plume, Strand } from '../render/fx.js';
 import { sfx } from '../audio/sfx.js';
 

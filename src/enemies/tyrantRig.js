@@ -9,7 +9,7 @@ import { Sprite } from 'pixi.js';
 import { DEATH_FX, TYRANT as T } from '../data/config.js';
 import { lerp, lerpColor, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { TYRANT_ART as A } from '../render/sprites.js';
+import { TYRANT_ART as A } from '../render/sprites/enemies/tyrant.js';
 
 const DEG = Math.PI / 180;
 

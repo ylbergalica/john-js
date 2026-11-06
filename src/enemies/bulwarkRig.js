@@ -11,7 +11,7 @@ import { Container, Sprite } from 'pixi.js';
 import { ATTACK_FX as X, DEATH_FX, SHIELD } from '../data/config.js';
 import { clamp01, deltaAngle, lerp, randRange, randSign, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { SHIELD_ART } from '../render/sprites.js';
+import { SHIELD_ART } from '../render/sprites/enemies/bulwark.js';
 
 const P = SHIELD.poses;
 const easeOut = (t) => 1 - (1 - t) ** 2;

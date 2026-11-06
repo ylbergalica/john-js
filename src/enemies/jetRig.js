@@ -6,7 +6,7 @@ import { Sprite } from 'pixi.js';
 import { JET as J } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { JET_ENGINES } from '../render/sprites.js';
+import { JET_ENGINES } from '../render/sprites/enemies/jet.js';
 
 const FLAME_BASE = 0.2; // where along the flame texture its tongue starts
 

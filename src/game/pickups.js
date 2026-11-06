@@ -6,7 +6,8 @@ import { Body } from '../engine/physics.js';
 import { clamp01, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { BUFFS, EXIT_FX, EXIT_WARP, FIXED_DT, PICKUPS } from '../data/config.js';
 import { tex } from '../render/assets.js';
-import { HEX_FRAME_INSET, ORB_PAD } from '../render/sprites.js';
+import { HEX_FRAME_INSET } from '../render/sprites/player.js';
+import { ORB_PAD } from '../render/sprites/paint.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { Plume } from '../render/fx.js';
 

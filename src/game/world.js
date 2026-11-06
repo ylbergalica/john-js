@@ -10,7 +10,7 @@ import { DeathFx } from '../render/deathFx.js';
 import { ScreenRipple } from '../render/screenRipple.js';
 import { Distortion } from '../render/distortion.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { ADRENALINE, AUDIO, BASE_LEVEL_CONFIG, ENEMY_COMBAT, ENEMY_TYPES, EXIT_FX, EXIT_TRAIL, EXIT_WARP, GAME, GUARDIAN_INTRO as GI, MUSIC, PICKUPS, PLAYER, PROPS, STAR_PULSE, WALL_BLAST, WALL_IMPACT } from '../data/config.js';
 import { sfx } from '../audio/sfx.js';
 import { generateLayout, randomFloorInRoom } from '../level/generator.js';

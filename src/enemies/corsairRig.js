@@ -13,7 +13,7 @@ import { ATTACK_FX as X, DEATH_FX, SCIMITAR as S } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { SCIMITAR_ART, scimitarAt } from '../render/sprites.js';
+import { SCIMITAR_ART, scimitarAt } from '../render/sprites/enemies/corsair.js';
 import { Cape } from './cape.js';
 
 const P = S.poses;

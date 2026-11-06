@@ -7,7 +7,7 @@ import { Body } from '../engine/physics.js';
 import { clamp01, lerp, isZero, norm, randRange, TAU } from '../engine/math.js';
 import { PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { TeleportResolver } from '../level/teleport.js';
 import { hurtDistance } from '../game/hurtbox.js';
 

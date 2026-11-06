@@ -14,7 +14,7 @@ import { Container, Graphics, Sprite } from 'pixi.js';
 import { BLIGHT as B, DEATH_FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, randInsideUnitCircle, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { PART_ART, POD_FLASK, blightParts } from '../render/sprites.js';
+import { PART_ART, POD_FLASK, blightParts } from '../render/sprites/enemies/blight.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 2;
 // Its drawings are drawn this many times larger and scaled back down, so circles come out round.

@@ -12,7 +12,7 @@ import { Graphics, Sprite } from 'pixi.js';
 import { DEATH_FX, LEMUR_TAIL as T } from '../data/config.js';
 import { clamp, clamp01, deltaAngle, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { SPADE_ART, tailBanded, tailEdges } from '../render/sprites.js';
+import { SPADE_ART, tailBanded, tailEdges } from '../render/sprites/enemies/lemur.js';
 
 const STEP = 1 / 120; // the tail's own simulation step
 const N = T.segments;

@@ -3,7 +3,19 @@
 // enemy and prop portraits for the run summary and spawn menu, and white silhouettes used
 // for the hit flash.
 import { CanvasSource, Texture } from 'pixi.js';
-import { animations, icons, sprites, spawnerSprites, PART_ART, MAUL_ART, RAZOR_ART, COLLAPSAR_ART, REVENANT_ART, SHIELD_ART, TYRANT_ART, BLADE_ART, SCIMITAR_ART, SPADE_ART, blightParts, lemurTailRest, tailBanded, tailEdges, weaverKnee, weaverLegsRest } from './sprites.js';
+import { animations, icons, sprites } from './sprites/index.js';
+import { spawnerSprites } from './sprites/props.js';
+import { PART_ART, blightParts } from './sprites/enemies/blight.js';
+import { MAUL_ART } from './sprites/enemies/mauler.js';
+import { RAZOR_ART } from './sprites/enemies/razor.js';
+import { COLLAPSAR_ART } from './sprites/enemies/collapsar.js';
+import { REVENANT_ART } from './sprites/enemies/revenant.js';
+import { SHIELD_ART } from './sprites/enemies/bulwark.js';
+import { TYRANT_ART } from './sprites/enemies/tyrant.js';
+import { BLADE_ART } from './sprites/enemies/shade.js';
+import { SCIMITAR_ART } from './sprites/enemies/corsair.js';
+import { SPADE_ART, lemurTailRest, tailBanded, tailEdges } from './sprites/enemies/lemur.js';
+import { weaverKnee, weaverLegsRest } from './sprites/enemies/weaver.js';
 import { BLADES, BLIGHT, CAPES, ENEMY_TYPES, LEMUR_TAIL, MAUL, PROPS, SCIMITAR, SHIELD, TYRANT, WEAVER_LEGS } from '../data/config.js';
 import { capeRest } from '../enemies/cape.js';
 

@@ -10,7 +10,7 @@ import { ATTACK_FX as X, DEATH_FX, MAUL } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, randRange, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { MAUL_ART } from '../render/sprites.js';
+import { MAUL_ART } from '../render/sprites/enemies/mauler.js';
 
 const P = MAUL.poses;
 const easeOut = (t) => 1 - (1 - t) ** 2;

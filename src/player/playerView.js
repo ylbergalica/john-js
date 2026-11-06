@@ -6,7 +6,7 @@ import { AlphaFilter, BlurFilter, Container, MeshSimple, Sprite, Texture } from 
 import { EXALTED_FX, FIXED_DT, FX, PLAYER, PARTICLES } from '../data/config.js';
 import { lerp, lerpColor, smoothDamp, smoothStep01, isZero, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
-import { PARRY_PAD } from '../render/sprites.js';
+import { PARRY_PAD } from '../render/sprites/combat.js';
 import { FrameAnim } from '../render/fx.js';
 import { DashView } from './dashView.js';
 import { ExaltedView, exaltedRed } from './exaltedView.js';

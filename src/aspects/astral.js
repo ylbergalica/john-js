@@ -14,7 +14,7 @@ import { FIXED_DT, FX, PLAYER } from '../data/config.js';
 import { clamp, clamp01, deltaAngle, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { ASTRAL_BLADE } from '../render/sprites.js';
+import { ASTRAL_BLADE } from '../render/sprites/aspects/astral.js';
 import { hurtBySegment } from '../game/hurtbox.js';
 
 const DEG = Math.PI / 180;

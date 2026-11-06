@@ -8,7 +8,7 @@ import { hurtByBox } from '../game/hurtbox.js';
 import { clamp01, lerp, norm, randRange } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
-import { CLEAVE_ARC } from '../render/sprites.js';
+import { CLEAVE_ARC } from '../render/sprites/aspects/cleave.js';
 
 const DEG = Math.PI / 180;
 const pick = ([min, max]) => randRange(min, max);

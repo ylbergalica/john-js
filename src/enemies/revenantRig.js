@@ -11,7 +11,7 @@ import { ATTACK_FX as X, DEATH_FX, FIXED_DT, REVENANT as R } from '../data/confi
 import { clamp01, deltaAngle, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { REVENANT_ART as A } from '../render/sprites.js';
+import { REVENANT_ART as A } from '../render/sprites/enemies/revenant.js';
 import { CueFlash } from './attackView.js';
 
 const DEG = Math.PI / 180, G = R.ghost, L = R.needle.len;

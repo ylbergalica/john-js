@@ -14,7 +14,7 @@ import { EXALTED_FX, FIXED_DT, FX } from '../data/config.js';
 import { clamp01, lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
 import { Plume } from '../render/fx.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 
 const DEG = Math.PI / 180;
 const LAND_SEARCH = 8; // how far out clearSpot looks for open floor

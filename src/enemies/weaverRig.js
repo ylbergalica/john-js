@@ -11,7 +11,7 @@
 import { Graphics } from 'pixi.js';
 import { WEAVER_LEGS as L } from '../data/config.js';
 import { clamp01, lerp, lerpColor, smoothStep01, TAU } from '../engine/math.js';
-import { weaverKnee, weaverLegsRest } from '../render/sprites.js';
+import { weaverKnee, weaverLegsRest } from '../render/sprites/enemies/weaver.js';
 
 const progress = (a, now) => clamp01((now - a.phaseStartedAt) / Math.max(1e-3, a.phaseEndsAt - a.phaseStartedAt));
 

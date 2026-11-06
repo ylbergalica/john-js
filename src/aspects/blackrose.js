@@ -10,7 +10,7 @@ import { Body } from '../engine/physics.js';
 import { FIXED_DT } from '../data/config.js';
 import { clamp01, lerp, randRange, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { TearKind } from '../render/distortion.js';
 import { hurtByCircle } from '../game/hurtbox.js';
 

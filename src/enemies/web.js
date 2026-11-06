@@ -17,7 +17,7 @@ import { clamp01, lerp, randRange, smoothStep01, TAU } from '../engine/math.js';
 import { ATTACK_FX, WEB as W } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { DEW_TIP } from '../render/sprites.js';
+import { DEW_TIP } from '../render/sprites/enemies/weaver.js';
 import { Projectile } from './projectile.js';
 import { SilkLook, renderTime } from './attackView.js';
 

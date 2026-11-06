@@ -8,7 +8,7 @@ import { DEATH_FX } from '../data/config.js';
 import { lerp, lerpColor, randRange, TAU } from '../engine/math.js';
 import { tex } from './assets.js';
 import { Plume } from './fx.js';
-import { RING_RADIUS } from './sprites.js';
+import { RING_RADIUS } from './sprites/combat.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const pick = ([min, max]) => randRange(min, max);

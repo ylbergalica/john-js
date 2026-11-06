@@ -6,7 +6,7 @@ import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { clamp01, lerp, randRange, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { Plume } from '../render/fx.js';
 
 const pick = ([min, max]) => randRange(min, max);

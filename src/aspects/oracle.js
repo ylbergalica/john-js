@@ -11,7 +11,7 @@ import { Entity } from '../game/entity.js';
 import { FIXED_DT, FX, WALL_IMPACT } from '../data/config.js';
 import { clamp01, deltaAngle, lerp, lerpColor, randSign, TAU } from '../engine/math.js';
 import { anims, tex } from '../render/assets.js';
-import { ORACLE_DISC } from '../render/sprites.js';
+import { ORACLE_DISC } from '../render/sprites/aspects/oracle.js';
 import { hurtByCircle, hurtBySegment } from '../game/hurtbox.js';
 
 const easeOut = (t) => 1 - (1 - t) ** 3;

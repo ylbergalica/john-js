@@ -15,7 +15,8 @@ import { COLLAPSAR as C, DEATH_FX } from '../data/config.js';
 import { tex } from '../render/assets.js';
 import { rectContainsCircle } from '../render/camera.js';
 import { clearGraphics, thinned } from '../render/fx.js';
-import { COLLAPSAR_ART, RING_RADIUS } from '../render/sprites.js';
+import { COLLAPSAR_ART } from '../render/sprites/enemies/collapsar.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { Projectile } from './projectile.js';
 import { renderTime } from './attackView.js';
 

@@ -9,7 +9,7 @@ import { Prop, shuffle } from './props.js';
 import { ENEMY_TYPES, FIXED_DT, PROPS, SPAWNERS } from '../data/config.js';
 import { clamp01, dist, lerp, pickWeighted, randInt, randRange, TAU } from '../engine/math.js';
 import { spawnerTextures, tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 
 const BEAT = { period: 1.5, birthPeriod: 0.45, swell: 0.06, release: 0.22, releaseTime: 0.35 }; // its heartbeat (seconds, fractions of its size)
 

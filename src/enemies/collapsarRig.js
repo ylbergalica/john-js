@@ -12,7 +12,7 @@ import { COLLAPSAR as C } from '../data/config.js';
 import { clamp01, dist, lerp, smoothStep01, TAU } from '../engine/math.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { COLLAPSAR_ART } from '../render/sprites.js';
+import { COLLAPSAR_ART } from '../render/sprites/enemies/collapsar.js';
 import { CollapsarImplosion, Infall, drawLanes } from './gravity.js';
 
 const KEYS = ['spin', 'disc', 'scale', 'glow', 'strands'];

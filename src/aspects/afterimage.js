@@ -6,7 +6,7 @@ import { Aspect } from './aspect.js';
 import { clamp01, lerp, lerpColor, smoothDamp, TAU } from '../engine/math.js';
 import { EXALTED_FX, PLAYER } from '../data/config.js';
 import { tex } from '../render/assets.js';
-import { RING_RADIUS } from '../render/sprites.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 import { BlobMesh } from '../player/playerView.js';
 import { AIState } from '../enemies/ai.js';
 

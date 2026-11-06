@@ -25,7 +25,10 @@ import { clamp01, lerp, lerpColor, smoothStep01, randInsideUnitCircle, TAU } fro
 import { sfx } from '../audio/sfx.js';
 import { tex } from '../render/assets.js';
 import { clearGraphics } from '../render/fx.js';
-import { COMET_HEAD, ORB_PAD, PART_ART, RING_RADIUS, blightParts } from '../render/sprites.js';
+import { COMET_HEAD } from '../render/sprites/player.js';
+import { ORB_PAD } from '../render/sprites/paint.js';
+import { PART_ART, blightParts } from '../render/sprites/enemies/blight.js';
+import { RING_RADIUS } from '../render/sprites/combat.js';
 
 const X = ATTACK_FX, W = X.windup, S = X.strike, Z = X.zone, C = X.cue;
 const FADE_IN = 0.1; // seconds for a wind-up's marks to appear

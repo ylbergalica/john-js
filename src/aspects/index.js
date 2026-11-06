@@ -18,6 +18,7 @@ import { BloodthirstAspect } from './bloodthirst.js';
 import { AntlersAspect } from './antlers.js';
 import { OracleAspect } from './oracle.js';
 import { BlackRoseAspect } from './blackrose.js';
+import { NebulaAspect } from './nebula.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -39,6 +40,7 @@ const ASPECT_TYPES = {
   antlers: AntlersAspect,
   oracle: OracleAspect,
   blackrose: BlackRoseAspect,
+  nebula: NebulaAspect,
 };
 
 export function createAspect(player, data) {

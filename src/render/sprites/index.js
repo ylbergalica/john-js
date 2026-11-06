@@ -49,6 +49,7 @@ import { bloodthirstIcon } from './aspects/bloodthirst.js';
 import { antlersIcon } from './aspects/antlers.js';
 import { ORACLE, oracleDisc, oracleGlow, oracleIcon } from './aspects/oracle.js';
 import { blackRoseIcon } from './aspects/blackrose.js';
+import { nebulaIcon } from './aspects/nebula.js';
 import { thunderIcon } from './aspects/thunder.js';
 import { phoenixIcon } from './aspects/phoenix.js';
 import { coinIcon, GEM_CUTS, gemIcon } from './ui.js';
@@ -199,6 +200,7 @@ export function icons() {
     antlers_icon: antlersIcon(),
     oracle_icon: oracleIcon(),
     blackrose_icon: blackRoseIcon(),
+    nebula_icon: nebulaIcon(),
     coin_icon: coinIcon(),
     anger_sign: angerSign(),
     buff_swift: swiftGlyph(),

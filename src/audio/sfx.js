@@ -1477,6 +1477,29 @@ const SOUNDS = {
     noise(v, { freq: 500, q: 1.5, at: 0.2, dur: 0.04, vol: 0.3 });
     tone(v, { freq: 45, at: 0.22, dur: 0.5, vol: 0.25, attack: 0.02 });
   },
+  // Nebula: a cloud bursting is a soft airy whump under a wash of dust and a low shimmering
+  // chord; gathering, the air is sucked in, rising, with a sparkle climbing over it; each star
+  // sets off with a bright whistling streak, and strikes with a clear chime.
+  nebulaBurst(v) {
+    tone(v, { freq: 120, to: 48, dur: 0.3, vol: 0.32 });
+    noise(v, { filter: 'lowpass', freq: 1800, to: 250, dur: 0.45, vol: 0.28, attack: 0.01 });
+    noise(v, { freq: 600, to: 2400, q: 0.6, dur: 0.5, vol: 0.1, attack: 0.05 });
+    arp(v, [523, 784, 1047], 0.03, { type: 'sine', at: 0.02, dur: 0.9, vol: 0.025, attack: 0.04 });
+  },
+  nebulaGather(v) {
+    noise(v, { freq: 400, to: 3200, q: 0.8, dur: 0.3, vol: 0.18, attack: 0.25 });
+    tone(v, { type: 'triangle', freq: 330, to: 990, dur: 0.3, vol: 0.05, attack: 0.25 });
+    arp(v, [1568, 2093, 2637, 3136], 0.06, { type: 'sine', dur: 0.25, vol: 0.022, attack: 0.01 });
+  },
+  nebulaStar(v) {
+    noise(v, { filter: 'highpass', freq: 2400, to: 6500, dur: 0.35, vol: 0.07, attack: 0.08 });
+    tone(v, { type: 'sine', freq: 1760, to: 2637, dur: 0.35, vol: 0.025, attack: 0.05 });
+  },
+  nebulaHit(v) {
+    noise(v, { filter: 'highpass', freq: 4000, to: 8000, dur: 0.05, vol: 0.05, attack: 0.002 });
+    tone(v, { type: 'sine', freq: 2093, dur: 0.3, vol: 0.04, attack: 0.003 });
+    tone(v, { freq: 160, to: 70, dur: 0.12, vol: 0.18 });
+  },
   // Thunderclap (twice: as it strikes and as it twitches): a split-second crack tearing into a
   // deep boom, then a long low rumble that rolls on in waves, all pushed hard into a soft
   // clipper so it's loud and thick without peaking; and a smaller crack and

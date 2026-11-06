@@ -786,4 +786,70 @@ export const ASPECTS = [
       shake: { duration: 0.12, strength: 0.09, frequency: 28 },
     },
   },
+  {
+    id: 'nebula', displayName: 'Nebula', tier: AspectTier.Mythic, icon: 'nebula_icon', activatable: true, stat: AspectStat.Hits,
+    quote: 'Every star was dust once.',
+    description: 'Parrying bursts a cloud of stardust. Call it home.',
+    // Every parry bursts a cloud of space dust (src/aspects/nebula.js) `reach` out ahead of the
+    // player along the parry, `radius` round, striking everything (enemies and props) it touches
+    // for burst.damage as it bursts, knocking it away from the middle. The cloud hangs there for
+    // `lifetime`. The slot key draws every cloud in: each compacts into `stars` stars over
+    // gather.time, and they fly home to the player, each striking everything it
+    // passes within star.radius for star.damage (twice the burst's), once a flight, through walls.
+    // Its stars set off straight at the player the moment it starts drawing in, at star.speed,
+    // speeding up ever faster (`surge` times the square of how long it's flown) to maxSpeed, and turns after them as they move at no more than `turn` radians a second, plus
+    // turnGrow more for every second it's flown (so it can't circle them forever). After maxTime
+    // it's home whatever.
+    reach: 2.3, radius: 2.5, lifetime: 10,
+    burst: { damage: 5, enemyKnockbackForce: 7 },
+    stars: 2,
+    gather: { time: 0.3 },
+    star: { damage: 10, enemyKnockbackForce: 5, radius: 0.5, speed: 2, surge: 170, maxSpeed: 44, turn: 5, turnGrow: 16, maxTime: 2.5 },
+    // The look. Each cloud takes one vivid colour at random as it bursts (`colors`: any hue, at
+    // `saturation` and `lightness`, its puffs shading toward hues `shift` degrees either side and
+    // toward a `light` one; never dark, grey or white; warm.boost thicker toward warm.hue, within
+    // warm.width degrees, so yellows and oranges stay bright rather than going brown), mostly
+    // see-through: `puffs` of mist (`size` across, `alpha`) lying within `spread` of the radius,
+    // slowly turning and drifting round the middle (`drift`, radians a second at most) and
+    // breathing (`breathe`: how much, how fast); `glow` of them lighter and glowing; `specks` of
+    // dust twinkling in it (`rate` a second). It's blasted out of the parry, burst.from ahead of
+    // the player: a `flash` there, sparks and specks thrown forward, and every puff flying from
+    // there to its place in the cloud (setting off up to burst.delay late, taking burst.time,
+    // bowing up to burst.bow aside, easing to a stop), billowing from burst.size of its size and
+    // glowing burst.glare brighter at first, a faint `ring` spreading to the cloud's edge as it
+    // settles. It fades out over fadeTime at the end. Gathering (over gather.time), each puff
+    // is drawn into its star as the star sets off, following it, swirling round it (`swirl`,
+    // radians), shrinking and turning white, the star growing out of it. A star: a white `core`
+    // glint, `glow` round it in its colour; its trail is the way it came over its last `trail`
+    // seconds, drawn smooth through `points` points, in
+    // `layers` (haze, band, thread: half-width, alpha, how far from its colour to white), and it
+    // bursts into the player as `arrive`. World units and seconds, [min, max] at random.
+    fx: {
+      colors: { saturation: [0.85, 1], lightness: [0.52, 0.6], light: 0.8, shift: 22, warm: { hue: 48, width: 50, boost: 1 } },
+      fadeTime: 1.2,
+      puffs: { count: 24, size: [1.8, 2.8], alpha: [0.09, 0.17], spread: 0.68, drift: 0.12, breathe: [0.08, 0.6] },
+      glow: { count: 6, size: [1.2, 2], alpha: [0.06, 0.11] },
+      specks: { rate: 9, size: [0.08, 0.16], life: [0.6, 1.4], speed: [0.05, 0.3], alpha: 0.9 },
+      burst: {
+        from: 0.6, delay: [0, 0.08], time: [0.45, 0.8], bow: 0.35, size: 0.25, glare: 1.2,
+        flash: { size: 1.4, grow: 2, time: 0.3, alpha: 0.7 },
+        ring: { delay: 0.08, time: 0.5, alpha: 0.25 },
+        sparks: { count: 12, speed: 10, lifetime: 0.35, size: 0.3, coneDeg: 45 },
+        specks: { count: 18, speed: [3, 8], spreadDeg: 50, size: [0.1, 0.2], life: [0.5, 1] },
+        shake: { duration: 0.1, strength: 0.06, frequency: 28 },
+        hit: { sparks: { count: 6, speed: 6, lifetime: 0.22, size: 0.24, coneDeg: 50 } },
+      },
+      swirl: 1.4,
+      core: { size: 0.95, spin: 2.5 },
+      starGlow: { size: 1.7, alpha: 0.6 },
+      trail: 0.22, points: 32,
+      layers: [
+        { width: 0.42, alpha: 0.5, white: 0.1 },
+        { width: 0.16, alpha: 0.85, white: 0.5 },
+        { width: 0.055, alpha: 1, white: 1 },
+      ],
+      hit: { flash: { size: 1.1, grow: 1.6, time: 0.18, alpha: 0.8 }, sparks: { count: 9, speed: 9, lifetime: 0.25, size: 0.28, coneDeg: 40 } },
+      arrive: { size: 1.1, grow: 1.6, time: 0.3, alpha: 0.55, glints: { count: 3, speed: [1, 2.5], size: [0.1, 0.2], life: [0.25, 0.45] } },
+    },
+  },
 ];

@@ -85,7 +85,9 @@ export const ASPECTS = [
     id: 'crescent', displayName: 'Cleave', tier: AspectTier.Gift, icon: 'cleave_icon', activatable: false, stat: AspectStat.Hits,
     quote: 'A system not based purely on strength is boring.',
     description: 'Connecting a hit sends a flying slash forward.',
-    damage: 0.5, speed: 25, travelDistance: 6, spawnForwardOffset: 0.5, enemyKnockbackForce: 6, cooldown: 0,
+    // The slash deals attackShare of the attack that launched it, whatever made that stronger or
+    // weaker (Exalted, buffs, a charged swing, Feral, Zephyr's lighter ones...).
+    attackShare: 0.5, speed: 25, travelDistance: 6, spawnForwardOffset: 0.5, enemyKnockbackForce: 6, cooldown: 0,
     hitboxDepth: 0.36178464 * 1.5, hitboxWidth: 1.765077 * 1.5, spriteSize: 2 * 1.5, alpha: 1,
     // The slash's trail (src/aspects/cleave.js): red motes shed from along its edge, `rate` a
     // second, coasting `forward` behind it and up to `spread` sideways, cooling to `fade`;
@@ -845,7 +847,9 @@ export const ASPECTS = [
     //   and dragging whatever it strikes `fill` of the way into the centre over its moveTime.
     // How far a body is moved is scaled by its knockback resistance, and for anything heavier
     // than `heavy` by heavy / its mass (so guardians barely budge, and the spawner not at all).
-    // World units and seconds.
+    // Only one of each goes at a time: while a pulse (or an implosion) is still going, from setting
+    // off until whatever it moves has stopped, another of the same kind is not set off. World
+    // units and seconds.
     radius: 3, time: 0.4, strikeAt: 0.2, heavy: 6,
     // It takes the player over (AspectController.identity): their swings and parry go black,
     // a faint white `glow` under them (blurred `blur` screen pixels) so they show on black

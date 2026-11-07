@@ -1,5 +1,6 @@
-// Cleave: each melee hit launches a slash that flies forward and damages every
-// enemy and prop it passes through once. In flight it sheds a few red motes from along its edge.
+// Cleave: each melee hit launches a slash that flies forward and damages every enemy and prop it
+// passes through once, for a share (attackShare) of that hit's damage. In flight it sheds a few
+// red motes from along its edge.
 import { Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
@@ -31,7 +32,7 @@ export class CleaveAspect extends Aspect {
     if (dir.x * dir.x + dir.y * dir.y <= 0.0001) dir = { x: hitPoint.x - origin.x, y: hitPoint.y - origin.y };
     if (dir.x * dir.x + dir.y * dir.y <= 0.0001) return;
     dir = norm(dir);
-    const damage = this.data.damage * this.world.adrenaline.damageMultiplier;
+    const damage = this.player.attackDamage * this.data.attackShare; // a share of the hit that launched it, as strong or weak as that was
     const o = this.data.spawnForwardOffset;
     this.used();
     this.world.sound('cleave');

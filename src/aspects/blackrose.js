@@ -2,7 +2,8 @@
 // energy bursting out that strikes everything round it and drives it outward; every parry sets
 // off an implosion there instead, black energy caving in that strikes harder and drags it all
 // into the centre. Both strike halfway through. Where they happen the world itself tears (see
-// src/render/distortion.js) under a ring of black mist.
+// src/render/distortion.js) under a ring of black mist. One of each kind goes at a time: while one
+// is still going, another of its kind is not set off.
 import { Container, Sprite } from 'pixi.js';
 import { Aspect } from './aspect.js';
 import { Entity } from '../game/entity.js';
@@ -23,6 +24,7 @@ export class BlackRoseAspect extends Aspect {
   constructor(player, data) {
     super(player, data);
     this.landed = false; // this swing has set one off already
+    this.live = {}; // kind → the burst of that kind still going: one pulse and one implosion at most at a time
   }
 
   beforeAttack() { this.landed = false; }
@@ -36,9 +38,11 @@ export class BlackRoseAspect extends Aspect {
 
   onParry() { this.burst(TearKind.Implode); }
 
+  // Sets one off at the cursor, unless one of its kind is still going (struck and done driving).
   burst(kind) {
+    if (this.live[kind] && !this.live[kind].dead) return;
     const at = this.player.cursorWorld();
-    this.world.add(new RoseBurst(this, at, kind));
+    this.live[kind] = this.world.add(new RoseBurst(this, at, kind));
     this.world.sound(kind === TearKind.Pulse ? 'rosePulse' : 'roseImplode', at);
     this.used();
   }

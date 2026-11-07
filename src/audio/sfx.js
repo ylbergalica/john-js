@@ -1500,6 +1500,33 @@ const SOUNDS = {
     tone(v, { type: 'sine', freq: 2093, dur: 0.3, vol: 0.04, attack: 0.003 });
     tone(v, { freq: 160, to: 70, dur: 0.12, vol: 0.18 });
   },
+  // Moonsilk: the web is flung with a soft airy whoosh and silk zipping out after it; catching,
+  // a light wiry twang as the threads go taut. The reel shoots out with a bright zip and a rising
+  // shimmer of chimes, and hooks with a clear bell over a taut, ringing twang and a soft thud.
+  moonsilkCast(v) {
+    noise(v, { freq: 500, to: 2200, q: 0.8, dur: 0.18, vol: 0.2, attack: 0.02 });
+    noise(v, { filter: 'highpass', freq: 3000, to: 7000, q: 0.8, at: 0.03, dur: 0.22, vol: 0.08, attack: 0.03 });
+    tone(v, { type: 'triangle', freq: 660, to: 1320, dur: 0.14, vol: 0.03 });
+  },
+  moonsilkCatch(v) {
+    noise(v, { filter: 'highpass', freq: 3200, dur: 0.012, vol: 0.16, attack: 0.001 });
+    const string = tone(v, { type: 'triangle', freq: 330, to: 318, dur: 0.45, vol: 0.08, attack: 0.002 });
+    lfo(v, string.frequency, { rate: 9, depth: 4, dur: 0.45 });
+    tone(v, { type: 'sine', freq: 1319, dur: 0.3, vol: 0.02, attack: 0.003 });
+  },
+  moonsilkReel(v) {
+    noise(v, { filter: 'highpass', freq: 3600, to: 8000, q: 0.8, dur: 0.18, vol: 0.1, attack: 0.01 });
+    tone(v, { type: 'sine', freq: 1568, to: 3136, dur: 0.16, vol: 0.03 });
+    arp(v, [2093, 2637, 3136], 0.03, { type: 'sine', dur: 0.2, vol: 0.016, attack: 0.005 });
+  },
+  moonsilkHook(v) {
+    tone(v, { freq: 150, to: 60, dur: 0.14, vol: 0.22 });
+    const string = tone(v, { type: 'triangle', freq: 247, to: 240, dur: 0.6, vol: 0.1, attack: 0.002 });
+    lfo(v, string.frequency, { rate: 8, depth: 3, dur: 0.6 });
+    tone(v, { type: 'sine', freq: 1760, dur: 0.5, vol: 0.045, attack: 0.003 });
+    tone(v, { type: 'sine', freq: 2637, dur: 0.35, vol: 0.018, attack: 0.003 });
+    tinkles(v, 3, { at: 0.03, spread: 0.2, vol: 0.016, lo: 3500, hi: 7000 });
+  },
   // Thunderclap (twice: as it strikes and as it twitches): a split-second crack tearing into a
   // deep boom, then a long low rumble that rolls on in waves, all pushed hard into a soft
   // clipper so it's loud and thick without peaking; and a smaller crack and

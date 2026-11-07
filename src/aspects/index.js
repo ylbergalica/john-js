@@ -19,6 +19,7 @@ import { AntlersAspect } from './antlers.js';
 import { OracleAspect } from './oracle.js';
 import { BlackRoseAspect } from './blackrose.js';
 import { NebulaAspect } from './nebula.js';
+import { MoonsilkAspect } from './moonsilk.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -41,6 +42,7 @@ const ASPECT_TYPES = {
   oracle: OracleAspect,
   blackrose: BlackRoseAspect,
   nebula: NebulaAspect,
+  moonsilk: MoonsilkAspect,
 };
 
 export function createAspect(player, data) {

@@ -743,7 +743,69 @@ export const ASPECTS = [
     },
   },
   {
-    // No quote and no description: it explains nothing.
+    id: 'moonsilk', displayName: 'Moonsilk', tier: AspectTier.Prestige, icon: 'moonsilk_icon', activatable: true, stat: AspectStat.StunTime,
+    quote: 'All threads lead home.',
+    description: 'Fling a web of moonsilk that drags in whatever it catches.',
+    // The slot key flings strands of silk (src/aspects/moonsilk.js) fanning out along the aim, one
+    // homing on everything in a cone web.angleDeg wide and web.reach long that the player could
+    // see (enemies and props), and more between them so the cone is always strung across
+    // (web.strands at least, within web.max). Each is a loose rope paid out behind its head as it
+    // flies (strand.speed, slowing to strand.slow of it by its reach, weaving `weave` radians
+    // either way), draping over walls and round bodies. Its head touching an enemy or prop winds
+    // round it (once a cast each), striking it for web.damage (none as it stands) and stunning an
+    // enemy for web.stun seconds; a wall stops it. A Weaver's thread is flown on through (cut, if
+    // it does damage).
+    // Whatever's caught is hauled in toward the player by a steady web.force (so the heavier it
+    // is, the slower it comes), at web.maxSpeed at most, up to web.pull, stopping web.gap short
+    // of them.
+    // A strand that misses, or lets go, is drawn back in (strand.retract), whipping (strand.whip);
+    // then `cooldown`. Any kill, its own included, ends the cooldown.
+    // Pressed within reel.window of a parry instead, it twirls a lasso round the player
+    // (reel.twirlTime), throws it at the enemy parried, however far (at reel.shootSpeed, through
+    // walls, bowing out `bow` of the way), drops it over it and cinches it (reel.cinchTime),
+    // stunning it for reel.stun seconds, and reels it in by reel.force (at reel.maxSpeed at most),
+    // up to reel.pull, to reel.gap from the player, striking it for reel.damage reel.strikeDelay
+    // seconds into the pull.
+    // A reel costs nothing and can be thrown on cooldown. Either haul stops against a wall and
+    // gives up after maxTime. A Moray in its wall and anything rooted (a spawner) are stunned or
+    // caught but stay put. The run summary counts the seconds of stun it dealt.
+    cooldown: 6,
+    web: { angleDeg: 70, reach: 5.5, strands: 7, max: 14, damage: 0, stun: 2, pull: 10, gap: 0.9, force: 220, maxSpeed: 24, maxTime: 1.1, delay: 0.05 },
+    strand: { speed: 42, slow: 0.55, turn: 16, weave: 0.35, points: 16, retract: 30, hold: 0.12, head: 0.12, whip: 0.035 },
+    reel: {
+      window: 0.7, damage: 5, strikeDelay: 0.2, stun: 3.5, pull: 10, gap: 0.12, force: 300, maxSpeed: 32, maxTime: 1.3,
+      twirlTime: 0.13, twirlRadius: 0.65, shootSpeed: 70, bow: 0.18, cinchTime: 0.08, loop: 0.6, points: 20,
+    },
+    // The look: moonsilk is plain white, a fine `width` thread in a faint white haze (`haze`
+    // wide, hazeAlpha strong); the lasso's rope a little thicker (reel.width). A strand that
+    // catches something winds `wrap.loops` loops round it over wrap.time, each tilted its own way
+    // so they cross; let go, they loosen (`loose`) and slip off as the strand is drawn back in.
+    // Side by side, the strands are spun together into a web: threads cross from each to the next
+    // at web.rings along them (each a little off, by up to web.jitter), sagging `sag` of their span
+    // toward the hand, once both have paid out that far; one stretched past web.span snaps.
+    // The lasso's loop wobbles as it spins (`wobble`) and is seen tipped (`tip`) as it twirls and
+    // flies, a knot where the rope meets it; hauling, a few `glints` run down the rope to the
+    // player. Catches are a white flash, glints and sparks. Sizes are world units.
+    fx: {
+      width: 0.03, haze: 0.11, hazeAlpha: 0.12, alpha: 0.95,
+      wrap: { loops: 3, time: 0.14, pad: 0.06 },
+      web: { rings: [0.7, 1.3, 2, 2.75, 3.55, 4.4], jitter: 0.12, sag: 0.18, span: 2.6, width: 0.7, alpha: 0.85 },
+      loose: 0.25,
+      catch: { sparks: { count: 7, speed: 6, lifetime: 0.22, size: 0.22, coneDeg: 70, color: 0xffffff } },
+      reel: {
+        width: 0.045, haze: 0.2, hazeAlpha: 0.16, alpha: 0.95, wobble: 0.08, tip: 0.72, knot: 0.07,
+        glints: { spacing: 1.3, speed: 9, size: 0.18 },
+        hook: {
+          flash: { size: 1.4, grow: 1.8, time: 0.28, alpha: 0.8 },
+          star: { size: 1.2, time: 0.3 },
+          glints: { count: 9, speed: [1.5, 4], size: [0.12, 0.22], life: [0.4, 0.8] },
+          sparks: { count: 10, speed: 8, lifetime: 0.28, size: 0.26, coneDeg: 80, color: 0xffffff },
+        },
+        land: { glints: { count: 6, speed: [1, 3], size: [0.1, 0.2], life: [0.3, 0.6] } },
+      },
+    },
+  },
+  {
     id: 'blackrose', displayName: 'Black Rose', tier: AspectTier.Mythic, icon: 'blackrose_icon', activatable: false, stat: null,
     // Two events at the cursor (src/aspects/blackrose.js), each `time` long and striking at
     // `strikeAt` everything (enemies and props) touching the circle of `radius` round it:

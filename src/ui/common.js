@@ -1,6 +1,7 @@
 // Small UI pieces shared by the menu, HUD and run summary.
 import { h } from './dom.js';
 import { iconUrls } from '../render/assets.js';
+import { GEM_CUTS, gemRings } from '../render/sprites/ui.js';
 
 // Sized by the surrounding font, so it sits inline before an amount.
 export const coinIcon = () => h('img', { class: 'coin-icon', src: iconUrls.coin_icon, alt: 'Coins' });
@@ -77,6 +78,143 @@ export function mistFx(cls, { puffs, embers, x = [0, 1], y = [0.5, 0.5], size, d
     Array.from({ length: embers }, () => particle('ember', emberSize, emberDur)));
   fx.style.setProperty('--mist', `url(${iconUrls.mist})`);
   return fx;
+}
+
+// A tier gem's effects, laid over its image. Every tier: `sparks` glints, each flaring and
+// fading (CSS: .gem-spark), then waiting a moment and flaring again somewhere else on the
+// stone, at its own size and tilt. Prestige and up: now and then a shimmer, lines of light
+// sweeping across the stone (.gem-shimmer). Mythic: small shooting stars streaking through
+// the stone now and then, bending where they cross the table's edges as light would,
+// glancing off them when too shallow to get out (.gem-stars). Both are masked to the gem.
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const STAR = { every: [1.8, 4.2], time: [1.1, 1.6], eta: 0.72, tail: 42 }; // eta: how hard they bend going into the table
+const STAR_TRAILS = [{ cls: 'glow', tail: 1 }, { cls: 'mid', tail: 0.6 }, { cls: 'core', tail: 0.3 }, { cls: 'head', tail: 0.03 }]; // fading tail: shorter layers on top, a bright point at its head
+
+export function gemFx(tierName, { sparks = 1 } = {}) {
+  const key = tierName.toLowerCase(), cut = GEM_CUTS[key], rank = Object.keys(GEM_CUTS).indexOf(key);
+  const { rx, ry, sides } = cut;
+  const onStone = () => {
+    for (;;) { // a point well inside the cut: the rhombus by its edges, the rest by a circle
+      const u = rand(-1, 1), v = rand(-1, 1);
+      if (sides === 4 ? Math.abs(u) + Math.abs(v) <= 0.8 : Math.hypot(u, v) <= 0.78) return [0.5 + u * rx, 0.5 + v * ry];
+    }
+  };
+  const flare = (el, first) => {
+    const [x, y] = onStone();
+    el.style.cssText = `left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%;--k:${rand(0.65, 1.1).toFixed(2)};--tilt:${Math.round(rand(-25, 25))}deg;--delay:${rand(first ? 0 : 0.35, first ? 1.2 : 1.6).toFixed(2)}s`;
+    el.style.animation = 'none';
+    void el.offsetWidth; // restart it
+    el.style.animation = '';
+  };
+  const fx = h('div', { class: 'gem-fx' }, Array.from({ length: sparks }, () => {
+    const el = h('span', { class: 'gem-spark' });
+    el.addEventListener('animationend', () => flare(el, false));
+    flare(el, true);
+    return el;
+  }));
+  fx.style.setProperty('--gem-mask', `url(${iconUrls[`gem_${key}`]})`);
+  if (rank >= 1) {
+    const shimmer = h('div', { class: 'gem-shimmer' });
+    shimmer.style.setProperty('--wait', `${(-rand(0, 7)).toFixed(2)}s`); // each gem on its own beat
+    fx.append(shimmer);
+  }
+  if (rank >= 2) fx.append(shootingStars(cut));
+  return fx;
+}
+
+// The Mythic's shooting stars: an SVG over the stone (0…100), one star at a time, `every`
+// seconds or so while it's on screen, until it's taken off the page.
+function shootingStars(cut) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'gem-stars');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  const rings = gemRings(cut);
+  let seen = false;
+  const next = () => setTimeout(tick, rand(...STAR.every) * 1000);
+  const tick = () => {
+    if (svg.isConnected) seen = true;
+    else if (seen) return; // gone for good
+    if (svg.isConnected && svg.getClientRects().length) launch();
+    next();
+  };
+  const launch = () => {
+    const pts = starPath(rings).map(([x, y]) => [x * 100, y * 100]);
+    const len = pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+    const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`).join('');
+    const ms = rand(...STAR.time) * 1000, run = len + STAR.tail;
+    for (const { cls, tail } of STAR_TRAILS) {
+      const t = STAR.tail * tail;
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', `gem-star ${cls}`);
+      path.style.strokeDasharray = `${t} ${run + t}`;
+      svg.append(path);
+      // The dash runs [s - t, s] along the path as its head s goes from the start to past the end.
+      path.animate([{ strokeDashoffset: t }, { strokeDashoffset: t - run }], { duration: ms, easing: 'cubic-bezier(0.3, 0, 0.7, 1)' }).onfinish = () => path.remove();
+    }
+  };
+  next();
+  return svg;
+}
+
+// A star's way through the stone, in the gem image's 0…1 space: in at the rim, crossing
+// the table (bent going in and coming out, or glancing back off its inside edge), and out
+// at the rim again.
+function starPath({ outer, inner }) {
+  const a = rand(0, Math.PI * 2), dir = [Math.cos(a), Math.sin(a)];
+  const off = rand(-0.12, 0.12); // to the side of the middle, so it clips the table at a slant
+  const from = [0.5 - dir[0] + -dir[1] * off, 0.5 - dir[1] + dir[0] * off];
+  const inAt = cast(from, dir, outer), pts = [inAt.p];
+  let p = inAt.p, d = dir;
+  const tableIn = cast(p, d, inner);
+  if (tableIn) {
+    pts.push(tableIn.p);
+    d = refract(d, tableIn.n, STAR.eta);
+    p = tableIn.p;
+    for (let bounce = 0; bounce < 3; bounce++) { // out the far side, or glancing off it
+      const hit = cast(p, d, inner);
+      if (!hit) break;
+      pts.push(hit.p);
+      p = hit.p;
+      d = refract(d, hit.n, 1 / STAR.eta);
+      if (dot(d, hit.n) <= 0) break; // through
+    }
+  }
+  const out = cast(p, d, outer);
+  if (out) pts.push(out.p);
+  return pts;
+}
+
+const dot = (u, v) => u[0] * v[0] + u[1] * v[1];
+
+// The nearest edge of `poly` a ray from `p` along `d` crosses (a little way on, so it never
+// finds the edge it's on): where, and the edge's normal facing back at the ray.
+function cast(p, d, poly) {
+  let best = null;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], e = [b[0] - a[0], b[1] - a[1]];
+    const den = d[0] * e[1] - d[1] * e[0];
+    if (Math.abs(den) < 1e-9) continue;
+    const w = [a[0] - p[0], a[1] - p[1]];
+    const t = (w[0] * e[1] - w[1] * e[0]) / den, u = (w[0] * d[1] - w[1] * d[0]) / den;
+    if (t > 1e-4 && u >= 0 && u <= 1 && (!best || t < best.t)) {
+      let n = [e[1], -e[0]];
+      const m = Math.hypot(...n);
+      n = [n[0] / m, n[1] / m];
+      if (dot(n, d) > 0) n = [-n[0], -n[1]];
+      best = { t, p: [p[0] + d[0] * t, p[1] + d[1] * t], n };
+    }
+  }
+  return best;
+}
+
+// Bends unit `d` crossing a surface with normal `n` (facing back at it) by the ratio `eta`;
+// too shallow to get through, it reflects off instead.
+function refract(d, n, eta) {
+  const c = dot(n, d), k = 1 - eta * eta * (1 - c * c);
+  if (k < 0) return [d[0] - 2 * c * n[0], d[1] - 2 * c * n[1]];
+  const s = eta * c + Math.sqrt(k);
+  return [eta * d[0] - s * n[0], eta * d[1] - s * n[1]];
 }
 
 // Restarts a one-shot CSS animation class (a pop, a flash) on an element that may

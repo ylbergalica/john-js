@@ -7,7 +7,7 @@ import { TIERS, MAX_EQUIPPED_ASPECTS, DEMO } from '../data/config.js';
 import { iconUrls } from '../render/assets.js';
 import { profile } from '../meta/profile.js';
 import { sfx } from '../audio/sfx.js';
-import { coinIcon, easeOut, replay, mistFx, assistBadge, cardFoot, logo } from './common.js';
+import { coinIcon, easeOut, replay, mistFx, gemFx, assistBadge, cardFoot, logo } from './common.js';
 import { sky } from './sky.js';
 import { BoxBreak } from './boxBreak.js';
 import { SettingsPanel } from './settings.js';
@@ -107,6 +107,7 @@ export class MenuScene {
         h('div', { class: 'box-stage' },
           mistFx('box-mist', { puffs: 24, embers: 10, x: [0.15, 0.85], y: [0.45, 0.9], size: [46, 84], dur: [2.2, 3.6], emberDur: [1.6, 2.8] }),
           h('img', { class: 'box-gem', src: iconUrls[`gem_${name.toLowerCase()}`], alt: '' }),
+          gemFx(name),
           [0, 1, 2].map((i) => h('span', { class: `box-glint g${i}` })),
         ),
         h('div', { class: 'box-name', text: name }),
@@ -232,7 +233,7 @@ export class MenuScene {
     this.hideTooltip();
     this.confirmTier = tier;
     this.confirmPanel.replaceChildren(h('div', { class: 'confirm-card' },
-      h('img', { class: 'confirm-gem', src: iconUrls[`gem_${t.name.toLowerCase()}`], alt: '' }),
+      h('div', { class: 'confirm-gem' }, h('img', { src: iconUrls[`gem_${t.name.toLowerCase()}`], alt: '' }), gemFx(t.name)),
       h('div', { class: 'confirm-name', text: t.name }),
       h('div', { class: 'confirm-question', text: `Request a random ${t.name} aspect?` }),
       discounted(tier) ? demoBadge('demo-tag') : null,
@@ -247,20 +248,25 @@ export class MenuScene {
 
   closeConfirm() { this.confirmPanel.classList.add('hidden'); }
 
-  // Buys the box (the aspect is unlocked and paid for now, so leaving mid-break loses
-  // nothing), then hands it over to be broken open.
+  // Hands the box over to be broken open. Nothing is paid or picked until it shatters: the
+  // aspect is rolled, unlocked and paid for then, so leaving mid-break (quitting, a reload)
+  // costs nothing and gives nothing.
   confirmBuy() {
     const tier = this.confirmTier;
     this.closeConfirm();
-    const res = profile.buyTierBox(tier);
-    if (!res.ok) { sfx.play('deny'); this.setStatus(res.reason); this.refresh(); return; }
-    this.unrevealed = res.aspect.id; // kept out of the collection until its card is shown
+    if (!profile.canBuyTier(tier)) { sfx.play('deny'); this.refresh(); return; }
     this.closeShop();
-    this.refresh();
+    let res = null;
     this.breaker = new BoxBreak(this.el, TIERS.find((t) => t.tier === tier), () => {
+      res = profile.buyTierBox(tier);
+      if (!res.ok) return;
+      this.unrevealed = res.aspect.id; // kept out of the collection until its card is shown
+      this.refresh();
+    }, () => {
       const b = this.breaker;
       this.breaker = null;
-      this.openReveal(res.aspect);
+      if (res?.ok) this.openReveal(res.aspect);
+      else { sfx.play('deny'); this.setStatus(res?.reason ?? 'Not enough coins.'); this.refresh(); }
       setTimeout(() => b.destroy(), BREAKER_LINGER * 1000);
     });
   }

@@ -81,20 +81,29 @@ function mixHex(a, b, t) {
 // Shop gems, one per aspect tier, each a fancier cut than the last: a rhombus for Gift, a
 // regular hexagon for Prestige and an eight-point star brilliant for Mythic (`notch` pulls
 // every other point in). Bevel facets lit from the top left around a bright table, a white
-// rim, a sheen and a glint. No backdrop.
+// rim and a sheen; the glints are the UI's, flaring about the stone (ui/common.js,
+// gemFx). No backdrop. Drawn big (768) so the box being broken open
+// (ui/boxBreak.js, up to 320px across) stays sharp on high-DPI screens.
 export const GEM_CUTS = {
-  gift: { color: '#5999ff', sides: 4, rx: 0.3, ry: 0.42, table: 0.45 },
-  prestige: { color: '#9459f2', sides: 6, rx: 0.42, ry: 0.42, table: 0.5 },
-  mythic: { color: '#ffae1f', sides: 16, rx: 0.43, ry: 0.43, table: 0.42, notch: 0.68 },
+  gift: { color: '#c4c9d1', sides: 4, rx: 0.3, ry: 0.42, table: 0.45 },
+  prestige: { color: '#5999ff', sides: 6, rx: 0.42, ry: 0.42, table: 0.5 },
+  mythic: { color: '#9459f2', sides: 16, rx: 0.43, ry: 0.43, table: 0.42, notch: 0.68 },
 };
 
-export function gemIcon({ color, sides, rx, ry, table, notch = 1 }, S = 192) {
-  const { c, ctx, px } = surface(S);
+// A cut's outline and its table, as [x, y] points in the gem image's 0…1 space (the UI's
+// shooting stars bend at the table's edges: ui/common.js, gemFx).
+export function gemRings({ sides, rx, ry, table, notch = 1 }) {
   const ring = (k, dent) => Array.from({ length: sides }, (_, i) => {
     const a = (-90 + (360 / sides) * i) * DEG, r = k * (i % 2 ? dent : 1);
     return [0.5 + Math.cos(a) * rx * r, 0.5 + Math.sin(a) * ry * r];
   });
-  const outer = ring(1, notch), inner = ring(table, 1); // the table stays round, so star points read as facets
+  return { outer: ring(1, notch), inner: ring(table, 1) }; // the table stays round, so star points read as facets
+}
+
+export function gemIcon(cut, S = 768) {
+  const { color, sides, rx, ry, table } = cut;
+  const { c, ctx, px } = surface(S);
+  const { outer, inner } = gemRings(cut);
   const trace = (pts) => {
     ctx.beginPath();
     pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
@@ -127,7 +136,7 @@ export function gemIcon({ color, sides, rx, ry, table, notch = 1 }, S = 192) {
   trace(inner);
   ctx.stroke();
 
-  // A diagonal sheen across the stone, then the rim and a glint on the lit side.
+  // A diagonal sheen across the stone, then the rim.
   ctx.save();
   trace(outer);
   ctx.clip();
@@ -138,6 +147,5 @@ export function gemIcon({ color, sides, rx, ry, table, notch = 1 }, S = 192) {
   ctx.strokeStyle = rgba('#ffffff', 0.85);
   ctx.lineWidth = 0.01;
   ctx.stroke();
-  sparkle(ctx, 0.5 - rx * 0.45, 0.5 - ry * 0.5, 0.1, '#ffffff', 1, 0.2);
   return c;
 }

@@ -5,7 +5,7 @@
 import { h } from './dom.js';
 import { iconUrls } from '../render/assets.js';
 import { sfx } from '../audio/sfx.js';
-import { mistFx } from './common.js';
+import { mistFx, gemFx } from './common.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const MIN_HIT_GAP = 0.08; // seconds; faster hits are ignored
@@ -18,11 +18,13 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 export class BoxBreak {
-  // tier: an entry of TIERS (name, color, hits).
-  constructor(root, tier, onDone) {
+  // tier: an entry of TIERS (name, color, hits). `onBreak` runs the moment it shatters,
+  // `onDone` once the shards have flown.
+  constructor(root, tier, onBreak, onDone) {
     this.total = tier.hits;
     this.hits = 0;
     this.lastHit = -Infinity;
+    this.onBreak = onBreak;
     this.onDone = onDone;
     this.timers = [];
     const gemUrl = iconUrls[`gem_${tier.name.toLowerCase()}`];
@@ -32,7 +34,7 @@ export class BoxBreak {
     this.cracks.setAttribute('class', 'breaker-cracks');
     this.cracks.setAttribute('viewBox', '0 0 100 100');
     this.shine = h('div', { class: 'breaker-shine' });
-    this.gem = h('div', { class: 'breaker-gem' }, this.img, this.cracks, this.shine);
+    this.gem = h('div', { class: 'breaker-gem' }, this.img, this.cracks, this.shine, gemFx(tier.name, { sparks: 2 }));
     this.fx = h('div', { class: 'breaker-fx' });
     this.stage = h('div', { class: 'breaker-stage' },
       h('div', { class: 'breaker-halo' }),
@@ -168,6 +170,7 @@ export class BoxBreak {
     this.setProgress(1);
     this.el.classList.add('broken');
     sfx.play('boxShatter');
+    this.onBreak();
     const center = { x: FACE.x + (at.x - FACE.x) * 0.3, y: FACE.y + (at.y - FACE.y) * 0.3 };
     for (const shard of shardPolygons(center, 11)) {
       const el = h('div', { class: 'breaker-shard' }, this.gem.cloneNode(true));

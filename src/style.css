@@ -5,9 +5,9 @@
   --dim: #5a5a5a;
   --card: rgba(255, 255, 255, 0.03);
   --card-line: rgba(255, 255, 255, 0.09);
-  --gift: #5999ff;
-  --prestige: #9459f2;
-  --mythic: #ffae1f; /* warm gold, leaning orange */
+  --gift: #c4c9d1; /* pale silver-grey */
+  --prestige: #5999ff;
+  --mythic: #9459f2; /* the old warm gold, #ffae1f, is kept for the secret tier */
   --coin: #ffd140;
   --adrenaline: #ca0000;
   --astral: #9fb4ff; /* cool starlight: menu and floor titles */
@@ -536,14 +536,43 @@ kbd {
 .box-glint.g0 { top: 14px; right: 18px; }
 .box-glint.g1 { bottom: 20px; left: 16px; width: 7px; height: 7px; animation-delay: 0.9s; }
 .box-glint.g2 { top: 34px; left: 20px; width: 6px; height: 6px; animation-delay: 1.7s; }
+/* A tier gem's effects (ui/common.js, gemFx): glints that flare and fade somewhere on the
+   stone, then again somewhere else; from Prestige up a shimmer of light lines sweeping
+   across it now and then; on Mythic, shooting stars bending through it. The layer rides the
+   gem's bob; the shimmer and stars are masked to the stone. */
+.gem-fx { position: absolute; inset: 0; pointer-events: none; }
+.gem-spark { position: absolute; width: 22%; aspect-ratio: 1; translate: -50% -50%; opacity: 0; animation: gem-spark 0.9s ease-in-out var(--delay, 0s) both; }
+.gem-spark::before { content: ''; position: absolute; inset: -30%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.55), transparent 65%); }
+.gem-spark::after { content: ''; position: absolute; inset: 0; background: #fff; clip-path: polygon(50% 0, 56% 44%, 100% 50%, 56% 56%, 50% 100%, 44% 56%, 0 50%, 44% 44%); }
+.gem-shimmer, .gem-stars { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-mask: var(--gem-mask) center / contain no-repeat; mask: var(--gem-mask) center / contain no-repeat; mix-blend-mode: plus-lighter; }
+.gem-shimmer {
+  background: linear-gradient(115deg, transparent 39%, rgba(255, 255, 255, 0.45) 41%, transparent 43%, transparent 45.5%, rgba(255, 255, 255, 0.3) 46.5%, transparent 47.5%, transparent 50%, rgba(255, 255, 255, 0.18) 51%, transparent 52%) no-repeat;
+  background-size: 300% 300%; animation: gem-shimmer 7s ease-in-out var(--wait, 0s) infinite;
+}
+@keyframes gem-shimmer { 0% { background-position: 100% 100%; } 18%, 100% { background-position: 0% 0%; } }
+.gem-stars { overflow: visible; opacity: 0.5; } /* faint and unhurried, as if far off inside the stone */
+.gem-star { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.gem-star.glow { stroke: color-mix(in srgb, var(--tier) 50%, #fff); stroke-width: 5; opacity: 0.45; }
+.gem-star.mid { stroke: color-mix(in srgb, var(--tier) 25%, #fff); stroke-width: 2.4; opacity: 0.75; }
+.gem-star.core { stroke: #fff; stroke-width: 1.2; }
+.gem-star.head { stroke: #fff; stroke-width: 3; }
+@keyframes gem-spark {
+  0% { opacity: 0; transform: scale(0.2) rotate(var(--tilt, 0deg)); }
+  45% { opacity: 1; transform: scale(var(--k, 1)) rotate(calc(var(--tilt, 0deg) + 25deg)); }
+  100% { opacity: 0; transform: scale(calc(var(--k, 1) * 0.3)) rotate(calc(var(--tilt, 0deg) + 60deg)); }
+}
+.box-stage > .gem-fx { margin: auto; width: 96px; height: 96px; animation: gem-bob 3.2s ease-in-out infinite; transition: transform 0.35s var(--spring); }
+.box:hover:not(:disabled) .box-stage > .gem-fx { transform: scale(1.12) rotate(-4deg); }
 @keyframes glint { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
 .box-name { font-size: 18px; text-transform: uppercase; letter-spacing: 6px; padding-left: 6px; color: var(--tier); text-shadow: 0 0 12px color-mix(in srgb, var(--tier) 60%, transparent); }
 .box-price { margin-top: 4px; padding: 4px 14px; font-size: 18px; border-radius: 999px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 209, 64, 0.22); }
-.box.cant-afford .box-stage { opacity: 0.6; }
-.box.cant-afford .box-price { color: var(--bad); border-color: rgba(255, 138, 138, 0.3); }
+/* Too dear: the whole card greyed out and dimmed, its price no different from the rest. */
+.box.cant-afford { filter: grayscale(0.75) brightness(0.8); opacity: 0.5; }
+.box.cant-afford .box-gem { animation: none; }
+.box.cant-afford .box-mist, .box.cant-afford .box-glint, .box.cant-afford .gem-fx { display: none; }
 .box.sold-out { border-color: rgba(255, 255, 255, 0.1); --wash: 0%; }
 .box.sold-out .box-gem { filter: grayscale(1) brightness(0.45); animation: none; }
-.box.sold-out .box-mist, .box.sold-out .box-glint { display: none; }
+.box.sold-out .box-mist, .box.sold-out .box-glint, .box.sold-out .gem-fx { display: none; }
 .box.sold-out .box-name { color: var(--dim); text-shadow: none; }
 .box.sold-out .box-price { color: var(--muted); font-size: 12px; letter-spacing: 3px; text-transform: uppercase; border-color: rgba(255, 255, 255, 0.12); }
 
@@ -583,7 +612,8 @@ kbd {
   animation: confirm-in 0.3s var(--spring) both;
 }
 @keyframes confirm-in { from { opacity: 0; transform: scale(0.9) translateY(8px); } }
-.confirm-gem { width: 84px; height: 84px; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tier) 60%, transparent)); animation: gem-bob 3.2s ease-in-out infinite; }
+.confirm-gem { position: relative; width: 84px; height: 84px; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tier) 60%, transparent)); animation: gem-bob 3.2s ease-in-out infinite; }
+.confirm-gem img { display: block; width: 100%; height: 100%; }
 .confirm-name { font-size: 22px; text-transform: uppercase; letter-spacing: 6px; padding-left: 6px; color: var(--tier); text-shadow: 0 0 12px color-mix(in srgb, var(--tier) 60%, transparent); }
 .confirm-question { font-size: 16px; color: #ddd; }
 .confirm-actions { display: flex; gap: 10px; margin-top: 10px; width: 100%; }
@@ -628,6 +658,8 @@ kbd {
 .breaker-shard { position: absolute; inset: 0; pointer-events: none; }
 .breaker-shard .breaker-gem { animation: none; visibility: visible !important; }
 .breaker-shard .breaker-img, .breaker-shard .breaker-cracks, .breaker-shard .breaker-shine { animation: none; }
+.breaker-gem .gem-fx { animation: gem-bob 3.2s ease-in-out infinite; }
+.breaker-shard .gem-fx { display: none; }
 .breaker-shard .breaker-img { filter: brightness(1.35); } /* a drop-shadow here renders dark inside the clip */
 .breaker-shard .breaker-cracks path { animation: none; stroke-dashoffset: 0; }
 .breaker-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 45%, #fff, color-mix(in srgb, var(--tier) 60%, #fff) 35%, color-mix(in srgb, var(--tier) 40%, transparent) 75%); }
@@ -635,7 +667,7 @@ kbd {
 .breaker-hint.show { opacity: 1; animation: breathe 2s ease-in-out 0.5s infinite; }
 .breaker-hint.gone { opacity: 0 !important; animation: none; transition: opacity 0.15s; }
 
-.tooltip { position: fixed; z-index: 10; width: 330px; padding: 14px 16px; background: rgba(8, 8, 10, 0.97); border: 1px solid rgba(255, 255, 255, 0.14); border-top: 2px solid var(--tier, #fff); border-radius: 8px; box-shadow: 0 0 30px color-mix(in srgb, var(--tier, #fff) 15%, transparent), 0 12px 34px rgba(0, 0, 0, 0.7); pointer-events: none; animation: fade 0.15s ease-out both; }
+.tooltip { position: fixed; z-index: 10; width: 330px; padding: 14px 16px; background: rgba(8, 8, 10, 0.97); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; box-shadow: 0 0 30px color-mix(in srgb, var(--tier, #fff) 15%, transparent), 0 12px 34px rgba(0, 0, 0, 0.7); pointer-events: none; animation: fade 0.15s ease-out both; }
 .t-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .t-icon { width: 48px; height: 48px; flex: none; border-radius: 8px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier, #fff) 55%, transparent), 0 0 14px color-mix(in srgb, var(--tier, #fff) 30%, transparent); }
 .t-name { font-size: 22px; text-transform: uppercase; letter-spacing: 3px; }

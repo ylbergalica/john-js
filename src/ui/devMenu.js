@@ -69,9 +69,16 @@ export class DevMenu {
       h('button', { class: 'tool', title: 'Reset to 1×', onclick: () => this.setSpeed(1) },
         icon('speed'), h('span', { class: 'grow', text: 'Game speed' }), this.speedValue),
       this.speedSlider);
+    // Go to floor N (runs only; the playground has no floors).
+    this.floorInput = h('input', { type: 'number', min: 1, step: 1, class: 'tool-number',
+      onkeydown: (e) => { if (e.code === 'Enter' || e.code === 'NumpadEnter') this.goToFloor(); } });
+    const goTo = this.scene.session.scalesDifficulty ? h('div', { class: 'tool-floor' },
+      h('button', { class: 'tool', onclick: () => this.goToFloor() },
+        icon('floor'), h('span', { class: 'grow', text: 'Go to floor' })),
+      this.floorInput) : null;
     this.el = h('div', { class: 'tool-menu dev interactive hidden' },
       h('div', { class: 'tool-head' }, h('span', { text: 'Dev tools' }), keycap('`')),
-      h('div', { class: 'tool-group' }, actions),
+      h('div', { class: 'tool-group' }, actions, goTo),
       h('div', { class: 'tool-rule' }),
       h('div', { class: 'tool-group' }, this.switches.map(({ b }) => b)),
       h('div', { class: 'tool-rule' }),
@@ -85,6 +92,15 @@ export class DevMenu {
   setOpen(on) {
     this.open = on;
     this.el.classList.toggle('hidden', !on);
+    if (on) this.floorInput.value = this.scene.session.floor;
+    else this.floorInput.blur();
+  }
+
+  goToFloor() {
+    const floor = Math.floor(Number(this.floorInput.value));
+    if (!(floor >= 1)) return;
+    this.scene.setMenu(null);
+    this.scene.world.requestNextFloor(floor);
   }
 
   trigger(action) {

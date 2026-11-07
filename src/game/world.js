@@ -361,11 +361,16 @@ export class World {
     if (healed >= fh.amount) this.floorHeal = null;
   }
 
-  requestNextFloor() { this.nextFloorRequested = true; }
+  // `floor`: jump straight to that floor (dev tools), uncleared, instead of the next one.
+  requestNextFloor(floor) { this.nextFloorRequested = floor ?? true; }
 
-  advanceFloor() {
-    this.session.floorCleared();
-    if (this.session.scalesDifficulty) this.session.floor++;
+  advanceFloor(floor) {
+    if (floor === undefined) {
+      this.session.floorCleared();
+      if (this.session.scalesDifficulty) this.session.floor++;
+    } else if (this.session.scalesDifficulty) {
+      this.session.floor = floor;
+    }
     const health = this.player.health, buffs = this.player.buffs.carry(), aspects = this.player.aspects.carry(); // the player is rebuilt each floor
     this.startFloor();
     if (health > 0) this.carryHealth(health);
@@ -696,8 +701,9 @@ export class World {
     compact(this.props);
 
     if (this.nextFloorRequested) {
+      const floor = this.nextFloorRequested;
       this.nextFloorRequested = false;
-      this.advanceFloor();
+      this.advanceFloor(floor === true ? undefined : floor);
     }
   }
 

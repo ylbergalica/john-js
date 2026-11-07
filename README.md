@@ -33,7 +33,7 @@ For Steam, upload the whole `release/win-unpacked/` folder as a depot with `John
 
 The playground is a fixed test map (an arena with cover, a wide corridor and a 2-tile one to a side room) with no enemies of its own: spawn them from its menu. An enemy type becomes spawnable once you've killed one in a run (saved as `killedEnemyTypes`). Playground kills earn nothing.
 
-Dev builds only (`npm run dev`): `` ` `` opens the dev tools menu at the top left: heal, refresh cooldowns, fill adrenaline, collect a core, next floor, kill player, spawn enemies (in runs too), and switches for the combat readout, 100% resistance, dealing no damage, noclip (also 3× move speed) and unlocking every enemy in the spawn menu (switches persist as `john.devFlags`). H heal, R refresh cooldowns and G noclip also work as hotkeys. Console helpers: `john.addCoins(10000)`, `john.resetSave()`, `john.start('run' | 'playground')` and `john.advance(seconds)`.
+Dev builds only (`npm run dev`): `` ` `` opens the dev tools menu at the top left: heal, refresh cooldowns, fill adrenaline, collect a core, next floor, go to floor N (runs only), kill player, spawn enemies (in runs too), and switches for the combat readout, 100% resistance, dealing no damage, noclip (also 3× move speed) and unlocking every enemy in the spawn menu (switches persist as `john.devFlags`). H heal, R refresh cooldowns and G noclip also work as hotkeys. Console helpers: `john.addCoins(10000)`, `john.addAspect(id)`, `john.unlockAspects(tier?)` (a tier name or number; none for all), `john.finishTutorial()`, `john.lock(id)`, `john.resetSave()`, `john.start('run' | 'playground')` and `john.advance(seconds)`.
 
 ## Architecture
 

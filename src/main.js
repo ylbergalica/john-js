@@ -14,6 +14,7 @@ import { sfx } from './audio/sfx.js';
 import { setPresence } from './ui/presence.js';
 import { installMenuNav } from './ui/nav.js';
 import { settings, onSettingsChange } from './meta/settings.js';
+import { ASPECTS, TIERS } from './data/config.js';
 import '@fontsource/cinzel/latin-600.css'; // the logo's face (ui/common.js logo)
 import './style.css';
 
@@ -77,9 +78,23 @@ function startGame(mode) {
 }
 
 if (import.meta.env.DEV) {
-  // Console helpers for testing: john.addCoins(), john.lock(aspectId), john.resetSave(), john.tutorial(), john.advance(seconds).
+  // Console helpers for testing: john.addCoins(), john.addAspect(aspectId), john.unlockAspects(tier?),
+  // john.lock(aspectId), john.finishTutorial(), john.resetSave(), john.tutorial(), john.advance(seconds).
+  // A tier is its name ('mythic') or number (AspectTier); none unlocks every aspect.
+  const tierOf = (t) => (typeof t === 'string' ? TIERS.find((x) => x.name.toLowerCase() === t.toLowerCase())?.tier : t);
   window.john = {
     addCoins(n = 10000) { profile.bankCoins(n); showMenu(); },
+    addAspect(id) {
+      if (!profile.unlock(id)) return console.warn(`No aspect '${id}'. Ids: ${ASPECTS.map((a) => a.id).join(', ')}`);
+      showMenu();
+    },
+    unlockAspects(tier) {
+      const t = tier === undefined ? undefined : tierOf(tier);
+      if (tier !== undefined && !TIERS.some((x) => x.tier === t)) return console.warn(`No tier '${tier}'. Tiers: ${TIERS.map((x) => `${x.name} (${x.tier})`).join(', ')}`);
+      for (const a of ASPECTS) if (t === undefined || a.tier === t) profile.unlock(a.id);
+      showMenu();
+    },
+    finishTutorial() { profile.completeTutorial(); },
     lock(id) { profile.lock(id); showMenu(); },
     resetSave() { profile.reset(); showMenu(); },
     tutorial() { profile.forgetTutorial(); startGame(RunMode.Run); }, // a run as if it were the first

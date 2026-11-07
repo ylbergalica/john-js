@@ -112,6 +112,16 @@ export const profile = {
     save.write();
   },
 
+  // Gives an aspect without its box (for testing). False for an unknown id.
+  unlock(id) {
+    if (!byId.has(id)) return false;
+    if (!profile.isUnlocked(id)) {
+      save.data.unlockedAspectIds.push(id);
+      save.write();
+    }
+    return true;
+  },
+
   // Takes an aspect away again (for testing): unequipped and locked, so its tier's box can roll it.
   lock(id) {
     save.data.unlockedAspectIds = save.data.unlockedAspectIds.filter((a) => a !== id);

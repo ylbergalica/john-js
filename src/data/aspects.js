@@ -398,8 +398,8 @@ export const ASPECTS = [
     // sameShownAfter hits in a row on one enemy, by those (whichever is further). twitchDelay
     // after it's all out it twitches once into a new shape, with a second clap of thunder, then
     // holds still for `hold` and fades over `fade`.
-    chainHits: 5, sameHits: 10, sameShownAfter: 5, comboTime: 6, reach: 7, maxTargets: 10,
-    damage: 3, soloDamage: 5, arcDamage: 2, hitRadius: 0.3, enemyKnockbackForce: 2,
+    chainHits: 3, sameHits: 5, sameShownAfter: 0, comboTime: 6, reach: 7, maxTargets: 10,
+    damage: 4, soloDamage: 6, arcDamage: 2, hitRadius: 0.3, enemyKnockbackForce: 2,
     speed: 150, minJumpTime: 0.01, // how fast it runs along a line, and the least any one jump takes
     twitchDelay: 0.05, hold: 0.35, fade: 0.35, soloTime: 0.06, soloReach: 4.5, // how far out from the enemy alone its arcs crawl
     // The look (src/aspects/thunder.js): jagged bolts, white-hot down the middle in a

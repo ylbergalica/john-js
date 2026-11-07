@@ -82,7 +82,7 @@ export class ThunderAspect extends Aspect {
     const relay = now >= this.recrackleAt;
     if (relay) {
       this.recrackleAt = now + S.every;
-      clearGraphics(this.crackles);
+      this.crackles.clear();
     }
     clearGraphics(this.staticGlow);
     clearGraphics(this.staticLines);

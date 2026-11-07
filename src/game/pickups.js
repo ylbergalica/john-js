@@ -59,7 +59,7 @@ class MagnetPickup extends Entity {
     if (d <= magneticRange) {
       this.attracted = true;
       this.body.damping = 0;
-      const speed = magneticSpeed * (1 - d / magneticRange) ** 2;
+      const speed = magneticSpeed * (1 - d / magneticRange); // linear: still outruns the player well out from it
       this.body.vel.x = d > 0 ? (dx / d) * speed : 0;
       this.body.vel.y = d > 0 ? (dy / d) * speed : 0;
     } else if (this.attracted) {

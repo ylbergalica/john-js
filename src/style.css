@@ -496,7 +496,8 @@ kbd {
 .collection-tile:hover:not(:disabled) { background: #0a0a0a; border-color: var(--tier); box-shadow: 0 0 24px color-mix(in srgb, var(--tier) 50%, transparent); transform: translateY(-3px) scale(1.06); }
 .collection-tile.equipped { border: 2px solid var(--tier); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tier) 22%, transparent), 0 0 20px color-mix(in srgb, var(--tier) 45%, transparent); }
 .collection-tile.unavailable img { filter: grayscale(0.6) brightness(0.55); }
-.tile-check { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; color: #000; background: var(--tier); box-shadow: 0 0 8px var(--tier); }
+.tile-star { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; background: var(--tier); box-shadow: 0 0 8px var(--tier); }
+.tile-star::before { content: ""; position: absolute; inset: 3px; background: #000; clip-path: path("M14 7 Q8.1 8.1 7 14 Q5.9 8.1 0 7 Q5.9 5.9 7 0 Q8.1 5.9 14 7 Z"); } /* the four-point sparkle (paint.js sparkle) */
 
 .boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 /* Tier cards: a wash of the tier colour behind the gem, an inner hairline frame with

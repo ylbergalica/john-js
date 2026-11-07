@@ -316,7 +316,7 @@ export class MenuScene {
       const canEquip = equipped || profile.canEquipMore();
       const tile = h('button', { class: `collection-tile${equipped ? ' equipped' : ''}${canEquip ? '' : ' unavailable'}`, onclick: () => this.clicked() && this.toggleEquip(a.id) },
         h('img', { src: iconUrls[a.icon], alt: a.displayName }),
-        equipped ? h('span', { class: 'tile-check', text: '✓' }) : null,
+        equipped ? h('span', { class: 'tile-star' }) : null,
       );
       this.tips.attach(tile, () => a);
       this.draggable(tile, () => a, false);

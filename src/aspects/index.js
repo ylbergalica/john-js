@@ -20,6 +20,7 @@ import { OracleAspect } from './oracle.js';
 import { BlackRoseAspect } from './blackrose.js';
 import { NebulaAspect } from './nebula.js';
 import { MoonsilkAspect } from './moonsilk.js';
+import { ZephyrAspect } from './zephyr.js';
 
 const ASPECT_TYPES = {
   anchor: AnchorAspect,
@@ -43,6 +44,7 @@ const ASPECT_TYPES = {
   blackrose: BlackRoseAspect,
   nebula: NebulaAspect,
   moonsilk: MoonsilkAspect,
+  zephyr: ZephyrAspect,
 };
 
 export function createAspect(player, data) {

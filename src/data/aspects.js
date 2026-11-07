@@ -806,6 +806,35 @@ export const ASPECTS = [
     },
   },
   {
+    id: 'zephyr', displayName: 'Zephyr', tier: AspectTier.Prestige, icon: 'zephyr_icon', activatable: false, stat: null,
+    quote: 'The wind never stops to breathe.',
+    description: 'Your blade turns to wind. Hold to keep cutting.',
+    // It changes the player's swings (AspectController.attack, over PLAYER.attack): they come
+    // `cooldown` apart, hit or miss, each over by the next (attackDuration), and holding the
+    // attack key keeps them coming (`hold`). Each deals attackDamage (half the usual), knocks
+    // enemies back far less (enemyKnockbackForce) and the player barely recoils
+    // (playerKnockbackForce), so they stay in reach; a hit holds the world still `hitstop` as long
+    // as usual (a kill killHitstop) and shakes the camera `shake` as hard, so the flurry
+    // doesn't stutter. Its swings are its own (`ownLook`, src/aspects/zephyr.js) and sound
+    // softer (`sound`). The hitbox is the usual one.
+    attack: {
+      cooldown: 0.135, cooldownAfterHit: 0.135, attackDuration: 0.08, attackDamage: 0.5, // 7 steps apart: ~7.1 a second
+      enemyKnockbackForce: 3, playerKnockbackForce: 0.25,
+      hitstop: 0.2, killHitstop: 0.6, shake: 0.35,
+      hold: true, ownLook: true, sound: 'zephyrSwing',
+    },
+    // The look: each swing is a round crescent in the usual swings' white over periwinkle,
+    // sweeping about the player (ZEPHYR_ARC, src/render/sprites/aspects/zephyr.js) over `time`,
+    // drawn `alpha` see-through, every other one the other way, centred on the aim so it reaches
+    // as far round either side, and scaled up to `scale` either way at random. Its
+    // head sheds `motes` as it sweeps, blown on round the arc. Sizes in world units, [min, max]
+    // picks at random.
+    fx: {
+      time: 0.14, alpha: 0.68, scale: 0.06,
+      motes: { rate: 90, size: [0.07, 0.14], life: [0.14, 0.26], speed: [1.5, 3.5], alpha: 0.6, color: 0xffffff, fade: 0x8a9cff },
+    },
+  },
+  {
     id: 'blackrose', displayName: 'Black Rose', tier: AspectTier.Mythic, icon: 'blackrose_icon', activatable: false, stat: null,
     // Two events at the cursor (src/aspects/blackrose.js), each `time` long and striking at
     // `strikeAt` everything (enemies and props) touching the circle of `radius` round it:

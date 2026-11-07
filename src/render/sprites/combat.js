@@ -80,7 +80,7 @@ export function arcBlade({ cx, cy, r, from, to, width, profile }, n = 56) {
 }
 
 // Player slashes share one palette: white cores over a periwinkle glow.
-const SLASH = { glow: rgba('#8a9cff', 0.95), body: '#dfe5ff', tipColor: '#b4c2ff' };
+export const SLASH = { glow: rgba('#8a9cff', 0.95), body: '#dfe5ff', tipColor: '#b4c2ff' };
 
 // `stops`: [offset, colour] along the line from `from` (the tip) to `to`, in place of the
 // usual pale tip fading to white.

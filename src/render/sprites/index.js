@@ -51,6 +51,7 @@ import { ORACLE, oracleDisc, oracleGlow, oracleIcon } from './aspects/oracle.js'
 import { blackRoseIcon } from './aspects/blackrose.js';
 import { nebulaIcon } from './aspects/nebula.js';
 import { moonsilkIcon } from './aspects/moonsilk.js';
+import { zephyrSwingFrames, zephyrIcon } from './aspects/zephyr.js';
 import { thunderIcon } from './aspects/thunder.js';
 import { phoenixIcon } from './aspects/phoenix.js';
 import { coinIcon, GEM_CUTS, gemIcon } from './ui.js';
@@ -63,6 +64,7 @@ export function animations() {
     third_swing: swingFrames(SWINGS.third),
     fourth_swing: swingFrames(SWINGS.fourth),
     momentum_chop: chopFrames(),
+    zephyr_swing: zephyrSwingFrames(),
     parry: parryFrames(),
     parry_connect: parryConnectFrames(),
     hit_impact: hitImpactFrames(),
@@ -203,6 +205,7 @@ export function icons() {
     blackrose_icon: blackRoseIcon(),
     nebula_icon: nebulaIcon(),
     moonsilk_icon: moonsilkIcon(),
+    zephyr_icon: zephyrIcon(),
     coin_icon: coinIcon(),
     anger_sign: angerSign(),
     buff_swift: swiftGlyph(),

@@ -213,6 +213,11 @@ const SOUNDS = {
   swing(v) {
     noise(v, { freq: 900, to: 2800, q: 1.2, dur: 0.13, vol: 0.28, attack: 0.02 });
   },
+  // Zephyr's swings, several a second: a short, soft gust whirling up, lighter than a swing.
+  zephyrSwing(v) {
+    noise(v, { freq: 1300, to: 3600, q: 0.9, dur: 0.08, vol: 0.11, attack: 0.012 });
+    noise(v, { filter: 'highpass', freq: 4200, to: 6500, q: 0.7, dur: 0.06, vol: 0.035, attack: 0.01 });
+  },
   dash(v) {
     noise(v, { freq: 350, to: 1800, q: 0.8, dur: 0.18, vol: 0.3, attack: 0.02 });
     tone(v, { type: 'sine', freq: 160, to: 320, dur: 0.12, vol: 0.06 });

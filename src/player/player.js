@@ -101,6 +101,7 @@ export class Player extends Entity {
     if (input.wasPressed('exalted')) this.world.adrenaline.activate();
 
     if (input.wasPressed('attack')) this.attackBuffer.press(now);
+    else if (this.aspects.attack.hold && !this.reeledBy && input.isHeld('attack')) this.attackBuffer.press(now); // held: keeps swinging
     if (this.attacking && now >= this.attackEndsAt) this.endAttack();
     this.attackBuffer.consume(now, () => this.tryStartAttack());
 
@@ -196,16 +197,19 @@ export class Player extends Entity {
     if (this.reeledBy) { this.reeledBy.struggle(this); return true; } // caught in web: they only shake it
     if (now < this.attackReadyAt || this.attacking || this.parrying || this.teleporting) return false;
     this.aspects.beforeAttack();
-    this.attackReadyAt = now + A.cooldown * this.buffs.cooldownMultiplier;
+    const S = this.aspects.attack;
+    this.attackReadyAt = now + S.cooldown * this.buffs.cooldownMultiplier;
     this.attacking = true;
     this.attackFacing = this.aim; // after beforeAttack, which may have moved them
-    this.attackEndsAt = now + A.attackDuration;
+    this.attackEndsAt = now + S.attackDuration;
     this.attackContacts.clear();
-    this.view.playSwing();
-    this.world.sound('swing');
+    this.world.sound(S.sound);
     const p = this.attackPoint;
     const angle = Math.atan2(this.attackFacing.y, this.attackFacing.x);
-    this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.swingTint });
+    if (!S.ownLook) {
+      this.view.playSwing();
+      this.world.effects.burst(p.x, p.y, angle, { ...PARTICLES.swing, color: this.view.swingTint });
+    }
     this.buffs.view.swung(p, angle);
     this.aspects.onSwing();
     this.swingAtWall();
@@ -230,20 +234,20 @@ export class Player extends Entity {
     this.view.hideSwing();
   }
 
-  get attackDamage() { return A.attackDamage * this.world.adrenaline.damageMultiplier * this.buffs.damageMultiplier * this.aspects.damageMultiplier; }
+  get attackDamage() { return this.aspects.attack.attackDamage * this.world.adrenaline.damageMultiplier * this.buffs.damageMultiplier * this.aspects.damageMultiplier; }
 
   onAttackHit(enemy) {
     if (enemy.dead) return;
-    const src = this.attackPoint;
+    const src = this.attackPoint, S = this.aspects.attack;
     const hitPoint = enemy.closestPoint(src);
     // Turned by a shield (a Bulwark's), the blow glances off and the sword is thrown back.
-    if (!enemy.takeDamage(this.attackDamage, hitPoint, src, DamageCause.Attack)) { this.applyRecoil(A.playerKnockbackForce * SHIELD.glance.recoil); return; }
+    if (!enemy.takeDamage(this.attackDamage, hitPoint, src, DamageCause.Attack)) { this.applyRecoil(S.playerKnockbackForce * SHIELD.glance.recoil); return; }
     this.view.playHitImpact(hitPoint);
-    this.world.holdStill(enemy.dead ? ENEMY_HIT.killHitstop : ENEMY_HIT.hitstop);
-    this.world.camera.shakeAtLeast(ENEMY_HIT.shake);
-    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
-    if (!enemy.dead) enemy.applyKnockback(A.enemyKnockbackForce, src, this.swingFacing);
-    this.applyRecoil(A.playerKnockbackForce);
+    this.world.holdStill(enemy.dead ? ENEMY_HIT.killHitstop * S.killHitstop : ENEMY_HIT.hitstop * S.hitstop);
+    this.world.camera.shakeAtLeast(S.shake === 1 ? ENEMY_HIT.shake : { ...ENEMY_HIT.shake, strength: ENEMY_HIT.shake.strength * S.shake });
+    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + S.cooldownAfterHit * this.buffs.cooldownMultiplier);
+    if (!enemy.dead) enemy.applyKnockback(S.enemyKnockbackForce, src, this.swingFacing);
+    this.applyRecoil(S.playerKnockbackForce);
     this.aspects.onHitEnemy(enemy, hitPoint);
   }
 
@@ -255,8 +259,9 @@ export class Player extends Entity {
     const hitPoint = prop.closestPoint(src);
     prop.takeDamage(this.attackDamage, hitPoint, src);
     this.view.playHitImpact(hitPoint);
-    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + A.cooldownAfterHit * this.buffs.cooldownMultiplier);
-    this.applyRecoil(A.playerKnockbackForce);
+    const S = this.aspects.attack;
+    this.attackReadyAt = Math.min(this.attackReadyAt, this.now + S.cooldownAfterHit * this.buffs.cooldownMultiplier);
+    this.applyRecoil(S.playerKnockbackForce);
     this.aspects.onHitProp(prop, hitPoint);
   }
 

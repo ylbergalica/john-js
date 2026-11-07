@@ -11,6 +11,14 @@ export class AspectController {
     // Each remembers its loadout slot: slot i fires on key i + 1, even with gaps before it.
     this.aspects = profile.loadout().flatMap((data, slot) => (data ? [Object.assign(createAspect(player, data), { slot })] : []));
     this.buffers = this.aspects.map(() => new InputBuffer(PLAYER.inputBufferTime));
+    // The player's swings: PLAYER.attack, as an equipped aspect changes it (its data's `attack`).
+    // `hold`: holding the attack key keeps swinging; `ownLook`: the aspect draws its swings, in
+    // place of the usual ones and their burst; `sound`: what a swing sounds like; hitstop,
+    // killHitstop and shake: how a hit feels, × the usual (ENEMY_HIT).
+    this.attack = {
+      ...PLAYER.attack, hold: false, ownLook: false, sound: 'swing', hitstop: 1, killHitstop: 1, shake: 1,
+      ...this.aspects.find((a) => a.data.attack)?.data.attack,
+    };
     const events = player.world.events;
     this.unsubscribe = [
       events.enemyDamaged.on((enemy, damage, cause) => this.others(cause, (a) => a.onEnemyDamaged(enemy, damage, cause))),
